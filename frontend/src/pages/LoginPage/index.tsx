@@ -1,15 +1,17 @@
-﻿import { useState } from 'react';
-import { GraduationCap } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Separator } from '../../components/ui/separator';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { toast } from 'sonner@2.0.3';
-import { mockUsers } from '../../data';
-import { User } from '../../types';
-import { mockGoogleAccounts } from '../../app/useDemoAppState';
+import { useState } from 'react';
+import { GraduationCap, Users, BookOpen, TrendingUp, Award, Video, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { mockUsers } from '@/services/mocks';
+import { User } from '@/types';
+import { mockGoogleAccounts } from '@/hooks/useDemoAppState';
+import { AnimatedSection } from '@/utils/animations';
+import { StatsCounter } from '@/components/shared/StatsCounter';
 
 interface LoginPageProps {
   onLogin: (user: User, googlePicture?: string) => void;
@@ -45,31 +47,87 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
     
     setShowGoogleModal(false);
-    toast.success(`ÄÄƒng nháº­p thÃ nh cÃ´ng vá»›i ${googleAccount.email}`);
+    toast.success(`Đăng nhập thành công với ${googleAccount.email}`);
     setTimeout(() => onLogin(user!, googleAccount.picture), 300);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1E88E5] to-[#1565C0] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center pb-8">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-              <GraduationCap className="w-12 h-12 text-[#1E88E5]" />
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background with image and gradient overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: 'url(https://images.unsplash.com/photo-1608986596619-eb50cc56831f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBvbmxpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NjA1Mjc4NDB8MA&ixlib=rb-4.1.0&q=80&w=1080)',
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1E88E5]/95 via-[#1565C0]/92 to-[#0D47A1]/95"></div>
+      </div>
+
+      {/* Floating shapes decoration */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-6xl">
+          {/* Logo and Tagline */}
+          <AnimatedSection animation="fade-up" className="text-center mb-8">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <div className="relative">
+                <GraduationCap className="w-16 h-16 text-white" />
+                <div className="absolute -inset-2 bg-white/20 rounded-full blur-xl"></div>
+              </div>
+              <h1 
+                className="text-white"
+                style={{
+                  fontSize: '3.5rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  textShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                }}
+              >
+                EduLearn
+              </h1>
             </div>
-          </div>
-          <CardTitle className="text-3xl mb-2">ChÃ o má»«ng Ä‘áº¿n EduLearn</CardTitle>
-          <CardDescription className="text-base">
-            Ná»n táº£ng há»c táº­p trá»±c tuyáº¿n cho má»i ngÆ°á»i
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+            <p className="text-white/90 text-xl mb-2">Học tập không giới hạn, Tri thức mọi lúc mọi nơi</p>
+            <div className="flex items-center justify-center gap-2 text-white/70">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-sm">Nền tảng học tập trực tuyến hàng đầu Việt Nam</span>
+            </div>
+          </AnimatedSection>
+
+          <div className="max-w-md mx-auto">
+            {/* Login Card */}
+            <AnimatedSection animation="fade-up" delay={100}>
+              <Card className="bg-white/95 backdrop-blur-xl shadow-2xl border-white/50">
+                <CardHeader className="text-center pb-6">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#1E88E5] to-[#1565C0] rounded-full flex items-center justify-center shadow-lg">
+                      <GraduationCap className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <CardTitle 
+                    className="mb-2"
+                    style={{
+                      fontSize: '1.875rem',
+                      background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
+                  >
+                    Chào mừng trở lại!
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    Đăng nhập để tiếp tục học tập
+                  </CardDescription>
+                </CardHeader>
+        <CardContent className="space-y-6 px-8">
           {/* Google Sign In Button */}
           <Button
             type="button"
             size="lg"
             variant="outline"
-            className="w-full h-12 text-base hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+            className="w-full h-12 text-base hover:bg-gray-50 hover:border-gray-400 hover:scale-[1.02] transition-all shadow-sm"
             onClick={() => setShowGoogleModal(true)}
           >
             <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24">
@@ -78,54 +136,76 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            ÄÄƒng nháº­p vá»›i Google
+            Đăng nhập với Google
           </Button>
 
           <div className="relative">
             <Separator />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-white px-3 text-sm text-gray-500">Hoáº·c sá»­ dá»¥ng tÃ i khoáº£n demo</span>
+              <span className="bg-white px-3 text-sm text-gray-500">Hoặc sử dụng tài khoản demo</span>
             </div>
           </div>
 
           {/* Demo Accounts */}
-          <div className="space-y-2">
-            {mockUsers.map(user => (
-              <button
+          <div className="space-y-3">
+            {mockUsers.map((user, index) => (
+              <div
                 key={user.id}
-                className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200 hover:border-[#1E88E5] hover:bg-[#1E88E5]/5 transition-all text-left"
-                onClick={() => handleQuickLogin(user)}
+                style={{ animationDelay: `${index * 50}ms` }}
+                className="animate-in slide-in-from-top-2"
               >
-                <Avatar className="w-10 h-10">
-                  <AvatarFallback className="bg-[#1E88E5] text-white">
-                    {user.avatar}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm truncate">{user.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {user.role === 'admin' ? 'Quáº£n trá»‹ viÃªn' : 'NgÆ°á»i dÃ¹ng'} â€¢ {user.email}
+                <button
+                  className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 hover:border-[#1E88E5] hover:bg-[#1E88E5]/5 hover:scale-[1.02] transition-all text-left hover:shadow-md"
+                  onClick={() => handleQuickLogin(user)}
+                >
+                  <Avatar className="w-12 h-12">
+                    <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white" style={{ fontSize: '1.125rem' }}>
+                      {user.avatar}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm truncate" style={{ fontWeight: 600 }}>{user.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${
+                      user.role === 'admin' 
+                        ? 'bg-yellow-100 text-yellow-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {user.role === 'admin' ? '👑 Admin' : '👤 User'}
+                    </span>
                   </div>
-                </div>
-              </button>
+                </button>
+              </div>
             ))}
           </div>
 
           <Alert className="bg-blue-50 border-blue-200">
-            <AlertDescription className="text-sm text-blue-800">
-              <strong>Demo:</strong> CÃ¡c tÃ i khoáº£n trÃªn dÃ¹ng Ä‘á»ƒ test nhanh. Trong mÃ´i trÆ°á»ng thá»±c táº¿, chá»‰ cÃ³ Ä‘Äƒng nháº­p Google.
+            <AlertDescription className="text-sm text-blue-800 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span><strong>Demo:</strong> Chọn tài khoản để trải nghiệm hệ thống</span>
             </AlertDescription>
           </Alert>
         </CardContent>
-        <CardFooter className="flex-col space-y-4 text-center text-sm text-gray-600">
+        <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
           <p>
-            ChÆ°a cÃ³ tÃ i khoáº£n Google? <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="text-[#1E88E5] hover:underline">Táº¡o tÃ i khoáº£n</a>
+            Chưa có tài khoản Google? <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="text-[#1E88E5] hover:underline">Tạo tài khoản</a>
           </p>
           <p className="text-xs text-gray-500">
-            Báº±ng cÃ¡ch Ä‘Äƒng nháº­p, báº¡n Ä‘á»“ng Ã½ vá»›i <a href="#" className="text-[#1E88E5] hover:underline">Äiá»u khoáº£n dá»‹ch vá»¥</a> vÃ  <a href="#" className="text-[#1E88E5] hover:underline">ChÃ­nh sÃ¡ch báº£o máº­t</a> cá»§a chÃºng tÃ´i
+            Bằng cách đăng nhập, bạn đồng ý với <a href="#" className="text-[#1E88E5] hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-[#1E88E5] hover:underline">Chính sách bảo mật</a>
           </p>
         </CardFooter>
-      </Card>
+              </Card>
+            </AnimatedSection>
+          </div>
+
+          {/* Footer */}
+          <AnimatedSection animation="fade-up" delay={300}>
+            <div className="text-center mt-8 text-white/70 text-sm">
+              <p>© 2025 EduLearn Platform. Nền tảng học tập trực tuyến.</p>
+            </div>
+          </AnimatedSection>
+        </div>
+      </div>
 
       {/* Google Login Modal */}
       <Dialog open={showGoogleModal} onOpenChange={setShowGoogleModal}>
@@ -139,8 +219,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
             </div>
-            <DialogTitle className="text-2xl">ÄÄƒng nháº­p</DialogTitle>
-            <DialogDescription>Ä‘á»ƒ tiáº¿p tá»¥c tá»›i EduLearn</DialogDescription>
+            <DialogTitle className="text-2xl">Đăng nhập</DialogTitle>
+            <DialogDescription>để tiếp tục tới EduLearn</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-4">
             {mockGoogleAccounts.map((account, index) => (
@@ -168,11 +248,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <Separator />
           <div className="text-center py-4">
             <button onClick={() => setShowGoogleModal(false)} className="text-sm text-[#1E88E5] hover:text-[#1565C0] font-medium">
-              â† Quay láº¡i Ä‘Äƒng nháº­p khÃ¡c
+              ← Quay lại đăng nhập khác
             </button>
           </div>
           <div className="text-xs text-gray-500 text-center pb-2">
-            Báº±ng cÃ¡ch tiáº¿p tá»¥c, báº¡n Ä‘á»“ng Ã½ vá»›i Äiá»u khoáº£n dá»‹ch vá»¥ cá»§a chÃºng tÃ´i
+            Bằng cách tiếp tục, bạn đồng ý với Điều khoản dịch vụ của chúng tôi
           </div>
         </DialogContent>
       </Dialog>
@@ -181,4 +261,3 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 }
 
 export default LoginPage;
-

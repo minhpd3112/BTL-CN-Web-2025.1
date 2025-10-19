@@ -18,23 +18,37 @@
 
 ### Tech Stack
 ```
-Frontend:
-├── React 18.2+ (TypeScript)
-├── Vite (Build tool)
-└── TypeScript 5.0+
+Frontend Framework:
+├── React 18.3+ (TypeScript)
+├── Vite 6.3 (Build tool)
+└── TypeScript 5.4+
 
-Styling:
-├── Tailwind CSS v4.0
-└── Shadcn/UI components
+Styling & UI:
+├── Tailwind CSS v4.0 (latest)
+├── Shadcn/UI (47 components)
+├── Custom CSS modules (per-page styles.css)
+└── Global CSS (typography, variables, animations)
 
-State:
-└── Custom hooks (useDemoAppState)
+State Management:
+├── Custom hooks (useDemoAppState)
+├── Local state (useState)
+└── Props drilling for page communication
 
-Icons:
-└── Lucide React
+Animations:
+├── Custom AnimatedSection wrapper
+├── CSS transitions & keyframes
+└── React animations
+
+Icons & Assets:
+├── Lucide React (comprehensive icon set)
+└── Unsplash (image placeholders)
 
 Notifications:
-└── Sonner (toast library)
+└── Sonner v2.0.3 (toast notifications)
+
+Utilities:
+├── React Hook Form v7.55.0
+└── Date formatting utilities
 ```
 
 ### Architecture Pattern
@@ -44,21 +58,21 @@ Notifications:
 │  ┌───────────────────────────────┐  │
 │  │      Authentication Check     │  │
 │  └───────────────────────────────┘  │
-│              ↓                      │
+│              ↓                       │
 │  ┌───────────────────────────────┐  │
 │  │  LoginPage  │   AppShell      │  │
 │  └───────────────────────────────┘  │
-│              ↓                      │
+│              ↓                       │
 │  ┌───────────────────────────────┐  │
 │  │        useDemoAppState        │  │
 │  │  (Centralized State & Logic)  │  │
 │  └───────────────────────────────┘  │
-│              ↓                      │
+│              ↓                       │
 │  ┌───────────────────────────────┐  │
 │  │     Header + Sidebar          │  │
 │  │     Notifications             │  │
 │  └───────────────────────────────┘  │
-│              ↓                      │
+│              ↓                       │
 │  ┌───────────────────────────────┐  │
 │  │      Page Components          │  │
 │  │   (18 pages conditional)      │  │
@@ -74,11 +88,15 @@ Notifications:
 /
 ├── App.tsx                      # Entry point
 ├── /src
-│   ├── /app
-│   │   ├── AppShell.tsx         # Main shell (header, sidebar, routing)
+│   ├── /features
+│   │   └── /layout
+│   │       └── /components
+│   │           └── AppShell.tsx # Main shell (header, sidebar, routing)
+│   │
+│   ├── /hooks
 │   │   └── useDemoAppState.tsx  # State management hook
 │   │
-│   ├── /pages                   # 18 page components
+│   ├── /pages                   # 19 page components
 │   │   ├── LoginPage/
 │   │   ├── HomePage/
 │   │   ├── MyCoursesPage/
@@ -96,26 +114,35 @@ Notifications:
 │   │   ├── ManageUsersPage/
 │   │   ├── UserDetailPage/
 │   │   ├── ManageTagsPage/
-│   │   └── AccountSettingsPage/
+│   │   ├── AccountSettingsPage/
+│   │   └── TagDetailPage/
 │   │
 │   ├── /components
+│   │   ├── /figma
+│   │   │   └── ImageWithFallback.tsx
 │   │   └── /shared
 │   │       ├── CourseCard.tsx   # Reusable course card
-│   │       └── QuizEditor.tsx   # Quiz creation editor
+│   │       ├── QuizEditor.tsx   # Quiz creation editor
+│   │       └── StatsCounter.tsx # Animated counter component
 │   │
-│   ├── /data                    # Mock data (to be replaced with API)
-│   │   ├── index.ts
-│   │   ├── mockUsers.ts
-│   │   ├── mockCourses.ts
-│   │   ├── mockEnrollments.ts
-│   │   └── mockTags.ts
+│   ├── /services
+│   │   └── /mocks               # Mock data (to be replaced with API)
+│   │       ├── index.ts
+│   │       ├── mockUsers.ts
+│   │       ├── mockCourses.ts
+│   │       ├── mockEnrollments.ts
+│   │       └── mockTags.ts
 │   │
-│   └── /types
-│       └── index.ts             # TypeScript definitions
+│   ├── /types
+│   │   └── index.ts             # TypeScript definitions
+│   │
+│   ├── /utils
+│   │   └── animations.tsx       # Animation utilities
+│   │
+│   └── /styles
+│       └── globals.css          # Tailwind v4 + custom styles
 │
 ├── /components
-│   ├── /figma
-│   │   └── ImageWithFallback.tsx
 │   └── /ui                      # 47 Shadcn/UI components
 │       ├── button.tsx
 │       ├── card.tsx
@@ -139,7 +166,7 @@ Notifications:
 
 ### useDemoAppState Hook
 
-**Location**: `/src/app/useDemoAppState.tsx`
+**Location**: `/src/hooks/useDemoAppState.tsx`
 
 #### State Structure
 ```typescript
@@ -148,11 +175,16 @@ interface AppState {
   currentPage: Page;
   selectedCourse: Course | null;
   selectedUser: User | null;
+  selectedTag: Tag | null;
   
   // Authentication
   currentUser: User | null;
   currentRole: 'admin' | 'user' | null;
   userGooglePicture: string | null;
+  
+  // UI State
+  sidebarOpen: boolean;
+  showNotifications: boolean;
   
   // Notifications
   notifications: Notification[];
@@ -167,23 +199,32 @@ interface AppState {
 ```typescript
 interface AppActions {
   // Navigation
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, course?: Course) => void;
   setSelectedCourse: (course: Course | null) => void;
   setSelectedUser: (user: User | null) => void;
+  setSelectedTag: (tag: Tag | null) => void;
   
   // Authentication
-  handleLogin: (user: User) => void;
+  handleLogin: (user: User, googlePicture?: string) => void;
   handleLogout: () => void;
   
+  // UI State
+  setSidebarOpen: (open: boolean) => void;
+  setShowNotifications: (show: boolean) => void;
+  
   // Notifications
-  addNotification: (notification: Notification) => void;
-  markAsRead: (notificationId: string) => void;
+  markAsRead: (notificationId: number) => void;
   markAllAsRead: () => void;
+  handleNotificationClick: (notification: Notification) => void;
   
   // Enrollments
-  handleEnrollmentRequest: (request: EnrollmentRequest) => void;
-  approveEnrollment: (requestId: string) => void;
-  rejectEnrollment: (requestId: string, reason: string) => void;
+  handleEnrollRequest: (request: Omit<EnrollmentRequest, 'id' | 'status' | 'respondedAt'>) => void;
+  handleApproveRequest: (requestId: number) => void;
+  handleRejectRequest: (requestId: number) => void;
+  
+  // Permissions
+  isOwner: (course: Course) => boolean;
+  canAccessCourse: (course: Course) => boolean;
 }
 ```
 
@@ -214,16 +255,19 @@ export function MyPage() {
 #### Notification System
 ```typescript
 // Add notification
-actions.addNotification({
-  id: crypto.randomUUID(),
+const newNotification: Notification = {
+  id: Date.now(),
   type: 'course_approved',
   title: 'Khóa học được duyệt!',
   message: 'Khóa học React Advanced đã được admin duyệt',
   courseId: course.id,
+  userId: currentUser?.id,
+  timestamp: '2 giờ trước',
   read: false,
-  createdAt: new Date(),
-  navigateTo: 'course-detail' // Auto-navigation page
-});
+  icon: 'CheckCircle',
+  color: 'text-green-500',
+  action: { page: 'course-detail', courseId: course.id }
+};
 
 // Mark as read (also navigates)
 actions.markAsRead(notificationId);
@@ -253,24 +297,26 @@ type Page =
   | 'manage-users'
   | 'user-detail'
   | 'manage-tags'
-  | 'account-settings';
+  | 'account-settings'
+  | 'tag-detail';
 ```
 
 ### Navigation Flow
 ```typescript
 // AppShell.tsx - Routing logic
-<main>
+<main className="page-transition">
   {currentPage === 'home' && <HomePage {...props} />}
   {currentPage === 'my-courses' && <MyCoursesPage {...props} />}
   {currentPage === 'explore' && <ExplorePage {...props} />}
-  {/* ... all 18 pages */}
+  {currentPage === 'tag-detail' && <TagDetailPage {...props} />}
+  {/* ... all 19 pages */}
 </main>
 ```
 
 ### Protected Routes
 ```typescript
 // In useDemoAppState.tsx
-const navigateTo = (page: Page) => {
+const navigateTo = (page: Page, course?: Course) => {
   // Check authentication
   if (!currentUser && page !== 'login') {
     setCurrentPage('login');
@@ -293,6 +339,9 @@ const navigateTo = (page: Page) => {
   }
   
   setCurrentPage(page);
+  if (course) setSelectedCourse(course);
+  setSidebarOpen(false);
+  window.scrollTo(0, 0);
 };
 ```
 
@@ -307,14 +356,14 @@ navigateTo('create-course');
 #### 2. With Course Context
 ```typescript
 setSelectedCourse(course);
-navigateTo('course-detail');
+navigateTo('course-detail', course);
 ```
 
 #### 3. From Notification
 ```typescript
 const handleNotificationClick = (notification: Notification) => {
   actions.markAsRead(notification.id);
-  // Auto-navigates to notification.navigateTo
+  // Auto-navigates to notification.action.page
 };
 ```
 
@@ -331,8 +380,8 @@ All pages follow this structure:
 
 import { useState } from 'react';
 import { /* icons */ } from 'lucide-react';
-import { /* ui components */ } from '../../../components/ui/*';
-import { /* types */ } from '../../types';
+import { /* ui components */ } from '@/components/ui/*';
+import { /* types */ } from '@/types';
 
 interface ExamplePageProps {
   navigateTo: (page: Page) => void;
@@ -563,28 +612,56 @@ interface QuizQuestion {
 - **Preview Mode**: See formatted quiz
 - **Validation**: Check for missing data
 
+### 3. StatsCounter Component
+
+**Location**: `/src/components/shared/StatsCounter.tsx`
+
+**Props**:
+```typescript
+interface StatsCounterProps {
+  end: number;
+  duration?: number;
+  suffix?: string;
+  prefix?: string;
+}
+```
+
+**Features**:
+- Animated counting from 0 to target number
+- Customizable duration and suffix/prefix
+- Used in HomePage statistics section
+
 ---
 
 ## 📊 Data Layer
 
 ### Mock Data Structure
 
-**Location**: `/src/data/`
+**Location**: `/src/services/mocks/`
 
 #### mockUsers.ts
 ```typescript
 export const mockUsers: User[] = [
   {
-    id: '1',
-    email: 'admin@edulearn.com',
-    name: 'Admin Nguyễn',
-    avatar: 'AN',
-    role: 'admin',
-    status: 'active',
-    joinedDate: new Date('2024-01-01'),
-    coursesCreated: 5,
-    coursesEnrolled: 3,
-    totalStudents: 150
+    id: 1,
+    username: "admin",
+    password: "admin123",
+    role: "admin",
+    name: "Quản trị viên",
+    avatar: "QT",
+    email: "admin@edulearn.vn",
+    fullName: "Quản Trị Viên Hệ Thống",
+    phone: "0945678901",
+    bio: "Quản trị viên hệ thống EduLearn. Phụ trách duyệt khóa học và quản lý người dùng.",
+    joinedDate: "2022-01-01",
+    coursesCreated: 1,
+    coursesEnrolled: 5,
+    totalStudents: 500,
+    status: "active",
+    lastLogin: "2025-01-13 17:00",
+    location: "Hà Nội, Việt Nam",
+    createdAt: "2022-01-01T00:00:00Z",
+    updatedAt: "2025-01-13T17:00:00Z",
   },
   // ... more users
 ];
@@ -594,21 +671,26 @@ export const mockUsers: User[] = [
 ```typescript
 export const mockCourses: Course[] = [
   {
-    id: '1',
-    title: 'React Cơ Bản Đến Nâng Cao',
-    description: 'Khóa học toàn diện về React...',
-    image: 'https://images.unsplash.com/...',
-    ownerId: '2',
-    ownerName: 'Minh Tuấn',
-    ownerAvatar: 'MT',
-    visibility: 'public',
-    status: 'approved',
-    tags: ['React', 'JavaScript', 'Frontend'],
+    id: 1,
+    title: 'Lập trình React từ Cơ bản đến Nâng cao',
+    description: 'Khóa học toàn diện về React, từ components cơ bản đến hooks và state management',
+    overview: `## Bạn sẽ học được gì?
+    // ... markdown content
+    `,
+    ownerName: 'Nguyễn Văn A',
+    ownerId: 2,
+    ownerAvatar: 'NA',
     rating: 4.8,
     students: 1234,
-    duration: '12 giờ',
+    duration: '12 tuần',
+    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80',
+    tags: ['Web Development', 'JavaScript', 'Lập trình'],
+    status: 'approved',
+    visibility: 'public',
     lessons: 45,
-    createdAt: new Date('2024-06-01')
+    enrolledUsers: [3],
+    createdAt: '2024-01-15',
+    updatedAt: '2024-01-20'
   },
   // ... more courses
 ];
@@ -618,16 +700,31 @@ export const mockCourses: Course[] = [
 ```typescript
 export const mockEnrollments: Enrollment[] = [
   {
-    id: '1',
-    userId: '3',
-    courseId: '1',
-    status: 'approved',
-    message: 'Tôi muốn học React để phát triển sự nghiệp',
+    id: 1,
+    userId: 3,
+    courseId: 1,
+    enrolledAt: '2024-09-15',
     progress: 65,
-    requestedAt: new Date('2024-09-15'),
-    respondedAt: new Date('2024-09-15')
+    completedLessons: [1, 2, 3],
+    lastAccessAt: '2024-09-20'
   },
   // ... more enrollments
+];
+
+export const mockEnrollmentRequests: EnrollmentRequest[] = [
+  {
+    id: 1,
+    courseId: 1,
+    userId: 3,
+    userName: 'Lê Văn C',
+    userAvatar: 'LC',
+    userEmail: 'levanc@gmail.com',
+    status: 'pending',
+    message: 'Tôi muốn học React để phát triển sự nghiệp',
+    requestedAt: '2024-09-15 10:30',
+    respondedAt: null
+  },
+  // ... more requests
 ];
 ```
 
@@ -643,7 +740,7 @@ const myCourses = mockCourses.filter(
 #### Get Enrolled Courses
 ```typescript
 const enrolledCourseIds = mockEnrollments
-  .filter(e => e.userId === currentUser.id && e.status === 'approved')
+  .filter(e => e.userId === currentUser.id)
   .map(e => e.courseId);
 
 const enrolledCourses = mockCourses.filter(
@@ -653,7 +750,7 @@ const enrolledCourses = mockCourses.filter(
 
 #### Get Pending Approvals (Owner)
 ```typescript
-const pendingEnrollments = mockEnrollments.filter(
+const pendingEnrollments = mockEnrollmentRequests.filter(
   e => e.courseId === courseId && e.status === 'pending'
 );
 ```
@@ -679,43 +776,48 @@ export type Page = 'login' | 'home' | 'my-courses' | ... ;
 
 // User
 export interface User {
-  id: string;
-  email: string;
+  id: number;
+  username: string;
+  password: string;
+  role: 'user' | 'admin';
   name: string;
   avatar: string;
-  googleId?: string;
-  googlePicture?: string;
-  role: 'user' | 'admin';
-  status: 'active' | 'suspended';
-  bio?: string;
+  email: string;
+  fullName?: string;
   phone?: string;
-  location?: string;
-  joinedDate: Date;
-  lastLogin?: Date;
+  bio?: string;
+  joinedDate: string;
   coursesCreated: number;
   coursesEnrolled: number;
   totalStudents: number;
+  status: 'active' | 'inactive';
+  lastLogin: string;
+  location?: string;
+  googleId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Course
 export interface Course {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  image: string;
-  ownerId: string;
+  overview?: string;
   ownerName: string;
+  ownerId: number;
   ownerAvatar: string;
-  visibility: 'private' | 'public';
-  status: 'draft' | 'pending' | 'approved' | 'rejected';
-  rejectionReason?: string;
-  tags: string[];
   rating: number;
   students: number;
   duration: string;
+  image: string;
+  tags: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  visibility: 'public' | 'private';
   lessons: number;
-  createdAt: Date;
-  updatedAt?: Date;
+  enrolledUsers: number[];
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Tag
@@ -726,43 +828,52 @@ export interface Tag {
   icon: string;
   courseCount: number;
   description: string;
+  image?: string;
 }
 
 // Enrollment
 export interface Enrollment {
-  id: string;
-  userId: string;
-  courseId: string;
+  id: number;
+  userId: number;
+  courseId: number;
+  enrolledAt: string;
+  progress: number;
+  completedLessons: number[];
+  lastAccessAt: string;
+}
+
+// Enrollment Request
+export interface EnrollmentRequest {
+  id: number;
+  courseId: number;
+  userId: number;
+  userName: string;
+  userAvatar: string;
+  userEmail: string;
   status: 'pending' | 'approved' | 'rejected';
   message: string;
-  rejectionReason?: string;
-  progress: number;
-  requestedAt: Date;
-  respondedAt?: Date;
+  requestedAt: string;
+  respondedAt: string | null;
 }
 
 // Notification
 export interface Notification {
-  id: string;
-  type: NotificationType;
+  id: number;
+  type: string;
   title: string;
   message: string;
-  courseId?: string;
-  relatedUserId?: string;
+  courseId?: number;
+  userId?: number;
+  timestamp: string;
   read: boolean;
-  createdAt: Date;
-  navigateTo?: Page;
+  icon: string;
+  color: string;
+  action?: {
+    page: Page;
+    courseId?: number;
+    userId?: number;
+  };
 }
-
-export type NotificationType =
-  | 'course_approved'
-  | 'course_rejected'
-  | 'enrollment_request'
-  | 'enrollment_approved'
-  | 'enrollment_rejected'
-  | 'course_pending'
-  | 'student_joined'
-  | 'course_completed';
 ```
 
 ### Type Guards
@@ -951,4 +1062,4 @@ npm run preview
 
 **Version**: 1.0.0  
 **Last Updated**: January 2025  
-**Status**: Frontend Complete ✅
+**Status**: Frontend Complete ✅ | 19 Pages | 3 Shared Components

@@ -1,18 +1,20 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Badge } from '../../components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { toast } from 'sonner@2.0.3';
-import { mockTags } from '../../data';
-import { Page, User } from '../../types';
-import { QuizEditor } from '../../components/shared/QuizEditor';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
+import { mockTags } from '@/services/mocks';
+import { Page, User } from '@/types';
+import { QuizEditor } from '@/components/shared/QuizEditor';
+import { AnimatedSection } from '@/utils/animations';
+import { QuizQuestion, QuizSettings } from '@/types';
 
 interface Section {
   id: number;
@@ -20,14 +22,6 @@ interface Section {
   description: string;
   order: number;
   lessons: Lesson[];
-}
-
-interface QuizQuestion {
-  question: string;
-  type: 'single' | 'multiple';
-  options: string[];
-  correctAnswers: number[];
-  explanation?: string;
 }
 
 interface Lesson {
@@ -40,6 +34,7 @@ interface Lesson {
   content?: string;
   pdfUrl?: string;
   quizQuestions?: QuizQuestion[];
+  quizSettings?: QuizSettings;
 }
 
 interface CreateCoursePageProps {
@@ -52,61 +47,168 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [courseOverview, setCourseOverview] = useState('');
   
   // Sections and lessons
   const [sections, setSections] = useState<Section[]>([]);
   const [showAddSection, setShowAddSection] = useState(false);
   const [sectionTitle, setSectionTitle] = useState('');
-  const [sectionDescription, setSectionDescription] = useState('');
   const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
+  const [editingSection, setEditingSection] = useState<Section | null>(null);
   
   // Lessons
   const [showAddLesson, setShowAddLesson] = useState(false);
   const [lessonType, setLessonType] = useState<'video' | 'text' | 'pdf' | 'quiz'>('video');
   const [lessonTitle, setLessonTitle] = useState('');
-  const [lessonDescription, setLessonDescription] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [lessonContent, setLessonContent] = useState('');
   const [showQuizEditor, setShowQuizEditor] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizSettings, setQuizSettings] = useState<QuizSettings>({ quizType: 'practice', passingScore: 70 });
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   
+  const handleEditSection = (section: Section) => {
+    setEditingSection(section);
+    setSectionTitle(section.title);
+    setShowAddSection(true);
+  };
+
   const handleAddSection = () => {
     if (sectionTitle.trim()) {
-      const newSection: Section = {
-        id: Date.now(),
-        title: sectionTitle,
-        description: sectionDescription,
-        order: sections.length + 1,
-        lessons: []
-      };
-      setSections([...sections, newSection]);
+      if (editingSection) {
+        // Update existing section
+        setSections(sections.map(s => 
+          s.id === editingSection.id 
+            ? { ...s, title: sectionTitle }
+            : s
+        ));
+        toast.success('Đã cập nhật mục!');
+      } else {
+        // Add new section
+        const newSection: Section = {
+          id: Date.now(),
+          title: sectionTitle,
+          description: '',
+          order: sections.length + 1,
+          lessons: []
+        };
+        setSections([...sections, newSection]);
+        toast.success('Đã thêm mục mới!');
+      }
       setSectionTitle('');
-      setSectionDescription('');
+      setEditingSection(null);
       setShowAddSection(false);
-      toast.success('ÄÃ£ thÃªm má»¥c má»›i!');
     }
   };
   
+  const handleEditLesson = (lesson: Lesson, sectionId: number) => {
+    setEditingLesson(lesson);
+    setCurrentSectionId(sectionId);
+    setLessonType(lesson.type);
+    setLessonTitle(lesson.title);
+    setYoutubeUrl(lesson.youtubeUrl || '');
+    setLessonContent(lesson.content || '');
+    setQuizQuestions(lesson.quizQuestions || []);
+    setShowAddLesson(true);
+  };
+
   const handleAddLesson = () => {
     if (!currentSectionId) {
-      toast.error('Vui lÃ²ng chá»n má»¥c Ä‘á»ƒ thÃªm má»¥c nhá»');
+      toast.error('Vui lòng chọn mục để thêm mục nhỏ');
       return;
     }
     if (lessonTitle.trim()) {
-      if (lessonType === 'quiz') {
-        // Open quiz editor
+      if (lessonType === 'quiz' && !editingLesson) {
+        // Open quiz editor for new quiz
         setShowQuizEditor(true);
         return;
       }
       
+      if (editingLesson) {
+        // Update existing lesson
+        const updatedLesson: Lesson = {
+          ...editingLesson,
+          title: lessonTitle,
+          description: '',
+          type: lessonType,
+          ...(lessonType === 'video' && { youtubeUrl }),
+          ...(lessonType === 'text' && { content: lessonContent }),
+          ...(lessonType === 'quiz' && { quizQuestions })
+        };
+        
+        setSections(sections.map(section => 
+          section.id === currentSectionId
+            ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
+            : section
+        ));
+        
+        toast.success('Đã cập nhật mục nhỏ!');
+      } else {
+        // Add new lesson
+        const newLesson: Lesson = {
+          id: Date.now(),
+          title: lessonTitle,
+          description: '',
+          type: lessonType,
+          duration: '15:00',
+          ...(lessonType === 'video' && { youtubeUrl }),
+          ...(lessonType === 'text' && { content: lessonContent })
+        };
+        
+        setSections(sections.map(section => 
+          section.id === currentSectionId
+            ? { ...section, lessons: [...section.lessons, newLesson] }
+            : section
+        ));
+        
+        toast.success('Đã thêm mục nhỏ!');
+      }
+      
+      setLessonTitle('');
+      setYoutubeUrl('');
+      setLessonContent('');
+      setEditingLesson(null);
+      setShowAddLesson(false);
+    }
+  };
+
+  const handleSaveQuiz = (questions: QuizQuestion[], settings: QuizSettings) => {
+    if (!currentSectionId) return;
+    
+    // Calculate estimated duration based on quiz type
+    const estimatedDuration = settings.quizType === 'exam' 
+      ? `${settings.timeLimit} phút`
+      : `${questions.length * 2} phút`;
+    
+    if (editingLesson) {
+      // Update existing quiz
+      const updatedLesson: Lesson = {
+        ...editingLesson,
+        title: lessonTitle,
+        description: '',
+        type: 'quiz',
+        duration: estimatedDuration,
+        quizQuestions: questions,
+        quizSettings: settings
+      };
+      
+      setSections(sections.map(section => 
+        section.id === currentSectionId
+          ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
+          : section
+      ));
+      
+      toast.success('Đã cập nhật quiz!');
+    } else {
+      // Add new quiz
       const newLesson: Lesson = {
         id: Date.now(),
         title: lessonTitle,
-        description: lessonDescription,
-        type: lessonType,
-        duration: '15:00',
-        ...(lessonType === 'video' && { youtubeUrl }),
-        ...(lessonType === 'text' && { content: lessonContent })
+        description: '',
+        type: 'quiz',
+        duration: estimatedDuration,
+        quizQuestions: questions,
+        quizSettings: settings
       };
       
       setSections(sections.map(section => 
@@ -115,92 +217,86 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
           : section
       ));
       
-      setLessonTitle('');
-      setLessonDescription('');
-      setYoutubeUrl('');
-      setLessonContent('');
-      setShowAddLesson(false);
-      toast.success('ÄÃ£ thÃªm má»¥c nhá»!');
+      toast.success('Đã thêm quiz!');
     }
-  };
-
-  const handleSaveQuiz = (questions: QuizQuestion[]) => {
-    if (!currentSectionId) return;
-    
-    const newLesson: Lesson = {
-      id: Date.now(),
-      title: lessonTitle,
-      description: lessonDescription,
-      type: 'quiz',
-      duration: `${questions.length * 2} phÃºt`,
-      quizQuestions: questions
-    };
-    
-    setSections(sections.map(section => 
-      section.id === currentSectionId
-        ? { ...section, lessons: [...section.lessons, newLesson] }
-        : section
-    ));
     
     setLessonTitle('');
-    setLessonDescription('');
     setQuizQuestions([]);
+    setQuizSettings({ quizType: 'practice', passingScore: 70 });
+    setEditingLesson(null);
     setShowAddLesson(false);
     setShowQuizEditor(false);
-    toast.success('ÄÃ£ thÃªm quiz!');
   };
 
   const handleSaveCourse = () => {
     if (!courseName.trim()) {
-      toast.error('Vui lÃ²ng nháº­p tÃªn khÃ³a há»c');
+      toast.error('Vui lòng nhập tên khóa học');
       return;
     }
     if (!description.trim()) {
-      toast.error('Vui lÃ²ng nháº­p mÃ´ táº£');
+      toast.error('Vui lòng nhập mô tả');
       return;
     }
     if (selectedTags.length === 0) {
-      toast.error('Vui lÃ²ng chá»n Ã­t nháº¥t 1 chá»§ Ä‘á»');
+      toast.error('Vui lòng chọn ít nhất 1 chủ đề');
       return;
     }
     if (sections.length === 0) {
-      toast.error('Vui lÃ²ng thÃªm Ã­t nháº¥t 1 má»¥c');
+      toast.error('Vui lòng thêm ít nhất 1 mục');
       return;
     }
 
-    toast.success('ÄÃ£ táº¡o khÃ³a há»c thÃ nh cÃ´ng!');
+    toast.success('Đã tạo khóa học thành công!');
     setTimeout(() => navigateTo('my-courses'), 1000);
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="mb-2">Táº¡o khÃ³a há»c má»›i</h1>
-        <p className="text-gray-600">Äiá»n thÃ´ng tin Ä‘á»ƒ táº¡o khÃ³a há»c cá»§a báº¡n</p>
-      </div>
+      <AnimatedSection animation="fade-up">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <Plus className="w-8 h-8 text-[#1E88E5]" />
+            <h1 
+              style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
+              Tạo khóa học mới
+            </h1>
+          </div>
+          <p className="text-gray-600 ml-11">Điền thông tin để tạo khóa học của bạn</p>
+          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
+        </div>
+      </AnimatedSection>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <Card className="mb-6">
+          <AnimatedSection animation="fade-up" delay={100}>
+            <Card className="mb-6 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
-              <CardTitle>ThÃ´ng tin cÆ¡ báº£n</CardTitle>
+              <CardTitle>Thông tin cơ bản</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="course-name">TÃªn khÃ³a há»c *</Label>
+                <Label htmlFor="course-name">Tên khóa học *</Label>
                 <Input
                   id="course-name"
-                  placeholder="VD: Láº­p trÃ¬nh React tá»« cÆ¡ báº£n Ä‘áº¿n nÃ¢ng cao"
+                  placeholder="VD: Lập trình React từ cơ bản đến nâng cao"
                   value={courseName}
                   onChange={(e) => setCourseName(e.target.value)}
                   className="mt-2"
                 />
               </div>
               <div>
-                <Label htmlFor="description">MÃ´ táº£ *</Label>
+                <Label htmlFor="description">Mô tả *</Label>
                 <Textarea
                   id="description"
-                  placeholder="MÃ´ táº£ ngáº¯n gá»n vá» khÃ³a há»c..."
+                  placeholder="Mô tả ngắn gọn về khóa học..."
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -208,7 +304,18 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                 />
               </div>
               <div>
-                <Label htmlFor="image">áº¢nh bÃ¬a</Label>
+                <Label htmlFor="overview">Tổng quan khóa học</Label>
+                <Textarea
+                  id="overview"
+                  placeholder={`Nhập nội dung theo định dạng Markdown. Ví dụ:\n\n## Bạn sẽ học được gì?\n- Nắm vững kiến thức cơ bản\n- Xây dựng dự án thực tế\n- Áp dụng vào công việc\n\n## Yêu cầu\n- Kiến thức lập trình cơ bản\n- Máy tính cá nhân\n- Tinh thần học hỏi`}
+                  rows={10}
+                  value={courseOverview}
+                  onChange={(e) => setCourseOverview(e.target.value)}
+                  className="mt-2 font-mono text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="image">Ảnh bìa</Label>
                 <Input
                   id="image"
                   type="file"
@@ -217,7 +324,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                 />
               </div>
               <div>
-                <Label>Chá»§ Ä‘á» khÃ³a há»c (cÃ³ thá»ƒ chá»n nhiá»u) *</Label>
+                <Label>Chủ đề khóa học (có thể chọn nhiều) *</Label>
                 <div className="mt-2 space-y-2">
                   {/* Selected Tags Display */}
                   {selectedTags.length > 0 && (
@@ -247,7 +354,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="ThÃªm chá»§ Ä‘á»..." />
+                      <SelectValue placeholder="Thêm chủ đề..." />
                     </SelectTrigger>
                     <SelectContent>
                       {mockTags.map(tag => (
@@ -258,12 +365,12 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500">
-                    Chá»n cÃ¡c chá»§ Ä‘á» phÃ¹ há»£p Ä‘á»ƒ há»c viÃªn dá»… tÃ¬m kiáº¿m khÃ³a há»c cá»§a báº¡n
+                    Chọn các chủ đề phù hợp để học viên dễ tìm kiếm khóa học của bạn
                   </p>
                 </div>
               </div>
               <div>
-                <Label>Cháº¿ Ä‘á»™ hiá»ƒn thá»‹</Label>
+                <Label>Chế độ hiển thị</Label>
                 <div className="mt-3 space-y-3">
                   <label 
                     className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -285,10 +392,10 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Lock className="w-4 h-4" />
-                        <span className="font-medium">RiÃªng tÆ°</span>
+                        <span className="font-medium">Riêng tư</span>
                       </div>
                       <p className="text-sm text-gray-600">
-                        Chá»‰ ngÆ°á»i báº¡n má»i má»›i cÃ³ thá»ƒ xem vÃ  há»c
+                        Chỉ người bạn mời mới có thể xem và học
                       </p>
                     </div>
                   </label>
@@ -312,10 +419,10 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Globe className="w-4 h-4" />
-                        <span className="font-medium">CÃ´ng khai</span>
+                        <span className="font-medium">Công khai</span>
                       </div>
                       <p className="text-sm text-gray-600">
-                        Sau khi admin duyá»‡t, má»i ngÆ°á»i Ä‘á»u cÃ³ thá»ƒ xem
+                        Sau khi admin duyệt, mọi người đều có thể xem
                       </p>
                     </div>
                   </label>
@@ -323,76 +430,78 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
               </div>
             </CardContent>
           </Card>
+          </AnimatedSection>
 
-          <Card>
+          <AnimatedSection animation="fade-up" delay={200}>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Ná»™i dung khÃ³a há»c</CardTitle>
+                <CardTitle>Nội dung khóa học</CardTitle>
                 <div className="flex gap-2">
                   <Dialog open={showAddSection} onOpenChange={setShowAddSection}>
                     <DialogTrigger asChild>
                       <Button size="sm" variant="outline">
                         <Plus className="w-4 h-4 mr-2" />
-                        ThÃªm má»¥c
+                        Thêm mục
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>ThÃªm má»¥c má»›i</DialogTitle>
-                        <DialogDescription>Táº¡o má»™t má»¥c Ä‘á»ƒ nhÃ³m cÃ¡c ná»™i dung</DialogDescription>
+                        <DialogTitle>Thêm mục mới</DialogTitle>
+                        <DialogDescription>Tạo một mục để nhóm các nội dung</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="section-title">TÃªn má»¥c *</Label>
+                          <Label htmlFor="section-title">Tên mục * (tối đa 100 ký tự)</Label>
                           <Input
                             id="section-title"
-                            placeholder="VD: Giá»›i thiá»‡u vá» Python"
+                            placeholder="VD: Giới thiệu, Bài học nâng cao..."
                             value={sectionTitle}
                             onChange={(e) => setSectionTitle(e.target.value)}
                             className="mt-2"
+                            maxLength={100}
                           />
-                        </div>
-                        <div>
-                          <Label htmlFor="section-desc">MÃ´ táº£</Label>
-                          <Textarea
-                            id="section-desc"
-                            placeholder="MÃ´ táº£ ngáº¯n gá»n vá» má»¥c nÃ y..."
-                            value={sectionDescription}
-                            onChange={(e) => setSectionDescription(e.target.value)}
-                            className="mt-2"
-                            rows={3}
-                          />
+                          <p className="text-xs text-gray-500 mt-1">{sectionTitle.length}/100 ký tự</p>
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAddSection(false)}>Há»§y</Button>
+                        <Button variant="outline" onClick={() => setShowAddSection(false)}>Hủy</Button>
                         <Button className="bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleAddSection}>
-                          ThÃªm má»¥c
+                          Thêm mục
                         </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                   
-                  <Dialog open={showAddLesson} onOpenChange={setShowAddLesson}>
+                  <Dialog open={showAddLesson} onOpenChange={(open) => {
+                    setShowAddLesson(open);
+                    if (!open) {
+                      setEditingLesson(null);
+                      setLessonTitle('');
+                      setYoutubeUrl('');
+                      setLessonContent('');
+                      setQuizQuestions([]);
+                    }
+                  }}>
                     <DialogTrigger asChild>
                       <Button size="sm" disabled={sections.length === 0}>
                         <Plus className="w-4 h-4 mr-2" />
-                        ThÃªm má»¥c nhá»
+                        Thêm mục nhỏ
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>ThÃªm má»¥c nhá» má»›i</DialogTitle>
+                        <DialogTitle>{editingLesson ? 'Chỉnh sửa mục nhỏ' : 'Thêm mục nhỏ mới'}</DialogTitle>
                         <DialogDescription>
-                          Chá»n loáº¡i ná»™i dung vÃ  Ä‘iá»n thÃ´ng tin
+                          {editingLesson ? 'Cập nhật thông tin mục nhỏ' : 'Chọn loại nội dung và điền thông tin'}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label>Má»¥c *</Label>
+                          <Label>Mục *</Label>
                           <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(Number(val))}>
                             <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Chá»n má»¥c" />
+                              <SelectValue placeholder="Chọn mục" />
                             </SelectTrigger>
                             <SelectContent>
                               {sections.map(section => (
@@ -405,41 +514,31 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                         </div>
                         
                         <div>
-                          <Label>Loáº¡i ná»™i dung</Label>
+                          <Label>Loại nội dung</Label>
                           <Select value={lessonType} onValueChange={(val: any) => setLessonType(val)}>
                             <SelectTrigger className="mt-2">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="video">ðŸ“¹ Video (YouTube)</SelectItem>
-                              <SelectItem value="text">ðŸ“ BÃ i viáº¿t (Text)</SelectItem>
-                              <SelectItem value="pdf">ðŸ“„ TÃ i liá»‡u PDF</SelectItem>
-                              <SelectItem value="quiz">âœ… Quiz/BÃ i kiá»ƒm tra</SelectItem>
+                              <SelectItem value="video">Video</SelectItem>
+                              <SelectItem value="text">Text</SelectItem>
+                              <SelectItem value="pdf">PDF</SelectItem>
+                              <SelectItem value="quiz">Quiz</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         
                         <div>
-                          <Label htmlFor="lesson-title">TiÃªu Ä‘á» *</Label>
+                          <Label htmlFor="lesson-title">Tiêu đề * (tối đa 150 ký tự)</Label>
                           <Input
                             id="lesson-title"
-                            placeholder="VD: Giá»›i thiá»‡u vá» React Hooks"
+                            placeholder="VD: Giới thiệu về React Hooks"
                             value={lessonTitle}
                             onChange={(e) => setLessonTitle(e.target.value)}
                             className="mt-2"
+                            maxLength={150}
                           />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="lesson-desc">MÃ´ táº£</Label>
-                          <Textarea
-                            id="lesson-desc"
-                            placeholder="MÃ´ táº£ ngáº¯n gá»n vá» bÃ i há»c..."
-                            value={lessonDescription}
-                            onChange={(e) => setLessonDescription(e.target.value)}
-                            className="mt-2"
-                            rows={2}
-                          />
+                          <p className="text-xs text-gray-500 mt-1">{lessonTitle.length}/150 ký tự</p>
                         </div>
 
                         {lessonType === 'video' && (
@@ -455,62 +554,58 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                               />
                             </div>
                             <p className="text-sm text-gray-600 mt-2">
-                              ðŸ’¡ CÃ³ thá»ƒ nháº­p link Ä‘áº§y Ä‘á»§ hoáº·c chá»‰ ID video
+                              💡 Có thể nhập link đầy đủ hoặc chỉ ID video
                             </p>
                           </div>
                         )}
                         
                         {lessonType === 'text' && (
                           <div>
-                            <Label htmlFor="lesson-content">Ná»™i dung bÃ i viáº¿t *</Label>
+                            <Label htmlFor="lesson-content">Nội dung bài viết * (tối đa 10000 ký tự)</Label>
                             <Textarea
                               id="lesson-content"
-                              placeholder="Nháº­p ná»™i dung bÃ i há»c..."
+                              placeholder="Nhập nội dung bài học..."
                               value={lessonContent}
                               onChange={(e) => setLessonContent(e.target.value)}
                               className="mt-2 font-mono text-sm"
                               rows={10}
+                              maxLength={10000}
                             />
+                            <p className="text-xs text-gray-500 mt-1">{lessonContent.length}/10000 ký tự</p>
                           </div>
                         )}
 
                         {lessonType === 'pdf' && (
                           <div>
-                            <Label htmlFor="pdf-file">Táº£i lÃªn file PDF</Label>
+                            <Label htmlFor="pdf-file">Tải lên file PDF</Label>
                             <div className="mt-2">
                               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
                                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-sm text-gray-600 mb-1">
-                                  KÃ©o tháº£ file PDF vÃ o Ä‘Ã¢y hoáº·c click Ä‘á»ƒ chá»n
+                                  Kéo thả file PDF vào đây hoặc click để chọn
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  Tá»‘i Ä‘a 50MB
+                                  Tối đa 50MB
                                 </p>
                               </div>
                             </div>
                           </div>
                         )}
 
-                        {lessonType === 'quiz' && (
-                          <Alert className="bg-blue-50 border-blue-200">
-                            <AlertDescription className="text-blue-800">
-                              ðŸ“ Sau khi táº¡o bÃ i há»c nÃ y, báº¡n sáº½ Ä‘Æ°á»£c chuyá»ƒn Ä‘áº¿n trang táº¡o cÃ¢u há»i quiz
-                            </AlertDescription>
-                          </Alert>
-                        )}
+
                       </div>
                       <DialogFooter>
                         <Button variant="outline" onClick={() => {
                           setShowAddLesson(false);
+                          setEditingLesson(null);
                           setLessonTitle('');
-                          setLessonDescription('');
                           setYoutubeUrl('');
                           setLessonContent('');
                         }}>
-                          Há»§y
+                          Hủy
                         </Button>
                         <Button className="bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleAddLesson}>
-                          ThÃªm má»¥c nhá»
+                          {editingLesson ? 'Cập nhật' : 'Thêm mục nhỏ'}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -524,18 +619,19 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                   {sections.map((section) => (
                     <div key={section.id} className="border-2 border-gray-200 rounded-lg overflow-hidden">
                       {/* Section Header */}
-                      <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
-                        <div className="flex-1">
+                      <div className="bg-gray-50 px-4 py-3 flex items-center justify-between group">
+                        <div 
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleEditSection(section)}
+                        >
                           <h4 className="text-sm font-medium">{section.title}</h4>
-                          {section.description && (
-                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="secondary">{section.lessons.length} má»¥c nhá»</Badge>
-                          <Button variant="ghost" size="icon" onClick={() => {
+                          <Badge variant="secondary">{section.lessons.length} mục nhỏ</Badge>
+                          <Button variant="ghost" size="icon" onClick={(e) => {
+                            e.stopPropagation();
                             setSections(sections.filter(s => s.id !== section.id));
-                            toast.success('ÄÃ£ xÃ³a má»¥c');
+                            toast.success('Đã xóa mục');
                           }}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -546,7 +642,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                       <div className="p-4 space-y-2">
                         {section.lessons.length > 0 ? (
                           section.lessons.map((lesson, lessonIndex) => (
-                            <div key={lesson.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg hover:border-[#1E88E5]/50 transition-colors">
+                            <div key={lesson.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg hover:border-[#1E88E5]/50 transition-colors group">
                               <div className="w-8 h-8 rounded bg-[#1E88E5]/10 flex items-center justify-center flex-shrink-0 text-sm text-[#1E88E5]">
                                 {lessonIndex + 1}
                               </div>
@@ -556,19 +652,19 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                                 {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-red-600" />}
                                 {lesson.type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div 
+                                className="flex-1 min-w-0 cursor-pointer"
+                                onClick={() => handleEditLesson(lesson, section.id)}
+                              >
                                 <div className="text-sm mb-1">{lesson.title}</div>
-                                {lesson.description && (
-                                  <p className="text-xs text-gray-600 mb-1">{lesson.description}</p>
-                                )}
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                   <span>
-                                    {lesson.type === 'video' && 'ðŸ“¹ Video'}
-                                    {lesson.type === 'text' && 'ðŸ“ BÃ i viáº¿t'}
-                                    {lesson.type === 'pdf' && 'ðŸ“„ PDF'}
-                                    {lesson.type === 'quiz' && 'âœ… Quiz'}
+                                    {lesson.type === 'video' && '📹 Video'}
+                                    {lesson.type === 'text' && '📝 Bài viết'}
+                                    {lesson.type === 'pdf' && '📄 PDF'}
+                                    {lesson.type === 'quiz' && '✅ Quiz'}
                                   </span>
-                                  <span>â€¢</span>
+                                  <span>•</span>
                                   <span>{lesson.duration}</span>
                                 </div>
                               </div>
@@ -576,13 +672,14 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                                 variant="ghost" 
                                 size="icon"
                                 className="flex-shrink-0"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setSections(sections.map(s =>
                                     s.id === section.id
                                       ? { ...s, lessons: s.lessons.filter(l => l.id !== lesson.id) }
                                       : s
                                   ));
-                                  toast.success('ÄÃ£ xÃ³a bÃ i há»c');
+                                  toast.success('Đã xóa bài học');
                                 }}
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -591,56 +688,47 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                           ))
                         ) : (
                           <div className="text-center py-6 text-gray-500 text-sm">
-                            ChÆ°a cÃ³ má»¥c nhá» nÃ o trong má»¥c nÃ y
+                            Chưa có mục nhỏ nào trong mục này
                           </div>
                         )}
                       </div>
                     </div>
                   ))}
-                  
-                  <Alert>
-                    <AlertDescription className="text-sm">
-                      ðŸ’¡ Máº¹o: Táº¡o nhiá»u má»¥c Ä‘á»ƒ tá»• chá»©c ná»™i dung khÃ³a há»c logic vÃ  dá»… theo dÃµi
-                    </AlertDescription>
-                  </Alert>
                 </div>
               ) : (
                 <div className="text-center py-12">
                   <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                  <h4 className="mb-2">ChÆ°a cÃ³ má»¥c nÃ o</h4>
+                  <h4 className="mb-2">Chưa có mục nào</h4>
                   <p className="text-gray-600 mb-6 text-sm">
-                    HÃ£y táº¡o má»¥c Ä‘áº§u tiÃªn Ä‘á»ƒ báº¯t Ä‘áº§u xÃ¢y dá»±ng khÃ³a há»c
+                    Hãy tạo mục đầu tiên để bắt đầu xây dựng khóa học
                   </p>
                   <Button variant="outline" onClick={() => setShowAddSection(true)}>
                     <Plus className="w-4 h-4 mr-2" />
-                    Táº¡o má»¥c Ä‘áº§u tiÃªn
+                    Tạo mục đầu tiên
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
+          </AnimatedSection>
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="sticky top-20">
-            <CardHeader>
-              <CardTitle>HÃ nh Ä‘á»™ng</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleSaveCourse}>
-                LÆ°u vÃ  táº¡o khÃ³a há»c
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigateTo('my-courses')}>
-                Há»§y
-              </Button>
-              <div className="text-xs text-gray-500 pt-3 border-t">
-                <p className="mb-2">âœ“ TÃªn khÃ³a há»c: {courseName ? 'âœ…' : 'âŒ'}</p>
-                <p className="mb-2">âœ“ MÃ´ táº£: {description ? 'âœ…' : 'âŒ'}</p>
-                <p className="mb-2">âœ“ Chá»§ Ä‘á»: {selectedTags.length > 0 ? 'âœ…' : 'âŒ'}</p>
-                <p>âœ“ Ná»™i dung: {sections.length > 0 ? 'âœ…' : 'âŒ'}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <AnimatedSection animation="slide-left" delay={150}>
+            <Card className="sticky top-20 hover:shadow-lg transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle>Hành động</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleSaveCourse}>
+                  Lưu và tạo khóa học
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => navigateTo('my-courses')}>
+                  Hủy
+                </Button>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
         </div>
       </div>
 
@@ -648,18 +736,18 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       <Dialog open={showQuizEditor} onOpenChange={setShowQuizEditor}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Táº¡o Quiz: {lessonTitle}</DialogTitle>
+            <DialogTitle>Tạo Quiz: {lessonTitle}</DialogTitle>
             <DialogDescription>
-              Nháº­p cÃ¢u há»i theo format Ä‘áº·c biá»‡t hoáº·c dÃ¹ng AI Ä‘á»ƒ chuáº©n hÃ³a
+              Nhập câu hỏi theo format đặc biệt
             </DialogDescription>
           </DialogHeader>
           <QuizEditor 
             onSave={handleSaveQuiz}
             initialQuestions={quizQuestions}
+            initialSettings={quizSettings}
           />
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-

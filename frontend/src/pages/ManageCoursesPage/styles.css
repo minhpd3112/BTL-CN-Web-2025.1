@@ -1,0 +1,49 @@
+/* ManageCoursesPage specific styles */
+
+.manage-courses-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Search and filter bar */
+.manage-courses-search {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.manage-courses-search:focus {
+  border-color: #1E88E5;
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+}
+
+/* Course row */
+.manage-course-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 3px solid transparent;
+}
+
+.manage-course-row:hover {
+  background: rgba(30, 136, 229, 0.02);
+  border-left-color: #1E88E5;
+}
+
+/* Action icons */
+.manage-course-action {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.manage-course-action:hover {
+  transform: scale(1.2);
+}
+
+.manage-course-action-view:hover {
+  color: #1E88E5;
+}
+
+.manage-course-action-delete:hover {
+  color: #EF4444;
+}

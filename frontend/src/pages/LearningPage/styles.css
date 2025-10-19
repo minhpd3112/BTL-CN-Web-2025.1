@@ -1,0 +1,52 @@
+/* LearningPage specific styles */
+
+/* Video container */
+.learning-video-container {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Sidebar lesson item */
+.learning-lesson-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+.learning-lesson-item:hover {
+  background: rgba(30, 136, 229, 0.05);
+  border-left-color: #1E88E5;
+}
+
+.learning-lesson-item-active {
+  background: rgba(30, 136, 229, 0.1);
+  border-left-color: #1E88E5;
+}
+
+/* Progress bar */
+.learning-progress-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.learning-progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #1E88E5, #1565C0);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fullscreen button */
+.learning-fullscreen-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.learning-fullscreen-btn:hover {
+  background: rgba(30, 136, 229, 0.1);
+  color: #1E88E5;
+  transform: scale(1.05);
+}

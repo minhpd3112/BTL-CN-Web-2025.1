@@ -1,0 +1,42 @@
+/* CreateCoursePage specific styles */
+
+.create-course-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.create-course-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Image preview container */
+.create-course-image-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.create-course-image-preview:hover {
+  transform: scale(1.02);
+}
+
+/* Drag handle for sections */
+.create-course-drag-handle {
+  cursor: grab;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.create-course-drag-handle:hover {
+  color: #1E88E5;
+  transform: scale(1.1);
+}
+
+.create-course-drag-handle:active {
+  cursor: grabbing;
+}

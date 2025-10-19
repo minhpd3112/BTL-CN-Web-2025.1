@@ -1,0 +1,23 @@
+/* CourseStudentsPage specific styles */
+
+.course-students-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.course-students-search {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.course-students-search:focus {
+  border-color: #1E88E5;
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+}
+
+.course-students-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.course-students-row:hover {
+  background: rgba(30, 136, 229, 0.02);
+}

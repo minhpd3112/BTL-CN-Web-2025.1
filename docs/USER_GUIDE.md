@@ -9,18 +9,20 @@
 - **🎨 UI/UX Hiện Đại**: Flat design với màu xanh nước biển (#1E88E5), responsive trên mọi thiết bị
 - **👥 Phân Quyền Linh Hoạt**: 2 vai trò rõ ràng - User và Admin
 - **🔒 Quyền Riêng Tư**: Khóa học private (chỉ người được mời) và public (sau khi admin duyệt)
-- **📚 Nội Dung Đa Dạng**: Video YouTube, PDF, bài viết text, quiz có đếm thời gian
-- **📊 Dashboard Chuyên Nghiệp**: Thống kê chi tiết cho owner và admin
+- **📚 Nội Dung Đa Dạng**: Video YouTube, PDF viewer (không cho download), bài viết text, quiz có đếm thời gian
+- **📊 Dashboard Gọn Gàng**: Quick stats cho owner, không bị rối mắt
 - **🔔 Thông Báo Thông Minh**: Hệ thống notifications với auto-navigation
+- **📝 Validation Đầy Đủ**: Giới hạn ký tự cho mọi input field
+- **🎯 Quiz Editor**: Tạo quiz với prompt LLM hoặc nhập manual
 
 ## 👤 Tài Khoản Demo
 
 ### 1. Admin Account
 ```
-Email: admin@edulearn.com
-Name: Admin Nguyễn
+Email: admin@edulearn.vn
+Name: Quản trị viên
 Role: admin
-Avatar: AN
+Avatar: QT
 ```
 **Quyền hạn đặc biệt:**
 - ✅ Duyệt/từ chối khóa học public
@@ -33,22 +35,22 @@ Avatar: AN
 ### 2-4. User Accounts
 ```
 User 1:
-Email: user1@example.com
-Name: Minh Tuấn
+Email: nguyenvana@gmail.com
+Name: Nguyễn Văn A
 Role: user
-Avatar: MT
+Avatar: NA
 
 User 2:
-Email: user2@example.com
-Name: Hương Giang
+Email: tranthib@gmail.com
+Name: Trần Thị B
 Role: user
-Avatar: HG
+Avatar: TB
 
 User 3:
-Email: user3@example.com
-Name: Đức Anh
+Email: levanc@gmail.com
+Name: Lê Văn C
 Role: user
-Avatar: DA
+Avatar: LC
 ```
 **Quyền hạn:**
 - ✅ Tạo khóa học unlimited
@@ -56,6 +58,7 @@ Avatar: DA
 - ✅ Quản lý học viên trong khóa học của mình
 - ✅ Xem dashboard khóa học của mình
 - ✅ Đăng ký học khóa học của người khác
+- ✅ Rời khỏi khóa học bất kỳ lúc nào
 - ✅ Chỉnh sửa/xóa khóa học của mình
 - ❌ **KHÔNG** xem/xóa khóa học của người khác
 - ❌ **KHÔNG** duyệt khóa học
@@ -81,34 +84,45 @@ Avatar: DA
   - Actions: Chỉnh sửa, Dashboard, Học viên, Xóa
 - **Tab "Đang học"**: Khóa học đã đăng ký
   - Progress bar
+  - **Nút "Rời khỏi"** ở góc phải trên mỗi card
+  - Confirm dialog với warning về mất tiến độ
   - Tiếp tục học từ bài cuối cùng
 
 ### 4. 📝 Tạo Khóa Học (CreateCoursePage)
 **Bước 1: Thông tin cơ bản**
-- Tên khóa học *
-- Mô tả *
-- Ảnh bìa
-- Chủ đề (có thể chọn nhiều) *
-- Chế độ hiển thị:
+- **Tên khóa học** (tối đa 100 ký tự) *
+- **Mô tả** (tối đa 500 ký tự) *
+- **Tổng quan** (tối đa 2000 ký tự)
+- **Ảnh bìa**
+- **Chủ đề** (có thể chọn nhiều) *
+- **Chế độ hiển thị**:
   - 🔒 **Riêng tư**: Chỉ người được mời thấy
   - 🌐 **Công khai**: Sau khi admin duyệt, mọi người thấy
 
 **Bước 2: Nội dung khóa học**
-- Tạo **Mục** (Sections): Nhóm các bài học
+- Tạo **Mục** (Sections - tối đa 100 ký tự): Nhóm các bài học
 - Thêm **Mục nhỏ** (Lessons) vào mỗi mục:
-  - 📹 **Video**: YouTube URL
-  - 📄 **PDF**: Upload file (tối đa 50MB)
-  - 📝 **Text**: Nội dung bài viết
+  - 📹 **Video**: YouTube URL (tối đa 200 ký tự)
+  - 📄 **PDF**: Upload file (view only, không cho download)
+  - 📝 **Text**: Nội dung bài viết (tối đa 10000 ký tự)
   - ✅ **Quiz**: Tạo câu hỏi với QuizEditor
 
+**Character Counter:**
+- Mọi input đều có counter hiển thị: "X/Y ký tự"
+- Auto-block khi đạt giới hạn
+- Visual feedback khi gần hết
+
 **Validation:**
+- Checklist bên phải: Tên ✅, Mô tả ✅, Chủ đề ✅, Nội dung ✅
 - Không cho phép tạo nếu thiếu trường bắt buộc
 
 ### 5. ✏️ Chỉnh Sửa Khóa Học (EditCoursePage)
 - **Giống y hệt** trang Tạo khóa học
 - Load dữ liệu hiện có
 - Có thể thêm/xóa mục và bài học
+- **Click vào tiêu đề** để chỉnh sửa inline (sections và lessons)
 - Nút "Lưu thay đổi" thay vì "Tạo khóa học"
+- Character limits giống CreateCoursePage
 
 ### 6. 📚 Chi Tiết Khóa Học (CourseDetailPage)
 **Thông tin hiển thị:**
@@ -124,7 +138,7 @@ Avatar: DA
 - **Chương trình học**: Danh sách sections và lessons
 - **👁️ Xem nội dung chi tiết** (⚠️ **CHỈ ADMIN THẤY**):
   - Layout 2 cột (Trái: Danh sách | Phải: Preview)
-  - Preview đầy đủ: Video player, Text content, PDF info, Quiz với **đáp án đúng**
+  - Preview đầy đủ: Video player, Text content, PDF viewer, Quiz với **đáp án đúng**
   - Mục đích: **Kiểm duyệt chất lượng nội dung** trước khi duyệt khóa học
 - **Đánh giá**: Reviews từ học viên
 
@@ -153,9 +167,9 @@ Avatar: DA
   - Click chuyển bài
   
 - **Phải**: Content area
-  - **Video**: YouTube embed player + Fullscreen
-  - **PDF**: iframe viewer + Fullscreen
-  - **Text**: Markdown renderer + Fullscreen
+  - **Video**: YouTube embed player fullscreen
+  - **PDF**: iframe viewer fullscreen (KHÔNG cho download)
+  - **Text**: Markdown renderer fullscreen
   - **Quiz**: Giao diện làm bài + đếm thời gian
 
 **Features:**
@@ -164,27 +178,47 @@ Avatar: DA
 - Nút "Bài tiếp theo"
 - Progress bar tổng thể
 
-### 8. ✅ Quiz (QuizPage)
-- Câu hỏi hiển thị từng câu
-- Single choice / Multiple choice
-- Timer đếm ngược
-- Nút "Nộp bài"
-- Kết quả: Điểm số + giải thích đáp án
+### 8. ✅ Quiz Editor Component
+**Tính năng:**
+- **Manual Input**: Nhập theo format đặc biệt
+  - Single choice: `()` và `(x)` cho đáp án đúng
+  - Multiple choice: `[]` và `[x]` cho các đáp án đúng
+  
+- **LLM Prompt Helper**: 
+  - Copy prompt sẵn để paste vào ChatGPT/Claude/Gemini
+  - AI trả về → Copy kết quả → Paste vào editor
+  - Có thể chỉnh sửa thêm
+  
+- **Hướng dẫn Format**:
+  - Dialog chi tiết với examples
+  - Quy tắc bắt buộc
+  - Prompt template để dùng với LLM
+
+**Example Format:**
+```
+React là gì?
+() Framework backend
+(x) Thư viện JavaScript để xây dựng UI
+() Hệ quản trị cơ sở dữ liệu
+
+Các hook cơ bản trong React:
+[x] useState
+[x] useEffect
+[] useBackend
+```
 
 ### 9. 📊 Dashboard Khóa Học (CourseDashboardPage)
 **Dành cho Owner:**
-- **Thống kê tổng quan**:
+- **Quick Info Cards** (3 cards gọn gàng):
   - Tổng học viên
-  - Yêu cầu chờ duyệt
-  - Tỷ lệ hoàn thành trung bình
-  - Rating trung bình
+  - Đánh giá
+  - Yêu cầu chờ duyệt (highlight nếu có)
   
-- **Biểu đồ**:
-  - Tiến độ học của học viên (Bar chart)
-  - Xu hướng đăng ký (Line chart)
-  
-- **Danh sách học viên gần đây**:
-  - Avatar, tên, email, tiến độ, ngày tham gia
+- **Tabs**:
+  - **Yêu cầu đăng ký**: Danh sách pending enrollments
+  - **Đánh giá**: Reviews từ học viên
+
+- **Bỏ phần thống kê phức tạp** - giữ giao diện đơn giản
 
 ### 10. 👥 Quản Lý Học Viên (CourseStudentsPage)
 **Dành cho Owner:**
@@ -232,7 +266,7 @@ Avatar: DA
   - **Preview đầy đủ nội dung**:
     - 📹 **Video**: YouTube embed player (có thể play ngay)
     - 📝 **Text**: Hiển thị full content
-    - 📄 **PDF**: Hiển thị info và placeholder
+    - 📄 **PDF**: PDF viewer (không cho download)
     - ✅ **Quiz**: Hiển thị câu hỏi + **TẤT CẢ ĐÁP ÁN (highlight đáp án đúng màu xanh)** + giải thích
   - Alert thông báo chế độ kiểm duyệt
 - **Actions từ trang chủ ApproveCoursesPage**:
@@ -320,6 +354,13 @@ Avatar: DA
   - 4 tài khoản demo (1 admin + 3 users)
   - Click → Auto login
 
+### 19. 🏷️ Chi Tiết Chủ Đề (TagDetailPage)
+**Dành cho tất cả User:**
+- Hiển thị thông tin chi tiết về một chủ đề (tag)
+- Danh sách khóa học thuộc chủ đề đó
+- Lọc và sắp xếp khóa học theo chủ đề
+- Click vào khóa học → Chi tiết khóa học
+
 ## 🔔 Hệ Thống Thông Báo
 
 ### Loại Notifications
@@ -362,6 +403,7 @@ Avatar: DA
 ### Brand Colors
 - **Primary**: `#1E88E5` (Blue 500) - Buttons, links, highlights
 - **Primary Hover**: `#1565C0` (Blue 700)
+- **Primary Dark**: `#0D47A1` (Blue 900) - Dark accents
 - **Background**: `#F5F6F8` (Gray 50)
 - **Success**: `#4CAF50` (Green)
 - **Warning**: `#FF9800` (Orange)
@@ -374,11 +416,57 @@ Avatar: DA
 - **Line Height**: 1.5
 
 ### UI Principles
-- Flat design, minimal shadows
-- Card-based layouts
-- Consistent spacing
-- Clear hierarchy
-- Accessible colors (WCAG AA)
+- **Flat design** với minimal shadows
+- **Card-based layouts** với subtle hover effects
+- **Gradient text** cho tiêu đề quan trọng
+- **Glassmorphism** cho login page
+- **Consistent spacing** theo Tailwind scale
+- **Clear hierarchy** với typography scale
+- **Accessible colors** (WCAG AA compliant)
+
+### UI/UX Enhancements (Latest)
+
+#### 🎨 **Enhanced Headers (Gradient + Icons)**
+Tất cả pages quan trọng đều có header thống nhất:
+- **Icon** màu #1E88E5 (8x8)
+- **Title** với gradient xanh (linear-gradient 135deg)
+- **Subtitle** màu gray-600
+- **Underline** gradient từ #1E88E5 fade to transparent
+- Pages áp dụng: MyCoursesPage, CreateCoursePage, AccountSettingsPage, AdminDashboardPage, ApproveCoursesPage, ManageCoursesPage, ManageUsersPage, ManageTagsPage, ExplorePage
+
+#### 🌟 **Logo & Branding**
+- **LoginPage**: Logo GraduationCap với glow effect
+- **Navigation**: Logo với gradient background và shadow
+- **Avatar**: Gradient background (từ #1E88E5 → #1565C0) cho consistency
+
+#### ✨ **Hover Effects**
+- Course cards: `scale-105` + shadow-lg
+- Demo account buttons: Border color change + scale-102
+- Navigation items: Smooth background fade
+- Create button: Lift effect với blue shadow
+
+#### 🎭 **Glassmorphism**
+- LoginPage card: `bg-white/95` với `backdrop-blur-xl`
+- Floating shapes: White/5 với blur-3xl
+- Modern, elegant aesthetic
+
+#### 📊 **Statistics Section (HomePage)**
+- Icon gradient backgrounds
+- Animated counters với StatsCounter component
+- Modern badges cho labels
+- Responsive grid layout
+
+#### 🔔 **Notification Badge**
+- Continuous bell-shake animation
+- Red notification dot
+- Smooth dropdown với delay để tránh nhấp nhảy
+- Avatar gradient glow effect
+
+#### 🎯 **Back Buttons**
+- Admin pages có nút "Quay về Dashboard"
+- Consistent placement (top-left)
+- Ghost variant cho subtle look
+- Icon ArrowLeft + text
 
 ## 🔐 Phân Quyền Chi Tiết
 
@@ -398,18 +486,23 @@ Avatar: DA
 | Quản lý người dùng | ❌ | ✅ |
 | Quản lý tags | ❌ | ✅ |
 | Xem admin dashboard | ❌ | ✅ |
+| Rời khỏi khóa học | ✅ | ✅ |
 
 ## ✅ Trạng Thái Hiện Tại
 
 ### Frontend
 - ✅ **100% hoàn thành**
-- ✅ 18 pages đầy đủ chức năng
-- ✅ 2 shared components (CourseCard, QuizEditor)
+- ✅ 19 pages đầy đủ chức năng
+- ✅ 3 shared components (CourseCard, QuizEditor, StatsCounter)
 - ✅ 47 shadcn/ui components
 - ✅ Responsive design
 - ✅ Mock data layer
 - ✅ Type-safe TypeScript
 - ✅ Clean architecture
+- ✅ Character limits & validation
+- ✅ PDF viewer (no download)
+- ✅ Leave course feature
+- ✅ Inline editing for sections/lessons
 
 ### Backend
 - ⏳ **Chưa implement** - Cần xây dựng với Supabase
@@ -427,4 +520,5 @@ Avatar: DA
 
 **Version**: 1.0.0  
 **Last Updated**: January 2025  
-**Status**: Frontend Complete ✅ | Backend Pending ⏳
+**Status**: Frontend Complete ✅ (19 Pages, 3 Shared Components) | Backend Pending ⏳  
+**UI/UX**: Enhanced with gradients, glassmorphism, and animations ✨

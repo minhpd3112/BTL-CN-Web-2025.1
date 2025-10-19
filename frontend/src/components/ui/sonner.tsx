@@ -17,6 +17,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-border": "var(--border)",
         } as React.CSSProperties
       }
+      position="top-right"
+      expand={true}
+      richColors
+      closeButton
+      duration={4000}
+      toastOptions={{
+        style: {
+          padding: '16px',
+          gap: '12px',
+          borderRadius: '10px',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+        },
+        className: 'toast-enter',
+      }}
       {...props}
     />
   );

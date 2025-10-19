@@ -1,0 +1,49 @@
+/* LoginPage specific styles */
+
+.login-page-bg-overlay {
+  background: linear-gradient(135deg, rgba(30, 136, 229, 0.95) 0%, rgba(21, 101, 192, 0.92) 50%, rgba(13, 71, 161, 0.95) 100%);
+}
+
+.login-page-floating-shape-left {
+  top: 5rem;
+  left: 2.5rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  filter: blur(3rem);
+}
+
+.login-page-floating-shape-right {
+  bottom: 5rem;
+  right: 2.5rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  filter: blur(3rem);
+}
+
+.login-card-glassmorphism {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.login-demo-account-button {
+  border-width: 2px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-demo-account-button:hover {
+  border-color: #1E88E5;
+  background-color: rgba(30, 136, 229, 0.05);
+  transform: scale(1.02);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.login-google-button:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+  transform: scale(1.02);
+}

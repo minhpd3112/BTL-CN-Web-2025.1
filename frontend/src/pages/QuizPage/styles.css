@@ -1,0 +1,84 @@
+/* QuizPage specific styles */
+
+.quiz-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+/* Timer */
+.quiz-timer {
+  font-size: 1.5rem;
+  font-weight: 700;
+  animation: quiz-timer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes quiz-timer-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.quiz-timer-warning {
+  color: #F59E0B;
+  animation: quiz-timer-warning 0.5s ease-in-out infinite;
+}
+
+@keyframes quiz-timer-warning {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.quiz-timer-danger {
+  color: #EF4444;
+  animation: quiz-timer-danger 0.3s ease-in-out infinite;
+}
+
+@keyframes quiz-timer-danger {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* Option buttons */
+.quiz-option {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 2px solid #e5e7eb;
+}
+
+.quiz-option:hover {
+  border-color: #1E88E5;
+  background: rgba(30, 136, 229, 0.05);
+  transform: translateX(4px);
+}
+
+.quiz-option-selected {
+  border-color: #1E88E5;
+  background: rgba(30, 136, 229, 0.1);
+}
+
+.quiz-option-correct {
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.quiz-option-incorrect {
+  border-color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Progress */
+.quiz-progress {
+  font-weight: 600;
+  color: #1E88E5;
+}

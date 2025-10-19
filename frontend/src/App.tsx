@@ -1,6 +1,6 @@
-import LoginPage from './pages/LoginPage';
-import AppShell from './app/AppShell';
-import useDemoAppState from './app/useDemoAppState';
+import LoginPage from '@/pages/LoginPage';
+import { AppShell } from '@/features/layout/components/AppShell';
+import useDemoAppState from '@/hooks/useDemoAppState';
 
 export default function App() {
   const { state, actions } = useDemoAppState();

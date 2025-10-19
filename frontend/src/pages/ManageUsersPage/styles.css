@@ -1,0 +1,18 @@
+/* ManageUsersPage specific styles */
+
+.manage-users-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.manage-users-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.manage-users-row:hover {
+  background: rgba(30, 136, 229, 0.02);
+}

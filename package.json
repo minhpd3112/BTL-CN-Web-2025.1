@@ -3,8 +3,15 @@
   "private": true,
   "scripts": {
     "install:frontend": "npm install --prefix frontend",
+    "install:backend": "npm install --prefix backend",
+    "install:all": "npm run install:frontend && npm run install:backend",
     "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
     "build": "npm --prefix frontend run build",
-    "preview": "npm --prefix frontend run preview"
+    "build:backend": "npm --prefix backend run build",
+    "preview": "npm --prefix frontend run preview",
+    "lint:backend": "npm --prefix backend run lint",
+    "test:backend": "npm --prefix backend run test"
   }
 }

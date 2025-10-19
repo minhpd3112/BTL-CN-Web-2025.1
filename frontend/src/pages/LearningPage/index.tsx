@@ -1,29 +1,29 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, Play, FileText, Award } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent } from '../../components/ui/card';
-import { Progress } from '../../components/ui/progress';
-import { Badge } from '../../components/ui/badge';
-import { toast } from 'sonner@2.0.3';
-import { Course, Page } from '../../types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { Course, Page } from '@/types';
 
 // Mock quiz questions
 const mockQuizQuestions = [
   {
     id: 1,
-    question: 'React lÃ  gÃ¬?',
+    question: 'React là gì?',
     options: [
-      'Má»™t thÆ° viá»‡n JavaScript Ä‘á»ƒ xÃ¢y dá»±ng giao diá»‡n ngÆ°á»i dÃ¹ng',
-      'Má»™t framework backend',
-      'Má»™t ngÃ´n ngá»¯ láº­p trÃ¬nh má»›i',
-      'Má»™t database'
+      'Một thư viện JavaScript để xây dựng giao diện người dùng',
+      'Một framework backend',
+      'Một ngôn ngữ lập trình mới',
+      'Một database'
     ],
     correctAnswer: 0,
-    explanation: 'React lÃ  má»™t thÆ° viá»‡n JavaScript mÃ£ nguá»“n má»Ÿ Ä‘Æ°á»£c phÃ¡t triá»ƒn bá»Ÿi Facebook, chuyÃªn dÃ¹ng Ä‘á»ƒ xÃ¢y dá»±ng giao diá»‡n ngÆ°á»i dÃ¹ng.'
+    explanation: 'React là một thư viện JavaScript mã nguồn mở được phát triển bởi Facebook, chuyên dùng để xây dựng giao diện người dùng.'
   },
   {
     id: 2,
-    question: 'JSX lÃ  viáº¿t táº¯t cá»§a gÃ¬?',
+    question: 'JSX là viết tắt của gì?',
     options: [
       'JavaScript XML',
       'Java Syntax Extension',
@@ -31,11 +31,11 @@ const mockQuizQuestions = [
       'JSON XML'
     ],
     correctAnswer: 0,
-    explanation: 'JSX lÃ  viáº¿t táº¯t cá»§a JavaScript XML, cho phÃ©p viáº¿t cÃº phÃ¡p giá»‘ng HTML trong JavaScript.'
+    explanation: 'JSX là viết tắt của JavaScript XML, cho phép viết cú pháp giống HTML trong JavaScript.'
   },
   {
     id: 3,
-    question: 'Hook nÃ o Ä‘Æ°á»£c dÃ¹ng Ä‘á»ƒ quáº£n lÃ½ state trong function component?',
+    question: 'Hook nào được dùng để quản lý state trong function component?',
     options: [
       'useEffect',
       'useState',
@@ -43,31 +43,31 @@ const mockQuizQuestions = [
       'useReducer'
     ],
     correctAnswer: 1,
-    explanation: 'useState lÃ  hook cÆ¡ báº£n nháº¥t Ä‘á»ƒ quáº£n lÃ½ state trong React function component.'
+    explanation: 'useState là hook cơ bản nhất để quản lý state trong React function component.'
   },
   {
     id: 4,
-    question: 'Virtual DOM trong React cÃ³ tÃ¡c dá»¥ng gÃ¬?',
+    question: 'Virtual DOM trong React có tác dụng gì?',
     options: [
-      'LÆ°u trá»¯ dá»¯ liá»‡u ngÆ°á»i dÃ¹ng',
-      'Tá»‘i Æ°u hiá»‡u suáº¥t render',
-      'Káº¿t ná»‘i vá»›i database',
-      'Quáº£n lÃ½ routing'
+      'Lưu trữ dữ liệu người dùng',
+      'Tối ưu hiệu suất render',
+      'Kết nối với database',
+      'Quản lý routing'
     ],
     correctAnswer: 1,
-    explanation: 'Virtual DOM giÃºp React tá»‘i Æ°u hiá»‡u suáº¥t báº±ng cÃ¡ch so sÃ¡nh vÃ  chá»‰ cáº­p nháº­t nhá»¯ng pháº§n thay Ä‘á»•i trÃªn DOM tháº­t.'
+    explanation: 'Virtual DOM giúp React tối ưu hiệu suất bằng cách so sánh và chỉ cập nhật những phần thay đổi trên DOM thật.'
   },
   {
     id: 5,
-    question: 'Props trong React Ä‘Æ°á»£c dÃ¹ng Ä‘á»ƒ lÃ m gÃ¬?',
+    question: 'Props trong React được dùng để làm gì?',
     options: [
-      'LÆ°u trá»¯ state',
-      'Truyá»n dá»¯ liá»‡u tá»« component cha sang component con',
-      'Káº¿t ná»‘i API',
-      'Táº¡o event handler'
+      'Lưu trữ state',
+      'Truyền dữ liệu từ component cha sang component con',
+      'Kết nối API',
+      'Tạo event handler'
     ],
     correctAnswer: 1,
-    explanation: 'Props (properties) lÃ  cÃ¡ch Ä‘á»ƒ truyá»n dá»¯ liá»‡u tá»« component cha xuá»‘ng component con trong React.'
+    explanation: 'Props (properties) là cách để truyền dữ liệu từ component cha xuống component con trong React.'
   }
 ];
 
@@ -75,19 +75,19 @@ const mockQuizQuestions = [
 const mockSections = [
   {
     id: 1,
-    title: 'Giá»›i thiá»‡u',
+    title: 'Giới thiệu',
     lessons: [
-      { id: 1, title: 'Giá»›i thiá»‡u khÃ³a há»c', type: 'video', duration: '10:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: true },
-      { id: 2, title: 'CÃ i Ä‘áº·t mÃ´i trÆ°á»ng', type: 'video', duration: '15:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: true },
+      { id: 1, title: 'Giới thiệu khóa học', type: 'video', duration: '10:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: true },
+      { id: 2, title: 'Cài đặt môi trường', type: 'video', duration: '15:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: true },
     ]
   },
   {
     id: 2,
-    title: 'Ná»™i dung chÃ­nh',
+    title: 'Nội dung chính',
     lessons: [
-      { id: 3, title: 'Concepts cÆ¡ báº£n', type: 'video', duration: '20:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: false },
-      { id: 4, title: 'TÃ i liá»‡u tham kháº£o', type: 'pdf', duration: '5 phÃºt', pdfUrl: '#', completed: false },
-      { id: 5, title: 'Quiz kiá»ƒm tra', type: 'quiz', duration: '10 phÃºt', completed: false },
+      { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: false },
+      { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', completed: false },
+      { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false },
     ]
   }
 ];
@@ -151,7 +151,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
 
   const handleSubmitQuiz = () => {
     if (Object.keys(quizAnswers).length < mockQuizQuestions.length) {
-      toast.error('Vui lÃ²ng tráº£ lá»i táº¥t cáº£ cÃ¡c cÃ¢u há»i!');
+      toast.error('Vui lòng trả lời tất cả các câu hỏi!');
       return;
     }
     setShowResults(true);
@@ -160,18 +160,18 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     const percentage = (correctCount / mockQuizQuestions.length) * 100;
     
     if (percentage >= 80) {
-      toast.success(`Xuáº¥t sáº¯c! Báº¡n Ä‘áº¡t ${correctCount}/${mockQuizQuestions.length} cÃ¢u Ä‘Ãºng (${percentage.toFixed(0)}%)`);
+      toast.success(`Xuất sắc! Bạn đạt ${correctCount}/${mockQuizQuestions.length} câu đúng (${percentage.toFixed(0)}%)`);
     } else if (percentage >= 50) {
-      toast.success(`KhÃ¡ tá»‘t! Báº¡n Ä‘áº¡t ${correctCount}/${mockQuizQuestions.length} cÃ¢u Ä‘Ãºng (${percentage.toFixed(0)}%)`);
+      toast.success(`Khá tốt! Bạn đạt ${correctCount}/${mockQuizQuestions.length} câu đúng (${percentage.toFixed(0)}%)`);
     } else {
-      toast.error(`Báº¡n cáº§n cá»‘ gáº¯ng thÃªm. Äiá»ƒm: ${correctCount}/${mockQuizQuestions.length} (${percentage.toFixed(0)}%)`);
+      toast.error(`Bạn cần cố gắng thêm. Điểm: ${correctCount}/${mockQuizQuestions.length} (${percentage.toFixed(0)}%)`);
     }
   };
 
   const handleResetQuiz = () => {
     setQuizAnswers({});
     setShowResults(false);
-    toast.success('ÄÃ£ lÃ m má»›i quiz!');
+    toast.success('Đã làm mới quiz!');
   };
 
   return (
@@ -184,13 +184,13 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
             <div className="flex-1">
               <h2 className="mb-1">{course.title}</h2>
               <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span>{completedLessons}/{allLessons.length} má»¥c Ä‘Ã£ hoÃ n thÃ nh</span>
+                <span>{completedLessons}/{allLessons.length} mục đã hoàn thành</span>
                 <Progress value={progress} className="w-48 h-2" />
                 <span>{progress.toFixed(0)}%</span>
               </div>
             </div>
             <Button variant="outline" onClick={() => navigateTo('my-courses')}>
-              ThoÃ¡t khÃ³a há»c
+              Thoát khóa học
             </Button>
           </div>
         </div>
@@ -220,15 +220,31 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
             )}
             
             {selectedLesson.type === 'pdf' && (
-              <div className="flex-1 flex items-center justify-center p-8">
-                <Card className="max-w-2xl w-full">
-                  <CardContent className="p-12 text-center">
-                    <FileText className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                    <h3 className="mb-2">{selectedLesson.title}</h3>
-                    <p className="text-gray-600 mb-4">TÃ i liá»‡u PDF</p>
-                    <Button>Táº£i xuá»‘ng PDF</Button>
-                  </CardContent>
-                </Card>
+              <div className="flex-1 bg-gray-900 flex items-center justify-center p-6">
+                <div className="w-full h-full max-w-6xl flex flex-col">
+                  <div className="flex-1 bg-white rounded-lg overflow-hidden shadow-2xl">
+                    {selectedLesson.pdfUrl && selectedLesson.pdfUrl !== '#' ? (
+                      <iframe
+                        src={selectedLesson.pdfUrl}
+                        className="w-full h-full"
+                        title={selectedLesson.title}
+                        frameBorder="0"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                        <div className="text-center p-8">
+                          <FileText className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                          <h3 className="mb-2">{selectedLesson.title}</h3>
+                          <p className="text-gray-600">Tài liệu PDF chưa được tải lên</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-6 text-center">
+                    <h3 className="text-white mb-2">{selectedLesson.title}</h3>
+                    <p className="text-gray-400 text-sm">{selectedLesson.duration}</p>
+                  </div>
+                </div>
               </div>
             )}
             
@@ -241,7 +257,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                         <Award className="w-16 h-16 text-[#1E88E5] mx-auto mb-4" />
                         <h2 className="mb-2">{selectedLesson.title}</h2>
                         <p className="text-gray-600">
-                          {showResults ? 'Káº¿t quáº£ bÃ i kiá»ƒm tra' : 'Tráº£ lá»i táº¥t cáº£ cÃ¡c cÃ¢u há»i bÃªn dÆ°á»›i'}
+                          {showResults ? 'Kết quả bài kiểm tra' : 'Trả lời tất cả các câu hỏi bên dưới'}
                         </p>
                       </div>
 
@@ -255,12 +271,12 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                               <CardContent className="p-6">
                                 <div className="flex items-start gap-3 mb-4">
                                   <Badge variant="secondary" className="mt-1">
-                                    CÃ¢u {qIndex + 1}
+                                    Câu {qIndex + 1}
                                   </Badge>
                                   <h4 className="flex-1">{question.question}</h4>
                                   {showResults && (
                                     <Badge className={isCorrect ? 'bg-green-500' : 'bg-red-500'}>
-                                      {isCorrect ? 'âœ“ ÄÃºng' : 'âœ— Sai'}
+                                      {isCorrect ? '✓ Đúng' : '✗ Sai'}
                                     </Badge>
                                   )}
                                 </div>
@@ -302,7 +318,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                                 {showResults && (
                                   <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                     <p className="text-sm text-blue-900">
-                                      <strong>Giáº£i thÃ­ch:</strong> {question.explanation}
+                                      <strong>Giải thích:</strong> {question.explanation}
                                     </p>
                                   </div>
                                 )}
@@ -319,7 +335,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                             className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
                             onClick={handleSubmitQuiz}
                           >
-                            Ná»™p bÃ i
+                            Nộp bài
                           </Button>
                         ) : (
                           <Button
@@ -327,7 +343,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                             variant="outline"
                             onClick={handleResetQuiz}
                           >
-                            LÃ m láº¡i
+                            Làm lại
                           </Button>
                         )}
                       </div>
@@ -348,17 +364,17 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
               disabled={!canGoPrevious}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
-              TrÆ°á»›c
+              Trước
             </Button>
             <div className="text-center">
-              <div className="text-sm text-gray-600">Má»¥c {currentIndex + 1} / {allLessons.length}</div>
+              <div className="text-sm text-gray-600">Mục {currentIndex + 1} / {allLessons.length}</div>
             </div>
             <Button 
               className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
               onClick={handleNext}
               disabled={!canGoNext}
             >
-              Tiáº¿p
+              Tiếp
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -368,7 +384,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       {/* Sidebar */}
       <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
         <div className="p-4">
-          <h3 className="mb-4">Ná»™i dung khÃ³a há»c</h3>
+          <h3 className="mb-4">Nội dung khóa học</h3>
           <div className="space-y-2">
             {mockSections.map((section) => (
               <div key={section.id} className="border rounded-lg overflow-hidden">
@@ -423,4 +439,3 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     </div>
   );
 }
-

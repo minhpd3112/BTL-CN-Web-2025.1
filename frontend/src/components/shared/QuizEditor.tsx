@@ -1,56 +1,56 @@
 import { useState } from 'react';
-import { Sparkles, Copy, Check, AlertCircle, HelpCircle } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Textarea } from '../ui/textarea';
-import { Label } from '../ui/label';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { toast } from 'sonner@2.0.3';
-
-interface QuizQuestion {
-  question: string;
-  type: 'single' | 'multiple';
-  options: string[];
-  correctAnswers: number[];
-  explanation?: string;
-}
+import { Check, HelpCircle, Clock, Timer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { QuizQuestion, QuizSettings } from '@/types';
 
 interface QuizEditorProps {
-  onSave: (questions: QuizQuestion[]) => void;
+  onSave: (questions: QuizQuestion[], settings: QuizSettings) => void;
   initialQuestions?: QuizQuestion[];
+  initialSettings?: QuizSettings;
 }
 
-const EXAMPLE_SINGLE = `Ai là đáp án đúng?
-() Đáp án A
-(x) Đáp án B - đúng
-() Đáp án C`;
+const EXAMPLE_SINGLE = `React là gì?
+() Framework backend
+(x) Thư viện JavaScript để xây dựng UI
+() Hệ quản trị cơ sở dữ liệu
+() Ngôn ngữ lập trình`;
 
-const EXAMPLE_MULTIPLE = `Chọn đáp án đúng (có thể nhiều đáp án):
-[] Đáp án A
-[x] Đáp án B - đúng
-[x] Đáp án C - đúng
-[] Đáp án D`;
-
-const EXAMPLE_FULL = `React là gì?
-() Một framework backend
-(x) Một thư viện JavaScript để xây dựng UI
-() Một database
-() Một ngôn ngữ lập trình
-
-Đâu là hook trong React? (có thể chọn nhiều)
+const EXAMPLE_MULTIPLE = `Các hook cơ bản trong React:
 [] useBackend
 [x] useState
 [x] useEffect
 [] useDatabase`;
 
-export function QuizEditor({ onSave, initialQuestions = [] }: QuizEditorProps) {
+const EXAMPLE_FULL = `React là gì?
+() Framework backend
+(x) Thư viện JavaScript để xây dựng UI
+() Hệ quản trị cơ sở dữ liệu
+() Ngôn ngữ lập trình
+
+Các hook cơ bản trong React:
+[] useBackend
+[x] useState
+[x] useEffect
+[] useDatabase`;
+
+export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: QuizEditorProps) {
   const [quizText, setQuizText] = useState('');
   const [parsedQuestions, setParsedQuestions] = useState<QuizQuestion[]>(initialQuestions);
-  const [isNormalizing, setIsNormalizing] = useState(false);
-  const [rawText, setRawText] = useState('');
+  
+  // Quiz Settings State
+  const [hasTimeLimit, setHasTimeLimit] = useState<boolean>(initialSettings?.quizType === 'exam');
+  const [timeLimit, setTimeLimit] = useState<number>(initialSettings?.timeLimit || 30);
+  const [passingScore, setPassingScore] = useState<number>(initialSettings?.passingScore || 70);
 
   const parseQuizText = (text: string): QuizQuestion[] => {
     const questions: QuizQuestion[] = [];
@@ -147,60 +147,110 @@ export function QuizEditor({ onSave, initialQuestions = [] }: QuizEditorProps) {
     }
   };
 
-  const handleNormalizeWithGemini = async () => {
-    if (!rawText.trim()) {
-      toast.error('Vui lòng nhập văn bản cần chuẩn hóa!');
-      return;
-    }
-
-    setIsNormalizing(true);
-    
-    try {
-      // Mock Gemini API call - In production, replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock response - In production, this would be the Gemini API response
-      const mockNormalizedText = `React là gì?
-() Một framework backend
-(x) Một thư viện JavaScript để xây dựng UI
-() Một database
-
-Đâu là hook trong React?
-[x] useState
-[x] useEffect
-[] useBackend
-[] useDatabase`;
-      
-      setQuizText(mockNormalizedText);
-      toast.success('Đã chuẩn hóa văn bản! Vui lòng kiểm tra và chỉnh sửa nếu cần.');
-    } catch (error) {
-      toast.error('Không thể kết nối đến Gemini API. Vui lòng thử lại.');
-    } finally {
-      setIsNormalizing(false);
-    }
-  };
-
   const handleSave = () => {
     if (parsedQuestions.length === 0) {
       toast.error('Chưa có câu hỏi nào để lưu!');
       return;
     }
     
-    onSave(parsedQuestions);
+    if (hasTimeLimit && (!timeLimit || timeLimit <= 0)) {
+      toast.error('Vui lòng nhập thời gian giới hạn!');
+      return;
+    }
+    
+    const settings: QuizSettings = {
+      quizType: hasTimeLimit ? 'exam' : 'practice',
+      timeLimit: hasTimeLimit ? timeLimit : undefined,
+      passingScore
+    };
+    
+    onSave(parsedQuestions, settings);
     toast.success(`Đã lưu ${parsedQuestions.length} câu hỏi!`);
   };
 
-  const copyExample = (example: string) => {
-    setQuizText(example);
-    toast.success('Đã copy ví dụ!');
-  };
+
 
   return (
     <div className="space-y-6">
+      {/* Quiz Settings Card */}
+      <Card className="border-2 border-[#1E88E5]/20">
+        <CardHeader className="bg-gradient-to-r from-[#1E88E5]/10 to-transparent">
+          <CardTitle className="flex items-center gap-2">
+            <Timer className="w-5 h-5 text-[#1E88E5]" />
+            Cài đặt Quiz
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-6">
+          {/* Time Limit Toggle */}
+          <div className="flex items-start justify-between gap-4 p-4 border-2 border-gray-200 rounded-lg hover:border-[#1E88E5]/30 transition-colors">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-[#1E88E5]" />
+                <Label htmlFor="time-limit-toggle" className="cursor-pointer">
+                  Giới hạn thời gian
+                </Label>
+              </div>
+              <p className="text-sm text-gray-600">
+                {hasTimeLimit 
+                  ? 'Học viên cần xác nhận và sẽ có thời gian giới hạn để làm bài'
+                  : 'Học viên có thể làm bài không giới hạn thời gian'
+                }
+              </p>
+            </div>
+            <Switch
+              id="time-limit-toggle"
+              checked={hasTimeLimit}
+              onCheckedChange={setHasTimeLimit}
+              className="mt-1"
+            />
+          </div>
+
+          {/* Time Limit Input - Only show when enabled */}
+          {hasTimeLimit && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <Label htmlFor="time-limit" className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-600" />
+                Thời gian làm bài (phút) *
+              </Label>
+              <Input
+                id="time-limit"
+                type="number"
+                min="1"
+                max="180"
+                value={timeLimit}
+                onChange={(e) => setTimeLimit(parseInt(e.target.value) || 0)}
+                placeholder="VD: 30"
+                className="bg-white"
+              />
+            </div>
+          )}
+
+          {/* Passing Score */}
+          <div>
+            <Label htmlFor="passing-score" className="mb-2 block">
+              Điểm tối thiểu để đạt (%)
+            </Label>
+            <Input
+              id="passing-score"
+              type="number"
+              min="0"
+              max="100"
+              value={passingScore}
+              onChange={(e) => setPassingScore(parseInt(e.target.value) || 0)}
+              placeholder="VD: 70"
+            />
+            <p className="text-xs text-gray-600 mt-1">
+              Học viên cần đạt tối thiểu {passingScore}% để hoàn thành quiz
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quiz Questions Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Tạo Quiz</CardTitle>
+            <CardTitle>Tạo câu hỏi Quiz</CardTitle>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -210,217 +260,120 @@ export function QuizEditor({ onSave, initialQuestions = [] }: QuizEditorProps) {
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Hướng dẫn tạo Quiz</DialogTitle>
+                  <DialogTitle>Hướng dẫn Format Quiz</DialogTitle>
                   <DialogDescription>
-                    Sử dụng format đặc biệt để tạo quiz nhanh chóng
+                    Quy tắc định dạng câu hỏi và đáp án
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6">
                   <div>
                     <h4 className="mb-3 flex items-center gap-2">
-                      <Badge>Format</Badge>
+                      <Badge>Format 1</Badge>
                       Câu hỏi một đáp án đúng
                     </h4>
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
                       <pre className="text-sm whitespace-pre-wrap">{EXAMPLE_SINGLE}</pre>
                     </div>
                     <p className="text-sm text-gray-600">
-                      • Dùng <code className="bg-gray-200 px-1 rounded">()</code> cho câu hỏi 1 đáp án đúng<br />
-                      • Đánh dấu <code className="bg-gray-200 px-1 rounded">(x)</code> cho đáp án đúng
+                      Sử dụng <code className="bg-gray-200 px-1 rounded">()</code> cho các đáp án và đánh dấu <code className="bg-gray-200 px-1 rounded">(x)</code> cho đáp án đúng.
                     </p>
                   </div>
 
                   <div>
                     <h4 className="mb-3 flex items-center gap-2">
-                      <Badge>Format</Badge>
+                      <Badge>Format 2</Badge>
                       Câu hỏi nhiều đáp án đúng
                     </h4>
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
                       <pre className="text-sm whitespace-pre-wrap">{EXAMPLE_MULTIPLE}</pre>
                     </div>
                     <p className="text-sm text-gray-600">
-                      • Dùng <code className="bg-gray-200 px-1 rounded">[]</code> cho câu hỏi nhiều đáp án đúng<br />
-                      • Đánh dấu <code className="bg-gray-200 px-1 rounded">[x]</code> cho các đáp án đúng
+                      Sử dụng <code className="bg-gray-200 px-1 rounded">[]</code> cho các đáp án và đánh dấu <code className="bg-gray-200 px-1 rounded">[x]</code> cho các đáp án đúng.
                     </p>
                   </div>
 
                   <div>
                     <h4 className="mb-3 flex items-center gap-2">
-                      <Badge variant="secondary">Lưu ý</Badge>
-                      Quy tắc quan trọng
+                      <Badge variant="secondary">Quy tắc</Badge>
+                      Yêu cầu bắt buộc
                     </h4>
                     <ul className="text-sm text-gray-600 space-y-2">
-                      <li>• Dòng đầu tiên (không có () hoặc []) là câu hỏi</li>
-                      <li>• Các dòng tiếp theo với () hoặc [] là đáp án</li>
-                      <li>• Mỗi câu hỏi cách nhau bằng 1 dòng trống (không bắt buộc)</li>
-                      <li>• Có thể có nhiều đáp án đúng với [x]</li>
-                      <li>• Phải có ít nhất 1 đáp án đúng</li>
+                      <li>• Dòng đầu tiên không chứa ký tự đặc biệt là câu hỏi</li>
+                      <li>• Các dòng bắt đầu bằng () hoặc [] là đáp án</li>
+                      <li>• Mỗi câu hỏi được phân tách bằng một dòng trống</li>
+                      <li>• Có thể đánh dấu nhiều đáp án đúng với [x]</li>
+                      <li>• Mỗi câu hỏi phải có ít nhất một đáp án đúng</li>
                     </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-3 flex items-center gap-2">
+                      <Badge className="bg-purple-600">Sử dụng AI</Badge>
+                      Prompt để chuẩn hóa với LLM
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <p className="text-sm text-gray-800 mb-2 font-medium">Copy prompt này và gửi đến ChatGPT/Claude/Gemini kèm theo nội dung quiz của bạn:</p>
+                      <div className="bg-white p-3 rounded border border-gray-300 text-sm font-mono whitespace-pre-wrap">
+{`Hãy chuyển đổi các câu hỏi quiz sau sang format chuẩn:
+
+Format cho câu hỏi một đáp án đúng:
+- Dòng đầu: Câu hỏi
+- Các dòng tiếp theo: () cho đáp án sai, (x) cho đáp án đúng
+
+Format cho câu hỏi nhiều đáp án đúng:
+- Dòng đầu: Câu hỏi  
+- Các dòng tiếp theo: [] cho đáp án sai, [x] cho đáp án đúng
+
+Ví dụ output:
+React là gì?
+() Framework backend
+(x) Thư viện JavaScript để xây dựng UI
+() Hệ quản trị cơ sở dữ liệu
+
+Các hook cơ bản trong React:
+[x] useState
+[x] useEffect
+[] useBackend
+
+[PASTE NỘI DUNG QUIZ CỦA BẠN Ở ĐÂY]`}</div>
+                      <p className="text-xs text-gray-600 mt-2">
+                        💡 Sau khi nhận kết quả từ AI, copy và paste vào ô "Nhập câu hỏi theo format" bên dưới
+                      </p>
+                    </div>
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="editor">
-            <TabsList className="mb-4">
-              <TabsTrigger value="editor">Soạn thảo</TabsTrigger>
-              <TabsTrigger value="normalize">Chuẩn hóa AI</TabsTrigger>
-              <TabsTrigger value="preview">
-                Xem trước ({parsedQuestions.length})
-              </TabsTrigger>
-            </TabsList>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="mb-2">
+              <Label>Nhập câu hỏi theo format</Label>
+            </div>
+            <Textarea
+              placeholder={`Nhập câu hỏi theo format...\n\n${EXAMPLE_SINGLE}`}
+              value={quizText}
+              onChange={(e) => setQuizText(e.target.value)}
+              rows={15}
+              className="font-mono text-sm"
+            />
+          </div>
 
-            <TabsContent value="editor" className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Nhập câu hỏi theo format</Label>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => copyExample(EXAMPLE_SINGLE)}
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Ví dụ 1
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => copyExample(EXAMPLE_FULL)}
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Ví dụ đầy đủ
-                    </Button>
-                  </div>
-                </div>
-                <Textarea
-                  placeholder={`Nhập câu hỏi theo format...\n\n${EXAMPLE_SINGLE}`}
-                  value={quizText}
-                  onChange={(e) => setQuizText(e.target.value)}
-                  rows={15}
-                  className="font-mono text-sm"
-                />
-              </div>
-
-              <Alert>
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription className="text-sm">
-                  <strong>Format:</strong> Dòng đầu là câu hỏi. 
-                  Dùng <code>(x)</code> cho đáp án đúng (1 đáp án) hoặc <code>[x]</code> (nhiều đáp án).
-                </AlertDescription>
-              </Alert>
-
-              <div className="flex gap-2">
-                <Button 
-                  onClick={handleParse}
-                  className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
-                >
-                  Phân tích câu hỏi
-                </Button>
-                {parsedQuestions.length > 0 && (
-                  <Button onClick={handleSave} variant="outline">
-                    <Check className="w-4 h-4 mr-2" />
-                    Lưu {parsedQuestions.length} câu
-                  </Button>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="normalize" className="space-y-4">
-              <Alert className="bg-blue-50 border-blue-200">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <AlertDescription className="text-blue-900 text-sm">
-                  <strong>Công cụ AI:</strong> Dán văn bản quiz chưa chuẩn (từ Word, PDF, v.v.) 
-                  và AI sẽ tự động chuẩn hóa sang format đúng.
-                </AlertDescription>
-              </Alert>
-
-              <div>
-                <Label>Văn bản chưa chuẩn hóa</Label>
-                <Textarea
-                  placeholder={`Dán văn bản quiz chưa chuẩn vào đây...\n\nVí dụ:\nCâu 1: React là gì?\nA. Framework backend\nB. Thư viện JavaScript (đúng)\nC. Database\n\nCâu 2: Hook nào dùng để quản lý state?\nA. useState (đúng)\nB. useEffect (đúng)\nC. useBackend`}
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  rows={12}
-                  className="mt-2"
-                />
-              </div>
-
-              <Button 
-                onClick={handleNormalizeWithGemini}
-                disabled={isNormalizing}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                {isNormalizing ? 'Đang chuẩn hóa...' : 'Chuẩn hóa bằng AI'}
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleParse}
+              className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
+            >
+              Phân tích câu hỏi
+            </Button>
+            {parsedQuestions.length > 0 && (
+              <Button onClick={handleSave} variant="outline">
+                <Check className="w-4 h-4 mr-2" />
+                Lưu {parsedQuestions.length} câu
               </Button>
-
-              <Alert className="bg-amber-50 border-amber-200">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
-                <AlertDescription className="text-amber-900 text-sm">
-                  <strong>Lưu ý:</strong> Sau khi AI chuẩn hóa, hãy kiểm tra lại kết quả 
-                  trong tab "Soạn thảo" trước khi lưu.
-                </AlertDescription>
-              </Alert>
-            </TabsContent>
-
-            <TabsContent value="preview" className="space-y-4">
-              {parsedQuestions.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>Chưa có câu hỏi nào</p>
-                  <p className="text-sm">Nhập câu hỏi ở tab "Soạn thảo" và nhấn "Phân tích câu hỏi"</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {parsedQuestions.map((q, qIndex) => (
-                    <Card key={qIndex}>
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-3 mb-4">
-                          <Badge variant="secondary">Câu {qIndex + 1}</Badge>
-                          <div className="flex-1">
-                            <h4 className="mb-1">{q.question}</h4>
-                            <Badge className={q.type === 'single' ? 'bg-blue-500' : 'bg-purple-500'}>
-                              {q.type === 'single' ? '1 đáp án đúng' : 'Nhiều đáp án đúng'}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {q.options.map((option, optIndex) => {
-                            const isCorrect = q.correctAnswers.includes(optIndex);
-                            return (
-                              <div
-                                key={optIndex}
-                                className={`p-3 rounded-lg border-2 ${
-                                  isCorrect 
-                                    ? 'border-green-500 bg-green-50' 
-                                    : 'border-gray-200 bg-white'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  {isCorrect && <Check className="w-4 h-4 text-green-600" />}
-                                  <span className={isCorrect ? 'font-medium text-green-900' : ''}>
-                                    {option}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  
-                  <Button onClick={handleSave} className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0]">
-                    <Check className="w-4 h-4 mr-2" />
-                    Xác nhận và lưu {parsedQuestions.length} câu hỏi
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

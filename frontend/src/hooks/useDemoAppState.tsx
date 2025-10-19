@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { mockUsers, mockCourses, mockEnrollments } from '../data';
-import { User, Course, Page, Enrollment, Notification } from '../types';
+import {
+  mockUsers,
+  mockCourses,
+  mockEnrollments,
+  mockEnrollmentRequests,
+  mockTags
+} from '@/services/mocks';
+import { User, Course, Page, Enrollment, Notification, EnrollmentRequest, Tag } from '@/types';
 
 // Mock Google Accounts
 export const mockGoogleAccounts = [
@@ -144,11 +150,12 @@ export function useDemoAppState() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [selectedCourse, setSelectedCourse] = useState<Course>(mockCourses[0]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userGooglePicture, setUserGooglePicture] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [enrollmentRequests, setEnrollmentRequests] = useState<Enrollment[]>(mockEnrollments);
+  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>(mockEnrollmentRequests);
 
   // Helper functions
   const navigateTo = (page: Page, course?: Course) => {
@@ -224,15 +231,32 @@ export function useDemoAppState() {
   };
 
   const handleApproveRequest = (requestId: number) => {
+    const now = new Date();
+    const timeString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setEnrollmentRequests(enrollmentRequests.map(req =>
-      req.id === requestId ? { ...req, status: 'approved', respondedAt: new Date().toISOString().split('T')[0] } : req
+      req.id === requestId ? { ...req, status: 'approved' as const, respondedAt: timeString } : req
     ));
   };
 
   const handleRejectRequest = (requestId: number) => {
+    const now = new Date();
+    const timeString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setEnrollmentRequests(enrollmentRequests.map(req =>
-      req.id === requestId ? { ...req, status: 'rejected', respondedAt: new Date().toISOString().split('T')[0] } : req
+      req.id === requestId ? { ...req, status: 'rejected' as const, respondedAt: timeString } : req
     ));
+  };
+
+  const handleEnrollRequest = (request: Omit<EnrollmentRequest, 'id' | 'status' | 'respondedAt'>) => {
+    const now = new Date();
+    const timeString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const newRequest: EnrollmentRequest = {
+      ...request,
+      id: Date.now(),
+      status: 'pending',
+      requestedAt: timeString,
+      respondedAt: null
+    };
+    setEnrollmentRequests([...enrollmentRequests, newRequest]);
   };
 
   // Computed values
@@ -246,6 +270,7 @@ export function useDemoAppState() {
       currentPage,
       selectedCourse,
       selectedUser,
+      selectedTag,
       sidebarOpen,
       userGooglePicture,
       notifications: userNotifications,
@@ -262,6 +287,7 @@ export function useDemoAppState() {
       canAccessCourse,
       setSelectedCourse,
       setSelectedUser,
+      setSelectedTag,
       setSidebarOpen,
       setShowNotifications,
       markAsRead,
@@ -269,6 +295,7 @@ export function useDemoAppState() {
       handleNotificationClick,
       handleApproveRequest,
       handleRejectRequest,
+      handleEnrollRequest,
     },
   };
 }

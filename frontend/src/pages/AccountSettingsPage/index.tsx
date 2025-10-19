@@ -1,15 +1,16 @@
-﻿import { useState } from 'react';
-import { User as UserIcon, Mail, Phone, MapPin, Calendar, Save } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Separator } from '../../components/ui/separator';
-import { Badge } from '../../components/ui/badge';
+import { useState } from 'react';
+import { User as UserIcon, Mail, Phone, MapPin, Calendar, Save, Trash2, AlertTriangle, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Page } from '../../types';
+import { User, Page } from '@/types';
 
 interface AccountSettingsPageProps {
   user: User;
@@ -25,21 +26,41 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
 
   const handleSaveChanges = () => {
     if (!name.trim()) {
-      toast.error('Vui lÃ²ng nháº­p tÃªn');
+      toast.error('Vui lòng nhập tên');
       return;
     }
     if (!email.trim()) {
-      toast.error('Vui lÃ²ng nháº­p email');
+      toast.error('Vui lòng nhập email');
       return;
     }
-    toast.success('ÄÃ£ cáº­p nháº­t thÃ´ng tin tÃ i khoáº£n!');
+    toast.success('Đã cập nhật thông tin tài khoản!');
+  };
+
+  const handleDeleteAccount = () => {
+    toast.success('Tài khoản đã được xóa. Cảm ơn bạn đã sử dụng dịch vụ!');
+    setTimeout(() => navigateTo('login'), 1500);
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="mb-2">CÃ i Ä‘áº·t tÃ i khoáº£n</h1>
-        <p className="text-gray-600">Quáº£n lÃ½ thÃ´ng tin cÃ¡ nhÃ¢n cá»§a báº¡n</p>
+        <div className="flex items-center gap-3 mb-3">
+          <Settings className="w-8 h-8 text-[#1E88E5]" />
+          <h1 
+            style={{
+              fontSize: '2rem',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}
+          >
+            Cài đặt tài khoản
+          </h1>
+        </div>
+        <p className="text-gray-600 ml-11">Quản lý thông tin cá nhân của bạn</p>
+        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -74,11 +95,11 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <UserIcon className="w-4 h-4" />
-                <span>{user.coursesCreated} khÃ³a há»c</span>
+                <span>{user.coursesCreated} khóa học</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <UserIcon className="w-4 h-4" />
-                <span>{user.totalStudents} há»c viÃªn</span>
+                <span>{user.totalStudents} học viên</span>
               </div>
             </div>
           </CardContent>
@@ -88,22 +109,22 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>ThÃ´ng tin cÃ¡ nhÃ¢n</CardTitle>
-              <CardDescription>Cáº­p nháº­t thÃ´ng tin cÆ¡ báº£n cá»§a báº¡n</CardDescription>
+              <CardTitle>Thông tin cá nhân</CardTitle>
+              <CardDescription>Cập nhật thông tin cơ bản của bạn</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="name">
                   <div className="flex items-center gap-2 mb-2">
                     <UserIcon className="w-4 h-4" />
-                    Há» vÃ  tÃªn *
+                    Họ và tên *
                   </div>
                 </Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nháº­p há» vÃ  tÃªn"
+                  placeholder="Nhập họ và tên"
                 />
               </div>
 
@@ -127,7 +148,7 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
                 <Label htmlFor="phone">
                   <div className="flex items-center gap-2 mb-2">
                     <Phone className="w-4 h-4" />
-                    Sá»‘ Ä‘iá»‡n thoáº¡i
+                    Số điện thoại
                   </div>
                 </Label>
                 <Input
@@ -143,26 +164,26 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
                 <Label htmlFor="location">
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className="w-4 h-4" />
-                    Äá»‹a chá»‰
+                    Địa chỉ
                   </div>
                 </Label>
                 <Input
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="ThÃ nh phá»‘, Quá»‘c gia"
+                  placeholder="Thành phố, Quốc gia"
                 />
               </div>
 
               <div>
                 <Label htmlFor="bio">
-                  Giá»›i thiá»‡u báº£n thÃ¢n
+                  Giới thiệu bản thân
                 </Label>
                 <Textarea
                   id="bio"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  placeholder="Viáº¿t vÃ i dÃ²ng giá»›i thiá»‡u vá» báº£n thÃ¢n..."
+                  placeholder="Viết vài dòng giới thiệu về bản thân..."
                   rows={4}
                   className="mt-2"
                 />
@@ -172,74 +193,82 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
 
           <Card>
             <CardHeader>
-              <CardTitle>Báº£o máº­t</CardTitle>
-              <CardDescription>Quáº£n lÃ½ máº­t kháº©u vÃ  báº£o máº­t tÃ i khoáº£n</CardDescription>
+              <CardTitle>Thông báo</CardTitle>
+              <CardDescription>Quản lý cách bạn nhận thông báo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="current-password">Máº­t kháº©u hiá»‡n táº¡i</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  className="mt-2"
-                />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Email thông báo</p>
+                  <p className="text-sm text-gray-600">Nhận thông báo qua email</p>
+                </div>
+                <input type="checkbox" defaultChecked className="w-4 h-4" />
               </div>
-
-              <div>
-                <Label htmlFor="new-password">Máº­t kháº©u má»›i</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  className="mt-2"
-                />
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Thông báo khóa học</p>
+                  <p className="text-sm text-gray-600">Cập nhật về khóa học của bạn</p>
+                </div>
+                <input type="checkbox" defaultChecked className="w-4 h-4" />
               </div>
-
-              <div>
-                <Label htmlFor="confirm-password">XÃ¡c nháº­n máº­t kháº©u má»›i</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  className="mt-2"
-                />
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Thông báo học viên</p>
+                  <p className="text-sm text-gray-600">Khi có học viên mới đăng ký</p>
+                </div>
+                <input type="checkbox" defaultChecked className="w-4 h-4" />
               </div>
-
-              <Button variant="outline" className="w-full">
-                Äá»•i máº­t kháº©u
-              </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>ThÃ´ng bÃ¡o</CardTitle>
-              <CardDescription>Quáº£n lÃ½ cÃ¡ch báº¡n nháº­n thÃ´ng bÃ¡o</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Email thÃ´ng bÃ¡o</p>
-                  <p className="text-sm text-gray-600">Nháº­n thÃ´ng bÃ¡o qua email</p>
+          {/* Danger Zone */}
+          <Card className="border-red-200">
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
+                <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-900 mb-1">Xóa tài khoản</p>
+                  <p className="text-sm text-red-700 mb-3">
+                    Khi xóa tài khoản, tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn. 
+                    Các khóa học bạn tạo sẽ không còn khả dụng và học viên sẽ mất quyền truy cập.
+                  </p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Xóa tài khoản của tôi
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Bạn có chắc chắn muốn xóa tài khoản?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn bao gồm:
+                          <ul className="list-disc list-inside mt-2 space-y-1">
+                            <li>{user.coursesCreated} khóa học đã tạo</li>
+                            <li>Thông tin cá nhân</li>
+                            <li>Lịch sử học tập</li>
+                            <li>Tất cả dữ liệu liên quan</li>
+                          </ul>
+                          <p className="mt-3 font-medium text-red-600">
+                            Sẽ bị xóa vĩnh viễn và không thể khôi phục.
+                          </p>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteAccount}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Xác nhận xóa tài khoản
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-                <input type="checkbox" defaultChecked className="w-4 h-4" />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">ThÃ´ng bÃ¡o khÃ³a há»c</p>
-                  <p className="text-sm text-gray-600">Cáº­p nháº­t vá» khÃ³a há»c cá»§a báº¡n</p>
-                </div>
-                <input type="checkbox" defaultChecked className="w-4 h-4" />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">ThÃ´ng bÃ¡o há»c viÃªn</p>
-                  <p className="text-sm text-gray-600">Khi cÃ³ há»c viÃªn má»›i Ä‘Äƒng kÃ½</p>
-                </div>
-                <input type="checkbox" defaultChecked className="w-4 h-4" />
               </div>
             </CardContent>
           </Card>
@@ -251,14 +280,14 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
               onClick={handleSaveChanges}
             >
               <Save className="w-4 h-4 mr-2" />
-              LÆ°u thay Ä‘á»•i
+              Lưu thay đổi
             </Button>
             <Button 
               variant="outline"
               className="flex-1"
               onClick={() => navigateTo('home')}
             >
-              Há»§y
+              Hủy
             </Button>
           </div>
         </div>
@@ -266,4 +295,3 @@ export function AccountSettingsPage({ user, navigateTo }: AccountSettingsPagePro
     </div>
   );
 }
-

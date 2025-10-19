@@ -34,12 +34,14 @@ export interface Tag {
   icon: string;
   courseCount: number;
   description: string;
+  image?: string;
 }
 
 export interface Course {
   id: number;
   title: string;
   description: string;
+  overview?: string;
   ownerName: string;
   ownerId: number;
   ownerAvatar: string;
@@ -65,6 +67,20 @@ export interface Section {
   lessons: Lesson[];
 }
 
+export interface QuizQuestion {
+  question: string;
+  type: 'single' | 'multiple';
+  options: string[];
+  correctAnswers: number[];
+  explanation?: string;
+}
+
+export interface QuizSettings {
+  quizType: 'exam' | 'practice';
+  timeLimit?: number; // Thời gian giới hạn tính bằng phút (chỉ áp dụng cho exam)
+  passingScore?: number; // Điểm tối thiểu để pass (%)
+}
+
 export interface Lesson {
   id: number;
   sectionId: number;
@@ -76,6 +92,8 @@ export interface Lesson {
   content?: string;
   description?: string;
   order?: number;
+  quizQuestions?: QuizQuestion[];
+  quizSettings?: QuizSettings;
 }
 
 export interface Enrollment {
@@ -162,4 +180,5 @@ export type Page =
   | 'user-detail' 
   | 'manage-tags' 
   | 'course-students' 
-  | 'account-settings';
+  | 'account-settings'
+  | 'topic-detail';

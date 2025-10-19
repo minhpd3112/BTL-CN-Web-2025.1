@@ -1,16 +1,16 @@
-﻿import { useState } from 'react';
-import { Search, Eye, Trash2, Globe, Lock, Users, Star, BookOpen } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Badge } from '../../components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { toast } from 'sonner@2.0.3';
-import { mockCourses, mockTags } from '../../data';
-import { Course, Page } from '../../types';
+import { useState } from 'react';
+import { Search, Eye, Trash2, Globe, Lock, Users, Star, BookOpen, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
+import { mockCourses, mockTags } from '@/services/mocks';
+import { Course, Page } from '@/types';
 
 interface ManageCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -45,7 +45,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
 
   const handleDeleteCourse = () => {
     if (courseToDelete) {
-      toast.success(`ÄÃ£ xÃ³a khÃ³a há»c "${courseToDelete.title}"`);
+      toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
       setShowDeleteDialog(false);
       setCourseToDelete(null);
     }
@@ -63,17 +63,17 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
                   <h3 className="text-lg">{course.title}</h3>
                   <Badge variant={course.visibility === 'public' ? 'default' : 'secondary'}>
                     {course.visibility === 'public' ? (
-                      <><Globe className="w-3 h-3 mr-1" />CÃ´ng khai</>
+                      <><Globe className="w-3 h-3 mr-1" />Công khai</>
                     ) : (
-                      <><Lock className="w-3 h-3 mr-1" />RiÃªng tÆ°</>
+                      <><Lock className="w-3 h-3 mr-1" />Riêng tư</>
                     )}
                   </Badge>
                   <Badge className={
                     course.status === 'pending' ? 'bg-orange-500' :
                     course.status === 'approved' ? 'bg-green-500' : 'bg-red-500'
                   }>
-                    {course.status === 'pending' ? 'Chá» duyá»‡t' :
-                     course.status === 'approved' ? 'ÄÃ£ duyá»‡t' : 'Tá»« chá»‘i'}
+                    {course.status === 'pending' ? 'Chờ duyệt' :
+                     course.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
                   </Badge>
                 </div>
                 <p className="text-gray-600 text-sm mb-3 line-clamp-2">{course.description}</p>
@@ -99,7 +99,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
                   </span>
                   <span className="flex items-center gap-1">
                     <BookOpen className="w-4 h-4" />
-                    {course.lessons} má»¥c
+                    {course.lessons} mục
                   </span>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
                   }}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
-                  XÃ³a
+                  Xóa
                 </Button>
               </div>
             </div>
@@ -136,9 +136,34 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Back Button */}
+      <Button 
+        variant="ghost" 
+        onClick={() => navigateTo('admin-dashboard')}
+        className="mb-6"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Quay về Dashboard
+      </Button>
+
       <div className="mb-8">
-        <h1 className="mb-2">Quáº£n lÃ½ khÃ³a há»c</h1>
-        <p className="text-gray-600">Xem vÃ  quáº£n lÃ½ táº¥t cáº£ khÃ³a há»c trong há»‡ thá»‘ng</p>
+        <div className="flex items-center gap-3 mb-3">
+          <BookOpen className="w-8 h-8 text-[#1E88E5]" />
+          <h1 
+            style={{
+              fontSize: '2rem',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}
+          >
+            Quản lý khóa học
+          </h1>
+        </div>
+        <p className="text-gray-600 ml-11">Xem và quản lý tất cả khóa học trong hệ thống</p>
+        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
       </div>
 
       {/* Stats Cards */}
@@ -146,25 +171,25 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl text-[#1E88E5] mb-2">{stats.total}</div>
-            <div className="text-gray-600 text-sm">Tá»•ng khÃ³a há»c</div>
+            <div className="text-gray-600 text-sm">Tổng khóa học</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl text-green-600 mb-2">{stats.public}</div>
-            <div className="text-gray-600 text-sm">CÃ´ng khai</div>
+            <div className="text-gray-600 text-sm">Công khai</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl text-gray-600 mb-2">{stats.private}</div>
-            <div className="text-gray-600 text-sm">RiÃªng tÆ°</div>
+            <div className="text-gray-600 text-sm">Riêng tư</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl text-orange-500 mb-2">{stats.pending}</div>
-            <div className="text-gray-600 text-sm">Chá» duyá»‡t</div>
+            <div className="text-gray-600 text-sm">Chờ duyệt</div>
           </CardContent>
         </Card>
       </div>
@@ -174,38 +199,38 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Input
-              placeholder="TÃ¬m kiáº¿m khÃ³a há»c hoáº·c giáº£ng viÃªn..."
+              placeholder="Tìm kiếm khóa học hoặc giảng viên..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="md:col-span-1"
             />
             <Select value={filterVisibility} onValueChange={(val: 'all' | 'public' | 'private') => setFilterVisibility(val)}>
               <SelectTrigger>
-                <SelectValue placeholder="Hiá»ƒn thá»‹" />
+                <SelectValue placeholder="Hiển thị" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Táº¥t cáº£</SelectItem>
-                <SelectItem value="public">CÃ´ng khai</SelectItem>
-                <SelectItem value="private">RiÃªng tÆ°</SelectItem>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="public">Công khai</SelectItem>
+                <SelectItem value="private">Riêng tư</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={(val: 'all' | 'pending' | 'approved' | 'rejected') => setFilterStatus(val)}>
               <SelectTrigger>
-                <SelectValue placeholder="Tráº¡ng thÃ¡i" />
+                <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
-                <SelectItem value="pending">Chá» duyá»‡t</SelectItem>
-                <SelectItem value="approved">ÄÃ£ duyá»‡t</SelectItem>
-                <SelectItem value="rejected">Tá»« chá»‘i</SelectItem>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="pending">Chờ duyệt</SelectItem>
+                <SelectItem value="approved">Đã duyệt</SelectItem>
+                <SelectItem value="rejected">Từ chối</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterTag} onValueChange={(val: string) => setFilterTag(val)}>
               <SelectTrigger>
-                <SelectValue placeholder="Chá»§ Ä‘á»" />
+                <SelectValue placeholder="Chủ đề" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Táº¥t cáº£ chá»§ Ä‘á»</SelectItem>
+                <SelectItem value="all">Tất cả chủ đề</SelectItem>
                 {mockTags.map(tag => (
                   <SelectItem key={tag.id} value={tag.name}>
                     {tag.name}
@@ -220,7 +245,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       {/* Results */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-gray-600">
-          Hiá»ƒn thá»‹ {filteredCourses.length} / {mockCourses.length} khÃ³a há»c
+          Hiển thị {filteredCourses.length} / {mockCourses.length} khóa học
         </p>
       </div>
 
@@ -234,8 +259,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           <Card>
             <CardContent className="p-12 text-center">
               <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="mb-2">KhÃ´ng tÃ¬m tháº¥y khÃ³a há»c</h3>
-              <p className="text-gray-600">Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tá»« khÃ³a tÃ¬m kiáº¿m</p>
+              <h3 className="mb-2">Không tìm thấy khóa học</h3>
+              <p className="text-gray-600">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
             </CardContent>
           </Card>
         )}
@@ -245,32 +270,32 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>XÃ¡c nháº­n xÃ³a khÃ³a há»c</DialogTitle>
+            <DialogTitle>Xác nhận xóa khóa học</DialogTitle>
             <DialogDescription>
-              Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a khÃ³a há»c nÃ y khÃ´ng?
+              Bạn có chắc chắn muốn xóa khóa học này không?
             </DialogDescription>
           </DialogHeader>
           {courseToDelete && (
             <div className="space-y-3">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="font-medium mb-1">{courseToDelete.title}</p>
-                <p className="text-sm text-gray-600">Giáº£ng viÃªn: {courseToDelete.ownerName}</p>
-                <p className="text-sm text-gray-600">Há»c viÃªn: {courseToDelete.students}</p>
+                <p className="text-sm text-gray-600">Giảng viên: {courseToDelete.ownerName}</p>
+                <p className="text-sm text-gray-600">Học viên: {courseToDelete.students}</p>
               </div>
               <Alert className="bg-red-50 border-red-200">
                 <AlertDescription className="text-red-800 text-sm">
-                  âš ï¸ <strong>Cáº£nh bÃ¡o:</strong> HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c. Táº¥t cáº£ dá»¯ liá»‡u liÃªn quan sáº½ bá»‹ xÃ³a vÄ©nh viá»…n.
+                  ⚠️ <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn.
                 </AlertDescription>
               </Alert>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Há»§y
+              Hủy
             </Button>
             <Button variant="destructive" onClick={handleDeleteCourse}>
               <Trash2 className="w-4 h-4 mr-2" />
-              XÃ¡c nháº­n xÃ³a
+              Xác nhận xóa
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -278,4 +303,3 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     </div>
   );
 }
-

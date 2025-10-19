@@ -1,0 +1,56 @@
+/* ApproveCoursesPage specific styles */
+
+.approve-courses-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Course card in approval state */
+.approve-course-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.approve-course-card:hover {
+  border-color: rgba(30, 136, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.approve-course-card-pending {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.02);
+}
+
+/* Action buttons */
+.approve-btn-approve {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.approve-btn-approve:hover {
+  background: #10B981;
+  color: white;
+  transform: scale(1.05);
+}
+
+.approve-btn-reject {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.approve-btn-reject:hover {
+  background: #EF4444;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Empty state */
+.approve-empty-state {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}

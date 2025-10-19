@@ -9,7 +9,7 @@ Nền tảng học tập trực tuyến với mô hình ownership giống Google
 ### Frontend (✅ Hoàn Thành)
 - React 18 + TypeScript
 - Tailwind CSS v4 + Shadcn/UI
-- 18 pages, 2 shared components
+- 19 pages, 3 shared components
 - Mock data layer (to be replaced with API)
 - **Chi tiết**: Xem `TECHNICAL_DOCUMENTATION.md`
 
@@ -409,7 +409,7 @@ VITE_ALLOWED_FILE_TYPES=image/*,application/pdf
 
 ## 📝 Notes
 
-- **Mock Data**: Hiện tại dùng mock data trong `/src/data`. Sẽ được thay thế bằng API calls khi backend hoàn thành.
+- **Mock Data**: Hiện tại dùng mock data trong `/src/services/mocks`. Sẽ được thay thế bằng API calls khi backend hoàn thành.
 - **Images**: Tạm dùng Unsplash. Production nên upload lên Supabase Storage.
 - **YouTube Embed**: Validate URL format và extract video ID.
 - **PDF Viewer**: Dùng iframe hoặc library như react-pdf.
@@ -418,7 +418,7 @@ VITE_ALLOWED_FILE_TYPES=image/*,application/pdf
 ## 🎯 Success Criteria
 
 ✅ **Frontend hoàn thành:**
-- 18 pages hoạt động đầy đủ
+- 19 pages hoạt động đầy đủ
 - Responsive trên mọi thiết bị
 - UI/UX đẹp, nhất quán
 - TypeScript type-safe
@@ -432,5 +432,5 @@ VITE_ALLOWED_FILE_TYPES=image/*,application/pdf
 
 ---
 
-**Last Updated**: October 2025
-**Status**: Frontend Complete, Ready for Backend Integration
+**Last Updated**: January 2025
+**Status**: Frontend Complete (19 Pages, 3 Shared Components), Ready for Backend Integration

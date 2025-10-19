@@ -2,7 +2,7 @@
 export { mockUsers } from './mockUsers';
 export { mockCourses } from './mockCourses';
 export { mockTags, getTagByName, getTagColor } from './mockTags';
-export { mockEnrollments } from './mockEnrollments';
+export { mockEnrollments, mockEnrollmentRequests } from './mockEnrollments';
 
 // Re-export types
-export type * from '../types';
+export type * from '@/types';

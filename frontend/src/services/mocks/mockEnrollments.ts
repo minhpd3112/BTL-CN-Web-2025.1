@@ -1,4 +1,56 @@
-import { Enrollment } from '../types';
+import { Enrollment, EnrollmentRequest } from '@/types';
+
+// Mock enrollment requests (pending, approved, rejected)
+export const mockEnrollmentRequests: EnrollmentRequest[] = [
+  {
+    id: 101,
+    courseId: 1,
+    userId: 5,
+    userName: 'Hoàng Văn E',
+    userAvatar: 'HE',
+    userEmail: 'hoangvane@gmail.com',
+    status: 'pending',
+    message: 'Xin chào, tôi rất muốn học khóa React của thầy. Tôi đã có kiến thức JavaScript cơ bản.',
+    requestedAt: '2025-01-14 10:30',
+    respondedAt: null
+  },
+  {
+    id: 102,
+    courseId: 1,
+    userId: 6,
+    userName: 'Phạm Thị F',
+    userAvatar: 'PF',
+    userEmail: 'phamthif@gmail.com',
+    status: 'pending',
+    message: 'Em là sinh viên năm 3 ngành CNTT, rất mong được học khóa học này để nâng cao kỹ năng.',
+    requestedAt: '2025-01-14 14:20',
+    respondedAt: null
+  },
+  {
+    id: 103,
+    courseId: 2,
+    userId: 5,
+    userName: 'Hoàng Văn E',
+    userAvatar: 'HE',
+    userEmail: 'hoangvane@gmail.com',
+    status: 'approved',
+    message: 'Tôi muốn học thiết kế UI/UX để chuyển sang lĩnh vực này.',
+    requestedAt: '2025-01-13 09:15',
+    respondedAt: '2025-01-13 16:30'
+  },
+  {
+    id: 104,
+    courseId: 3,
+    userId: 4,
+    userName: 'Lê Văn D',
+    userAvatar: 'LD',
+    userEmail: 'levand@gmail.com',
+    status: 'pending',
+    message: 'Mong được tham gia khóa học Data Science. Tôi đã biết Python cơ bản.',
+    requestedAt: '2025-01-14 11:45',
+    respondedAt: null
+  }
+];
 
 export const mockEnrollments: Enrollment[] = [
   {

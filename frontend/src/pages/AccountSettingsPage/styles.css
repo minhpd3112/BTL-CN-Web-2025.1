@@ -1,0 +1,38 @@
+/* AccountSettingsPage specific styles */
+
+.account-settings-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.account-settings-avatar {
+  width: 96px;
+  height: 96px;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.account-settings-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(30, 136, 229, 0.3);
+}
+
+.account-settings-input {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.account-settings-input:focus {
+  border-color: #1E88E5;
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+}
+
+.account-settings-danger-zone {
+  border: 2px dashed #EF4444;
+  background: rgba(239, 68, 68, 0.05);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}

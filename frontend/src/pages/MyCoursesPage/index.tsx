@@ -1,11 +1,15 @@
-﻿import { Plus, Edit, BarChart3, Eye, BookOpen, Search, Lock, Globe } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { Progress } from '../../components/ui/progress';
-import { mockCourses, mockEnrollments } from '../../data';
-import { Course, User, Page } from '../../types';
+import { useState } from 'react';
+import { Plus, Edit, BarChart3, Eye, BookOpen, Search, Lock, Globe, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { mockCourses, mockEnrollments } from '@/services/mocks';
+import { Course, User, Page } from '@/types';
+import { AnimatedSection } from '@/utils/animations';
 
 interface MyCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -14,46 +18,85 @@ interface MyCoursesPageProps {
 }
 
 export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: MyCoursesPageProps) {
-  // KhÃ³a há»c tÃ´i táº¡o
+  const [enrolledCourses, setEnrolledCourses] = useState(() => {
+    // Khóa học đang học - từ enrollments
+    const myEnrollments = mockEnrollments.filter(e => e.userId === currentUser.id);
+    return myEnrollments.map(enrollment => {
+      const course = mockCourses.find(c => c.id === enrollment.courseId);
+      if (!course) return null;
+      return {
+        ...course,
+        progress: enrollment.progress,
+        completedLessons: enrollment.completedLessons.length
+      };
+    }).filter(Boolean) as (Course & { progress: number; completedLessons: number })[];
+  });
+
+  // Khóa học tôi tạo
   const myCreatedCourses = mockCourses.filter(c => c.ownerId === currentUser.id);
-  
-  // KhÃ³a há»c Ä‘ang há»c - tá»« enrollments
-  const myEnrollments = mockEnrollments.filter(e => e.userId === currentUser.id);
-  const myEnrolledCourses = myEnrollments.map(enrollment => {
-    const course = mockCourses.find(c => c.id === enrollment.courseId);
-    if (!course) return null;
-    return {
-      ...course,
-      progress: enrollment.progress,
-      completedLessons: enrollment.completedLessons.length
-    };
-  }).filter(Boolean) as (Course & { progress: number; completedLessons: number })[];
+
+  const handleLeaveCourse = (courseId: number, courseTitle: string) => {
+    setEnrolledCourses(prev => prev.filter(c => c.id !== courseId));
+    toast.success(`Đã rời khỏi khóa học "${courseTitle}"`);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="mb-2">KhÃ³a há»c cá»§a tÃ´i</h1>
-        <p className="text-gray-600">Quáº£n lÃ½ vÃ  theo dÃµi khÃ³a há»c</p>
-      </div>
+      <AnimatedSection animation="fade-up">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <BookOpen className="w-8 h-8 text-[#1E88E5]" />
+            <h1 
+              style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
+              Khóa học của tôi
+            </h1>
+          </div>
+          <p className="text-gray-600 ml-11">Quản lý và theo dõi khóa học</p>
+          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
+        </div>
+      </AnimatedSection>
 
       <Tabs defaultValue="created">
-        <TabsList className="mb-6">
-          <TabsTrigger value="created">
-            KhÃ³a há»c tÃ´i táº¡o ({myCreatedCourses.length})
-          </TabsTrigger>
-          <TabsTrigger value="enrolled">
-            Äang há»c ({myEnrolledCourses.length})
-          </TabsTrigger>
-        </TabsList>
+        <AnimatedSection animation="fade-up" delay={100}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="created" className="transition-all duration-300">
+              Khóa học tôi tạo ({myCreatedCourses.length})
+            </TabsTrigger>
+            <TabsTrigger value="enrolled" className="transition-all duration-300">
+              Đang học ({enrolledCourses.length})
+            </TabsTrigger>
+          </TabsList>
+        </AnimatedSection>
 
         <TabsContent value="created" className="space-y-6">
           {myCreatedCourses.length > 0 ? (
             <>
-              {myCreatedCourses.map(course => (
-                <Card key={course.id} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col md:flex-row">
-                      <img src={course.image} alt={course.title} className="w-full md:w-64 h-48 object-cover" />
+              {myCreatedCourses.map((course, index) => (
+                <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
+                  <Card 
+                    className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      navigateTo('course-dashboard');
+                    }}
+                  >
+                    <CardContent className="p-0">
+                      <div className="flex flex-col md:flex-row">
+                        <div className="relative overflow-hidden">
+                          <img 
+                            src={course.image} 
+                            alt={course.title} 
+                            className="w-full md:w-64 h-48 object-cover transition-transform duration-500 group-hover:scale-110" 
+                          />
+                        </div>
                       <div className="flex-1 p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div>
@@ -62,12 +105,12 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                               {course.visibility === 'private' ? (
                                 <Badge variant="secondary" className="gap-1">
                                   <Lock className="w-3 h-3" />
-                                  RiÃªng tÆ°
+                                  Riêng tư
                                 </Badge>
                               ) : (
                                 <Badge className="gap-1">
                                   <Globe className="w-3 h-3" />
-                                  CÃ´ng khai
+                                  Công khai
                                 </Badge>
                               )}
                             </div>
@@ -80,29 +123,21 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                           </div>
                           {course.visibility === 'public' && (
                             <Badge variant={course.status === 'approved' ? 'default' : course.status === 'pending' ? 'secondary' : 'destructive'}>
-                              {course.status === 'approved' ? 'ÄÃ£ duyá»‡t' : course.status === 'pending' ? 'Chá» duyá»‡t' : 'Tá»« chá»‘i'}
+                              {course.status === 'approved' ? 'Đã duyệt' : course.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
                             </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-3">
-                          <Button size="sm" onClick={() => {
-                            setSelectedCourse(course);
-                            navigateTo('edit-course');
-                          }}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Chá»‰nh sá»­a
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => {
-                            setSelectedCourse(course);
-                            navigateTo('course-dashboard');
-                          }}>
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            Dashboard
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => {
-                            setSelectedCourse(course);
-                            navigateTo('course-detail');
-                          }}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="scale-hover"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourse(course);
+                              navigateTo('course-detail');
+                            }}
+                          >
                             <Eye className="w-4 h-4 mr-2" />
                             Xem
                           </Button>
@@ -111,74 +146,129 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                     </div>
                   </CardContent>
                 </Card>
+                </AnimatedSection>
               ))}
             </>
           ) : (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="mb-2">ChÆ°a cÃ³ khÃ³a há»c nÃ o</h3>
-                <p className="text-gray-600 mb-6">Báº¯t Ä‘áº§u táº¡o khÃ³a há»c Ä‘áº§u tiÃªn cá»§a báº¡n</p>
-                <Button onClick={() => navigateTo('create-course')} className="bg-[#1E88E5] text-white hover:bg-[#1565C0]">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Táº¡o khÃ³a há»c má»›i
-                </Button>
-              </CardContent>
-            </Card>
+            <AnimatedSection animation="fade-up">
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="mb-2">Chưa có khóa học nào</h3>
+                  <p className="text-gray-600 mb-6">Bắt đầu tạo khóa học đầu tiên của bạn</p>
+                  <Button 
+                    onClick={() => navigateTo('create-course')} 
+                    className="bg-[#1E88E5] text-white hover:bg-[#1565C0] scale-hover"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tạo khóa học mới
+                  </Button>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
           )}
         </TabsContent>
 
         <TabsContent value="enrolled" className="space-y-6">
-          {myEnrolledCourses.length > 0 ? (
+          {enrolledCourses.length > 0 ? (
             <>
-              {myEnrolledCourses.map(course => (
-                <Card key={course.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => {
-                  setSelectedCourse(course);
-                  navigateTo('learning');
-                }}>
+              {enrolledCourses.map((course, index) => (
+                <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
+                  <Card className="hover:shadow-xl transition-all duration-300 group">
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
-                      <img src={course.image} alt={course.title} className="w-full md:w-64 h-48 object-cover" />
+                      <div className="relative overflow-hidden cursor-pointer" onClick={() => {
+                        setSelectedCourse(course);
+                        navigateTo('learning');
+                      }}>
+                        <img 
+                          src={course.image} 
+                          alt={course.title} 
+                          className="w-full md:w-64 h-48 object-cover transition-transform duration-500 group-hover:scale-110" 
+                        />
+                      </div>
                       <div className="flex-1 p-6">
                         <div className="flex items-start justify-between mb-4">
-                          <div>
+                          <div className="flex-1 cursor-pointer" onClick={() => {
+                            setSelectedCourse(course);
+                            navigateTo('learning');
+                          }}>
                             <h3 className="mb-2">{course.title}</h3>
-                            <p className="text-gray-600 text-sm mb-3">Bá»Ÿi {course.ownerName}</p>
+                            <p className="text-gray-600 text-sm mb-3">Bởi {course.ownerName}</p>
                             <div className="flex gap-2">
                               {course.tags.slice(0, 3).map(tag => (
                                 <Badge key={tag} variant="secondary">{tag}</Badge>
                               ))}
                             </div>
                           </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Rời khỏi
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Rời khỏi khóa học?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc chắn muốn rời khỏi khóa học <strong>"{course.title}"</strong>?
+                                  <br /><br />
+                                  Tiến độ học tập của bạn ({course.progress}%) sẽ bị xóa và bạn sẽ cần đăng ký lại để tiếp tục.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleLeaveCourse(course.id, course.title)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Xác nhận rời
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Tiáº¿n Ä‘á»™</span>
+                            <span className="text-gray-600">Tiến độ</span>
                             <span className="text-[#1E88E5]">{course.progress}%</span>
                           </div>
                           <Progress value={course.progress} className="h-2" />
                           <div className="text-sm text-gray-600">
-                            {course.completedLessons}/{course.lessons} má»¥c nhá»
+                            {course.completedLessons}/{course.lessons} mục nhỏ
                           </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
+                </AnimatedSection>
               ))}
             </>
           ) : (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="mb-2">ChÆ°a tham gia khÃ³a há»c nÃ o</h3>
-                <p className="text-gray-600 mb-6">KhÃ¡m phÃ¡ vÃ  Ä‘Äƒng kÃ½ cÃ¡c khÃ³a há»c thÃº vá»‹</p>
-                <Button onClick={() => navigateTo('explore')} variant="outline">
-                  <Search className="w-4 h-4 mr-2" />
-                  KhÃ¡m phÃ¡ khÃ³a há»c
-                </Button>
-              </CardContent>
-            </Card>
+            <AnimatedSection animation="fade-up">
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="mb-2">Chưa tham gia khóa học nào</h3>
+                  <p className="text-gray-600 mb-6">Khám phá và đăng ký các khóa học thú vị</p>
+                  <Button 
+                    onClick={() => navigateTo('explore')} 
+                    variant="outline"
+                    className="scale-hover"
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Khám phá khóa học
+                  </Button>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
           )}
         </TabsContent>
       </Tabs>
@@ -186,3 +276,4 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
   );
 }
 
+export default MyCoursesPage;

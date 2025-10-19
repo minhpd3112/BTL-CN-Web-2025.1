@@ -1,0 +1,65 @@
+/* AdminDashboardPage specific styles - Minimalist Blue & White Theme */
+
+/* Page Header */
+.admin-dashboard-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Stats Cards - Clean minimal hover */
+.admin-stats-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Activity Item - Minimal dot design */
+.admin-activity-item {
+  transition: background-color 0.2s ease;
+}
+
+.admin-activity-item:hover {
+  background-color: #F9FAFB;
+}
+
+.admin-activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #1E88E5;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+/* Quick Action Button - Clean flat design */
+.admin-quick-action-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-quick-action-btn:hover {
+  border-color: #1E88E5;
+  background-color: rgba(30, 136, 229, 0.05);
+}
+
+.admin-quick-action-icon {
+  color: #1E88E5;
+  transition: transform 0.2s ease;
+}
+
+.admin-quick-action-btn:hover .admin-quick-action-icon {
+  transform: scale(1.05);
+}
+
+/* Pending badge - Subtle animation */
+.admin-pending-badge {
+  background-color: #1E88E5;
+  color: white;
+  font-weight: 600;
+}
