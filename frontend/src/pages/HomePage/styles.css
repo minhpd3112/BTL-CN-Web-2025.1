@@ -122,3 +122,17 @@
   animation: home-float 6s ease-in-out infinite;
   animation-delay: 1s;
 }
+
+/* Course Cards Grid */
+.home-course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.home-course-grid .course-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

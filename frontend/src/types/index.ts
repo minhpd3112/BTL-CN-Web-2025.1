@@ -181,4 +181,4 @@ export type Page =
   | 'manage-tags' 
   | 'course-students' 
   | 'account-settings'
-  | 'topic-detail';
+  | 'tag-detail';

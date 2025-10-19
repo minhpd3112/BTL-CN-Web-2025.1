@@ -25,7 +25,7 @@ import { EditCoursePage } from '@/pages/EditCoursePage';
 import { ManageCoursesPage } from '@/pages/ManageCoursesPage';
 import { UserDetailPage } from '@/pages/UserDetailPage';
 import { AccountSettingsPage } from '@/pages/AccountSettingsPage';
-import { TopicDetailPage } from '@/pages/TopicDetailPage';
+import { TagDetailPage } from '@/pages/TagDetailPage';
 
 interface AppShellProps {
   state: {
@@ -417,7 +417,7 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'my-courses' && <MyCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser!} />}
         {currentPage === 'explore' && <ExplorePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} />}
         {currentPage === 'course-detail' && <CourseDetailPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser} isOwner={isOwner(selectedCourse)} canAccess={canAccessCourse(selectedCourse)} enrollmentRequests={enrollmentRequests} onEnrollRequest={handleEnrollRequest} />}
-        {currentPage === 'topic-detail' && <TopicDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
+        {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'quiz' && <QuizPage navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}

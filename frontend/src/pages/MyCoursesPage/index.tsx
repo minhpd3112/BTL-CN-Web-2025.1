@@ -82,7 +82,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               {myCreatedCourses.map((course, index) => (
                 <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
                   <Card 
-                    className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                    className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer my-courses-card"
                     onClick={() => {
                       setSelectedCourse(course);
                       navigateTo('course-dashboard');
@@ -97,35 +97,40 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                             className="w-full md:w-64 h-48 object-cover transition-transform duration-500 group-hover:scale-110" 
                           />
                         </div>
-                      <div className="flex-1 p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3>{course.title}</h3>
-                              {course.visibility === 'private' ? (
-                                <Badge variant="secondary" className="gap-1">
-                                  <Lock className="w-3 h-3" />
-                                  Riêng tư
-                                </Badge>
-                              ) : (
-                                <Badge className="gap-1">
-                                  <Globe className="w-3 h-3" />
-                                  Công khai
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-gray-600 text-sm mb-3">{course.description}</p>
-                            <div className="flex gap-2">
-                              {course.tags.slice(0, 3).map(tag => (
-                                <Badge key={tag} variant="outline">{tag}</Badge>
-                              ))}
-                            </div>
+                      <div className="flex-1 p-6 my-courses-card-content">
+                        <div className="mb-4">
+                          {/* Title - Fixed height */}
+                          <h3 className="mb-3 my-courses-card-title">{course.title}</h3>
+                          
+                          {/* Status badges - Fixed height */}
+                          <div className="my-courses-card-badges mb-3">
+                            {course.visibility === 'private' ? (
+                              <Badge variant="secondary" className="gap-1 mr-3">
+                                <Lock className="w-3 h-3" />
+                                Riêng tư
+                              </Badge>
+                            ) : (
+                              <Badge className="gap-1 mr-3">
+                                <Globe className="w-3 h-3" />
+                                Công khai
+                              </Badge>
+                            )}
+                            {course.visibility === 'public' && (
+                              <Badge variant={course.status === 'approved' ? 'default' : course.status === 'pending' ? 'secondary' : 'destructive'}>
+                                {course.status === 'approved' ? 'Đã duyệt' : course.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
+                              </Badge>
+                            )}
                           </div>
-                          {course.visibility === 'public' && (
-                            <Badge variant={course.status === 'approved' ? 'default' : course.status === 'pending' ? 'secondary' : 'destructive'}>
-                              {course.status === 'approved' ? 'Đã duyệt' : course.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
-                            </Badge>
-                          )}
+                          
+                          {/* Description - Fixed height */}
+                          <p className="text-gray-600 text-sm mb-3 my-courses-card-description">{course.description}</p>
+                          
+                          {/* Tags - Fixed height */}
+                          <div className="my-courses-card-tags">
+                            {course.tags.slice(0, 3).map(tag => (
+                              <Badge key={tag} variant="outline">{tag}</Badge>
+                            ))}
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <Button 
@@ -174,7 +179,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
             <>
               {enrolledCourses.map((course, index) => (
                 <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
-                  <Card className="hover:shadow-xl transition-all duration-300 group">
+                  <Card className="hover:shadow-xl transition-all duration-300 group my-courses-card">
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
                       <div className="relative overflow-hidden cursor-pointer" onClick={() => {
@@ -187,15 +192,15 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                           className="w-full md:w-64 h-48 object-cover transition-transform duration-500 group-hover:scale-110" 
                         />
                       </div>
-                      <div className="flex-1 p-6">
+                      <div className="flex-1 p-6 my-courses-card-content">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1 cursor-pointer" onClick={() => {
                             setSelectedCourse(course);
                             navigateTo('learning');
                           }}>
-                            <h3 className="mb-2">{course.title}</h3>
+                            <h3 className="mb-3 my-courses-card-title">{course.title}</h3>
                             <p className="text-gray-600 text-sm mb-3">Bởi {course.ownerName}</p>
-                            <div className="flex gap-2">
+                            <div className="my-courses-card-tags">
                               {course.tags.slice(0, 3).map(tag => (
                                 <Badge key={tag} variant="secondary">{tag}</Badge>
                               ))}

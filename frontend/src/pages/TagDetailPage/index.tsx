@@ -9,14 +9,14 @@ import { Course, User, Page, Tag as TagType } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import './styles.css';
 
-interface TopicDetailPageProps {
+interface TagDetailPageProps {
   navigateTo: (page: Page) => void;
   setSelectedCourse: (course: Course) => void;
   currentUser: User | null;
   selectedTag: TagType | null;
 }
 
-export function TopicDetailPage({ navigateTo, setSelectedCourse, currentUser, selectedTag }: TopicDetailPageProps) {
+export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, selectedTag }: TagDetailPageProps) {
   const [sortBy, setSortBy] = useState<string>('popular');
   
   // Filter courses by tag
@@ -205,7 +205,7 @@ export function TopicDetailPage({ navigateTo, setSelectedCourse, currentUser, se
 
         {/* Courses Grid */}
         {tagCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
             {tagCourses.map((course, index) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
                 <CourseCard 

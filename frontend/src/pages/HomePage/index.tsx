@@ -161,7 +161,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             </Button>
           </div>
         </AnimatedSection>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
           {publicCourses.slice(0, 6).map((course, index) => (
             <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
               <CourseCard 
@@ -201,7 +201,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                     onClick={() => {
                       if (tag) {
                         setSelectedTag(tag);
-                        navigateTo('topic-detail');
+                        navigateTo('tag-detail');
                       }
                     }}
                   >
