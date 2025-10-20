@@ -15,7 +15,7 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
 
   return (
     <Card 
-      className="overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group h-full flex flex-col" 
+      className="overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group h-full flex flex-col course-card" 
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
