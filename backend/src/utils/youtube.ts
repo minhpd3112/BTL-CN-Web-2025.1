@@ -1,0 +1,18 @@
+export const extractYouTubeVideoId = (url: string): string | null => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+export const validateYouTubeUrl = (url: string): boolean => {
+  return extractYouTubeVideoId(url) !== null;
+};
+
+export const getYouTubeThumbnail = (videoId: string): string => {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+export const getYouTubeEmbedUrl = (videoId: string): string => {
+  return `https://www.youtube.com/embed/${videoId}`;
+};
