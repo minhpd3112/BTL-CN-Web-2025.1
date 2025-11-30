@@ -1,294 +1,154 @@
 import { Request, Response } from 'express';
-import { courseService } from '../services/course.service';
-import { CourseFilters } from '../models/course.model';
-import { User } from '../types/index';
-
-interface AuthRequest extends Request {
-  user?: User;
-}
-
+import { CourseModel } from '@models/course.model';
+import { HttpStatus } from '@utils/httpStatus';
 export const courseController = {
-  getCourses: async (req: Request, res: Response): Promise<void> => {
+  async getCourses(req: Request, res: Response) {
     try {
-      const {
-        page = '1',
-        limit = '10',
-        search,
-        tags,
-        status,
-        visibility,
-      } = req.query;
+      const { status, visibility, owner_id, search, page = '1', limit = '10' } = req.query;
 
-      const filters: CourseFilters = {
-        page: parseInt(page as string, 10),
-        limit: parseInt(limit as string, 10),
-        search: search as string,
-        tags: tags as string,
-        status: status as 'draft' | 'pending' | 'approved' | 'rejected',
-        visibility: visibility as 'public' | 'private',
+      let filters: any = {};
+      if (status) filters.status = status;
+      if (visibility) filters.visibility = visibility;
+      if (owner_id) filters.owner_id = owner_id;
+
+      const courses = await CourseModel.findAll(filters);
+
+      // Search filter
+      let filteredCourses = courses;
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        filteredCourses = courses.filter((course: any) =>
+          course.title.toLowerCase().includes(searchLower) ||
+          course.description?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      // Pagination
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const startIndex = (pageNum - 1) * limitNum;
+      const endIndex = startIndex + limitNum;
+      const paginatedCourses = filteredCourses.slice(startIndex, endIndex);
+
+      res.json({
+        success: true,
+        data: {
+          courses: paginatedCourses,
+          total: filteredCourses.length,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(filteredCourses.length / limitNum),
+        },
+      });
+    } catch (error: any) {
+      console.error('Get courses error:', error);
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to fetch courses',
+        error: error.message,
+      });
+    }
+  },
+
+  async getCourseById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const course = await CourseModel.findById(id);
+
+      if (!course) {
+        return res.status(HttpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'Course not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        data: course,
+      });
+    } catch (error: any) {
+      console.error('Get course error:', error);
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to fetch course',
+        error: error.message,
+      });
+    }
+  },
+
+  async createCourse(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      const courseData = {
+        ...req.body,
+        owner_id: userId,
+        status: 'draft',
       };
 
-      const result = await courseService.getCourses(filters);
+      const course = await CourseModel.create(courseData);
 
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      console.error('Get courses error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch courses',
-      });
-    }
-  },
-
-  getCourse: async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const userId = req.user?.id;
-
-      const course = await courseService.getCourseById(id, userId);
-
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          error: 'Course not found or access denied',
-        });
-        return;
-      }
-
-      res.json({
+      res.status(HttpStatus.CREATED).json({
         success: true,
         data: course,
       });
-    } catch (error) {
-      console.error('Get course error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch course',
-      });
-    }
-  },
-
-  createCourse: async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: 'Authentication required',
-        });
-        return;
-      }
-
-      const userId = req.user.id;
-      const courseData = req.body;
-
-      if (!courseData.title || courseData.title.trim() === '') {
-        res.status(400).json({
-          success: false,
-          error: 'Title is required',
-        });
-        return;
-      }
-
-      const course = await courseService.createCourse(userId, courseData);
-
-      res.status(201).json({
-        success: true,
-        data: course,
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create course error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to create course',
+        message: 'Failed to create course',
+        error: error.message,
       });
     }
   },
 
-  updateCourse: async (req: AuthRequest, res: Response): Promise<void> => {
+  async updateCourse(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: 'Authentication required',
-        });
-        return;
-      }
-
       const { id } = req.params;
-      const userId = req.user.id;
-      const updateData = req.body;
-
-      const course = await courseService.updateCourse(id, userId, updateData);
+      const course = await CourseModel.update(id, req.body);
 
       if (!course) {
-        res.status(404).json({
+        return res.status(HttpStatus.NOT_FOUND).json({
           success: false,
-          error: 'Course not found or access denied',
+          message: 'Course not found',
         });
-        return;
       }
 
       res.json({
         success: true,
         data: course,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Update course error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to update course',
+        message: 'Failed to update course',
+        error: error.message,
       });
     }
   },
 
-  deleteCourse: async (req: AuthRequest, res: Response): Promise<void> => {
+  async deleteCourse(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: 'Authentication required',
-        });
-        return;
-      }
-
       const { id } = req.params;
-      const userId = req.user.id;
+      await CourseModel.delete(id);
 
-      const success = await courseService.deleteCourse(id, userId);
-
-      if (!success) {
-        res.status(404).json({
-          success: false,
-          error: 'Course not found or access denied',
-        });
-        return;
-      }
-
-      res.status(204).send();
-    } catch (error) {
+      res.json({
+        success: true,
+        message: 'Course deleted successfully',
+      });
+    } catch (error: any) {
       console.error('Delete course error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to delete course',
-      });
-    }
-  },
-
-  getMyCourses: async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: 'Authentication required',
-        });
-        return;
-      }
-
-      const userId = req.user.id;
-      const courses = await courseService.getUserCourses(userId);
-
-      res.json({
-        success: true,
-        data: courses,
-      });
-    } catch (error) {
-      console.error('Get my courses error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch your courses',
-      });
-    }
-  },
-
-  submitForApproval: async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: 'Authentication required',
-        });
-        return;
-      }
-
-      const { id } = req.params;
-      const userId = req.user.id;
-
-      const course = await courseService.submitForApproval(id, userId);
-
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          error: 'Course not found or access denied',
-        });
-        return;
-      }
-
-      res.json({
-        success: true,
-        data: course,
-      });
-    } catch (error) {
-      console.error('Submit course error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to submit course',
-      });
-    }
-  },
-
-  approveCourse: async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-
-      const course = await courseService.approveCourse(id);
-
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          error: 'Course not found',
-        });
-        return;
-      }
-
-      res.json({
-        success: true,
-        data: course,
-      });
-    } catch (error) {
-      console.error('Approve course error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to approve course',
-      });
-    }
-  },
-
-  rejectCourse: async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-
-      const course = await courseService.rejectCourse(id);
-
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          error: 'Course not found',
-        });
-        return;
-      }
-
-      res.json({
-        success: true,
-        data: course,
-      });
-    } catch (error) {
-      console.error('Reject course error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reject course',
+        message: 'Failed to delete course',
+        error: error.message,
       });
     }
   },

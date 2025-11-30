@@ -1,59 +1,127 @@
-export interface Lesson {
-  id: string;
-  section_id: string;
-  title: string;
-  type: 'video' | 'text' | 'pdf' | 'quiz';
-  content: VideoContent | TextContent | PdfContent | QuizContent;
-  order_index: number;
-  duration?: number;
-  created_at: string;
-  updated_at: string;
-}
+import { supabase } from '@config/supabase';
+import { Lesson } from '@types/index';
 
-export interface VideoContent {
-  youtube_url: string;
-  duration?: number;
-  thumbnail?: string;
-  video_id?: string;
-}
+export const LessonModel = {
+  async findBySectionId(sectionId: string) {
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*')
+      .eq('section_id', sectionId)
+      .order('order_index', { ascending: true });
 
-export interface TextContent {
-  body: string; // HTML or Markdown
-}
+    if (error) throw error;
+    return data;
+  },
 
-export interface PdfContent {
-  file_url: string;
-  file_name: string;
-  file_size?: number;
-}
+  async findById(id: string, includeQuiz = false) {
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-export interface QuizContent {
-  questions: QuizQuestion[];
-  passing_score?: number; // Percentage to pass (0-100)
-  time_limit?: number; // Minutes
-}
+    if (error) throw error;
 
-export interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correct_answer: number; // Index of correct option (0-based)
-  explanation?: string;
-  points?: number;
-}
+    if (includeQuiz && data.content_type === 'quiz') {
+      const { data: questions } = await supabase
+        .from('quiz_questions')
+        .select(`
+          *,
+          answers:quiz_answers(*)
+        `)
+        .eq('lesson_id', id)
+        .order('order_index', { ascending: true });
 
-export interface CreateLessonRequest {
-  section_id: string;
-  title: string;
-  type: 'video' | 'text' | 'pdf' | 'quiz';
-  content: VideoContent | TextContent | PdfContent | QuizContent;
-  order_index: number;
-  duration?: number;
-}
+      return { ...data, quiz_questions: questions };
+    }
 
-export interface UpdateLessonRequest {
-  title?: string;
-  content?: VideoContent | TextContent | PdfContent | QuizContent;
-  order_index?: number;
-  duration?: number;
-}
+    return data;
+  },
+
+  async create(lessonData: Partial<Lesson>) {
+    const { data, error } = await supabase
+      .from('lessons')
+      .insert([lessonData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, lessonData: Partial<Lesson>) {
+    const { data, error } = await supabase
+      .from('lessons')
+      .update(lessonData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('lessons')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  },
+
+  async addQuizQuestions(lessonId: string, questions: any[]) {
+    const { data: insertedQuestions, error: questionError } = await supabase
+      .from('quiz_questions')
+      .insert(questions.map(q => ({ ...q, lesson_id: lessonId })))
+      .select();
+
+    if (questionError) throw questionError;
+
+    // Insert answers
+    const allAnswers: any[] = [];
+    questions.forEach((q, idx) => {
+      if (q.answers && Array.isArray(q.answers)) {
+        q.answers.forEach((answer: any) => {
+          allAnswers.push({
+            ...answer,
+            question_id: insertedQuestions[idx].id
+          });
+        });
+      }
+    });
+
+    if (allAnswers.length > 0) {
+      const { error: answerError } = await supabase
+        .from('quiz_answers')
+        .insert(allAnswers);
+
+      if (answerError) throw answerError;
+    }
+
+    return insertedQuestions;
+  },
+
+  async updateQuizQuestion(questionId: string, questionData: any) {
+    const { data, error } = await supabase
+      .from('quiz_questions')
+      .update(questionData)
+      .eq('id', questionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteQuizQuestion(questionId: string) {
+    const { error } = await supabase
+      .from('quiz_questions')
+      .delete()
+      .eq('id', questionId);
+
+    if (error) throw error;
+    return { success: true };
+  }
+};

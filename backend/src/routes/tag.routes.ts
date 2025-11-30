@@ -4,8 +4,8 @@ import { tagController } from '@controllers/tag.controller';
 const router = Router();
 
 // Public routes
-router.get('/', tagController.getAllTags);
-router.get('/:id', tagController.getTag);
+router.get('/', tagController.getTags);
+router.get('/:id', tagController.getTagById);
 
 // Protected routes (Admin only - sẽ cần role middleware)
 // router.use(authMiddleware, roleMiddleware('admin')); // Uncomment sau

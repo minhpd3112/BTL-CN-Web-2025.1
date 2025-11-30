@@ -1,147 +1,109 @@
 import { Request, Response } from 'express';
-import { tagService } from '@services/tag.service';
+import { TagModel } from '@models/tag.model';
+import { HttpStatus } from '@utils/httpStatus';
 
 export const tagController = {
-  /**
-   * GET /api/tags
-   * Lấy tất cả tags
-   */
-  getAllTags: async (req: Request, res: Response): Promise<void> => {
+  async getTags(req: Request, res: Response) {
     try {
-      const tags = await tagService.getAllTags();
-
+      const tags = await TagModel.findAll();
       res.json({
         success: true,
         data: tags,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get tags error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to fetch tags',
+        message: 'Failed to fetch tags',
+        error: error.message,
       });
     }
   },
 
-  /**
-   * GET /api/tags/:id
-   * Lấy tag theo ID
-   */
-  getTag: async (req: Request, res: Response): Promise<void> => {
+  async getTagById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const tag = await tagService.getTagById(id);
+      const tag = await TagModel.findById(id);
 
       if (!tag) {
-        res.status(404).json({
+        return res.status(HttpStatus.NOT_FOUND).json({
           success: false,
-          error: 'Tag not found',
+          message: 'Tag not found',
         });
-        return;
       }
 
       res.json({
         success: true,
         data: tag,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get tag error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to fetch tag',
+        message: 'Failed to fetch tag',
+        error: error.message,
       });
     }
   },
 
-  /**
-   * POST /api/tags
-   * Tạo tag mới (Admin only)
-   */
-  createTag: async (req: Request, res: Response): Promise<void> => {
+  async createTag(req: Request, res: Response) {
     try {
-      const tagData = req.body;
-
-      // Validation
-      if (!tagData.name || tagData.name.trim() === '') {
-        res.status(400).json({
-          success: false,
-          error: 'Tag name is required',
-        });
-        return;
-      }
-
-      const tag = await tagService.createTag(tagData);
-
-      res.status(201).json({
+      const tag = await TagModel.create(req.body);
+      res.status(HttpStatus.CREATED).json({
         success: true,
         data: tag,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create tag error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to create tag',
+        message: 'Failed to create tag',
+        error: error.message,
       });
     }
   },
 
-  /**
-   * PATCH /api/tags/:id
-   * Update tag (Admin only)
-   */
-  updateTag: async (req: Request, res: Response): Promise<void> => {
+  async updateTag(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const updateData = req.body;
-
-      const tag = await tagService.updateTag(id, updateData);
+      const tag = await TagModel.update(id, req.body);
 
       if (!tag) {
-        res.status(404).json({
+        return res.status(HttpStatus.NOT_FOUND).json({
           success: false,
-          error: 'Tag not found',
+          message: 'Tag not found',
         });
-        return;
       }
 
       res.json({
         success: true,
         data: tag,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Update tag error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to update tag',
+        message: 'Failed to update tag',
+        error: error.message,
       });
     }
   },
 
-  /**
-   * DELETE /api/tags/:id
-   * Xóa tag (Admin only)
-   */
-  deleteTag: async (req: Request, res: Response): Promise<void> => {
+  async deleteTag(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      await TagModel.delete(id);
 
-      await tagService.deleteTag(id);
-
-      res.status(204).send();
+      res.json({
+        success: true,
+        message: 'Tag deleted successfully',
+      });
     } catch (error: any) {
       console.error('Delete tag error:', error);
-
-      if (error.message.includes('being used')) {
-        res.status(400).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to delete tag',
+        message: 'Failed to delete tag',
+        error: error.message,
       });
     }
   },
