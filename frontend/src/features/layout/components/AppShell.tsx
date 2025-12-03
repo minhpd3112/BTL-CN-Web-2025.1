@@ -79,7 +79,7 @@ export function AppShell({ state, actions }: AppShellProps) {
   } = state;
 
   // Generate stable particle positions
-  const particles = useState(() => 
+  const particles = useState(() =>
     Array.from({ length: 20 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -131,6 +131,21 @@ export function AppShell({ state, actions }: AppShellProps) {
     }
   }, [isAvatarHovered, isAvatarPinned]);
 
+  // Notification hover state
+  const [isNotificationsHovered, setIsNotificationsHovered] = useState(false);
+
+  // Handle notification hover with delay
+  useEffect(() => {
+    if (isNotificationsHovered) {
+      setShowNotifications(true);
+    } else {
+      const timeoutId = setTimeout(() => {
+        setShowNotifications(false);
+      }, 150);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isNotificationsHovered, setShowNotifications]);
+
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <Toaster />
@@ -143,20 +158,20 @@ export function AppShell({ state, actions }: AppShellProps) {
               <button className="lg:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
                 {sidebarOpen ? <XIcon className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-              
+
               {/* Enhanced Logo */}
-              <div 
-                className="flex items-center gap-3 cursor-pointer group" 
+              <div
+                className="flex items-center gap-3 cursor-pointer group"
                 onClick={() => navigateTo('home')}
               >
                 <div className="relative">
-                  <GraduationCap 
-                    className="w-10 h-10 text-[#1E88E5] transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" 
+                  <GraduationCap
+                    className="w-10 h-10 text-[#1E88E5] transition-all duration-300 group-hover:scale-110 group-hover:rotate-12"
                   />
                   <div className="absolute -inset-1 bg-[#1E88E5]/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
                 <div className="flex flex-col">
-                  <span 
+                  <span
                     className="transition-all duration-300"
                     style={{
                       fontSize: '1.5rem',
@@ -178,8 +193,8 @@ export function AppShell({ state, actions }: AppShellProps) {
 
               <nav className="hidden lg:flex items-center gap-3 ml-8">
                 {currentRole !== 'admin' && (
-                  <Button 
-                    onClick={() => navigateTo('explore')} 
+                  <Button
+                    onClick={() => navigateTo('explore')}
                     className="bg-[#1E88E5] hover:bg-[#1565C0] text-white hover-lift-sm"
                     style={{
                       boxShadow: '0 4px 12px rgba(30, 136, 229, 0.3)'
@@ -190,8 +205,8 @@ export function AppShell({ state, actions }: AppShellProps) {
                   </Button>
                 )}
                 {currentRole === 'admin' && (
-                  <Button 
-                    onClick={() => navigateTo('admin-dashboard')} 
+                  <Button
+                    onClick={() => navigateTo('admin-dashboard')}
                     className="bg-[#1E88E5] hover:bg-[#1565C0] text-white hover-lift-sm"
                     style={{
                       boxShadow: '0 4px 12px rgba(30, 136, 229, 0.3)'
@@ -201,8 +216,8 @@ export function AppShell({ state, actions }: AppShellProps) {
                     Dashboard
                   </Button>
                 )}
-                <Button 
-                  onClick={() => navigateTo('create-course')} 
+                <Button
+                  onClick={() => navigateTo('create-course')}
                   className="bg-[#1E88E5] hover:bg-[#1565C0] text-white hover-lift-sm"
                   style={{
                     boxShadow: '0 4px 12px rgba(30, 136, 229, 0.3)'
@@ -216,78 +231,88 @@ export function AppShell({ state, actions }: AppShellProps) {
 
             <div className="flex items-center gap-3">
 
-              <Popover open={showNotifications} onOpenChange={setShowNotifications}>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-bell-shake' : ''}`} />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs rounded-full px-1 animate-pulse">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-96 p-0" align="end">
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <h3 className="font-medium">Thông báo</h3>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllAsRead} className="text-sm text-[#1E88E5] hover:underline">
-                        Đánh dấu đã đọc
-                      </button>
-                    )}
-                  </div>
-                  {notifications.length > 0 ? (
-                    <ScrollArea className="h-[400px]">
-                      <div className="divide-y">
-                        {notifications.map(notification => {
-                          const iconMap: Record<string, any> = {
-                            CheckCircle,
-                            UserPlus,
-                            Clock,
-                            Share2,
-                            Award,
-                            Bell,
-                            FileCheck,
-                            AlertCircle,
-                            TrendingUp,
-                            X: XIcon
-                          };
-                          const IconComponent = iconMap[notification.icon] || Bell;
-                          return (
-                            <button
-                              key={notification.id}
-                              className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''}`}
-                              onClick={() => {
-                                handleNotificationClick(notification);
-                                setShowNotifications(false);
-                              }}
-                            >
-                              <div className="flex gap-3">
-                                <div className={`flex-shrink-0 mt-1 ${notification.color}`}>
-                                  <IconComponent className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm mb-1 ${!notification.read ? 'font-medium' : ''}`}>{notification.title}</p>
-                                  <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
-                                  <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
-                                </div>
-                                {!notification.read && <div className="flex-shrink-0"><div className="w-2 h-2 bg-[#1E88E5] rounded-full mt-2"></div></div>}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    <div className="p-12 text-center text-gray-500">
-                      <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>Chưa có thông báo nào</p>
+              <div
+                onMouseEnter={() => setIsNotificationsHovered(true)}
+                onMouseLeave={() => setIsNotificationsHovered(false)}
+              >
+                <Popover open={showNotifications} onOpenChange={setShowNotifications}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-bell-shake' : ''}`} />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs rounded-full px-1 animate-pulse">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-96 p-0"
+                    align="end"
+                    onMouseEnter={() => setIsNotificationsHovered(true)}
+                    onMouseLeave={() => setIsNotificationsHovered(false)}
+                  >
+                    <div className="flex items-center justify-between p-4 border-b">
+                      <h3 className="font-medium">Thông báo</h3>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllAsRead} className="text-sm text-[#1E88E5] hover:underline">
+                          Đánh dấu đã đọc
+                        </button>
+                      )}
                     </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+                    {notifications.length > 0 ? (
+                      <ScrollArea className="h-[400px]">
+                        <div className="divide-y">
+                          {notifications.map(notification => {
+                            const iconMap: Record<string, any> = {
+                              CheckCircle,
+                              UserPlus,
+                              Clock,
+                              Share2,
+                              Award,
+                              Bell,
+                              FileCheck,
+                              AlertCircle,
+                              TrendingUp,
+                              X: XIcon
+                            };
+                            const IconComponent = iconMap[notification.icon] || Bell;
+                            return (
+                              <button
+                                key={notification.id}
+                                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''}`}
+                                onClick={() => {
+                                  handleNotificationClick(notification);
+                                  setShowNotifications(false);
+                                }}
+                              >
+                                <div className="flex gap-3">
+                                  <div className={`flex-shrink-0 mt-1 ${notification.color}`}>
+                                    <IconComponent className="w-5 h-5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm mb-1 ${!notification.read ? 'font-medium' : ''}`}>{notification.title}</p>
+                                    <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
+                                    <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                                  </div>
+                                  {!notification.read && <div className="flex-shrink-0"><div className="w-2 h-2 bg-[#1E88E5] rounded-full mt-2"></div></div>}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    ) : (
+                      <div className="p-12 text-center text-gray-500">
+                        <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>Chưa có thông báo nào</p>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setIsAvatarHovered(true)}
                 onMouseLeave={() => setIsAvatarHovered(false)}
@@ -298,7 +323,7 @@ export function AppShell({ state, actions }: AppShellProps) {
                   }
                 }}>
                   <PopoverTrigger asChild>
-                    <button 
+                    <button
                       className="flex items-center gap-3 px-2 py-2 hover:bg-[#1E88E5]/5 rounded-lg transition-all duration-300 group relative"
                       onClick={() => setIsAvatarPinned(!isAvatarPinned)}
                     >
@@ -306,10 +331,10 @@ export function AppShell({ state, actions }: AppShellProps) {
                       <div className="relative">
                         {userGooglePicture ? (
                           <>
-                            <img 
-                              src={userGooglePicture} 
-                              alt="User" 
-                              className="w-10 h-10 rounded-full ring-2 ring-[#1E88E5]/30 transition-all duration-300 group-hover:ring-[#1E88E5] group-hover:ring-4 group-hover:scale-110" 
+                            <img
+                              src={userGooglePicture}
+                              alt="User"
+                              className="w-10 h-10 rounded-full ring-2 ring-[#1E88E5]/30 transition-all duration-300 group-hover:ring-[#1E88E5] group-hover:ring-4 group-hover:scale-110"
                             />
                             {/* Glow Effect */}
                             <div className="absolute -inset-2 bg-gradient-to-br from-[#1E88E5]/40 to-[#0D47A1]/40 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
@@ -317,7 +342,7 @@ export function AppShell({ state, actions }: AppShellProps) {
                         ) : (
                           <>
                             <Avatar className="w-10 h-10 ring-2 ring-[#1E88E5]/30 transition-all duration-300 group-hover:ring-[#1E88E5] group-hover:ring-4 group-hover:scale-110">
-                              <AvatarFallback 
+                              <AvatarFallback
                                 className="bg-gradient-to-br from-[#1E88E5] via-[#1976D2] to-[#0D47A1] text-white transition-all duration-300"
                                 style={{ fontSize: '1.125rem', fontWeight: 700 }}
                               >
@@ -329,9 +354,9 @@ export function AppShell({ state, actions }: AppShellProps) {
                           </>
                         )}
                       </div>
-                      
+
                       {/* Name with Gradient Text */}
-                      <span 
+                      <span
                         className="hidden md:inline-block transition-all duration-300 group-hover:scale-105"
                         style={{
                           fontWeight: 600,
@@ -346,39 +371,39 @@ export function AppShell({ state, actions }: AppShellProps) {
                       </span>
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-56 p-2 transition-all duration-300 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95" 
+                  <PopoverContent
+                    className="w-56 p-2 transition-all duration-300 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
                     align="end"
                     onMouseEnter={() => setIsAvatarHovered(true)}
                     onMouseLeave={() => setIsAvatarHovered(false)}
                   >
                     <div className="space-y-1">
-                      <button 
+                      <button
                         onClick={() => {
                           navigateTo('my-courses');
                           setIsAvatarPinned(false);
-                        }} 
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors text-left"
                       >
                         <BookOpen className="w-4 h-4" />
                         Khóa học của tôi
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           navigateTo('account-settings');
                           setIsAvatarPinned(false);
-                        }} 
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors text-left"
                       >
                         <User className="w-4 h-4" />
                         Tài khoản
                       </button>
                       <Separator />
-                      <button 
+                      <button
                         onClick={() => {
                           handleLogout();
                           setIsAvatarPinned(false);
-                        }} 
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors text-left"
                       >
                         <LogOut className="w-4 h-4" />
@@ -465,7 +490,7 @@ export function AppShell({ state, actions }: AppShellProps) {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }}></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }}></div>
-          
+
           {/* Floating Particles */}
           <div className="absolute inset-0 overflow-hidden">
             {particles.map((particle) => (
@@ -489,14 +514,14 @@ export function AppShell({ state, actions }: AppShellProps) {
             {/* Logo with Animation */}
             <div className="flex items-center gap-4 group">
               <div className="relative">
-                <GraduationCap 
-                  className="w-16 h-16 text-white transition-all duration-500 group-hover:scale-110 group-hover:rotate-12" 
+                <GraduationCap
+                  className="w-16 h-16 text-white transition-all duration-500 group-hover:scale-110 group-hover:rotate-12"
                 />
                 <div className="absolute -inset-3 bg-white/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
                 <div className="absolute -inset-1 bg-white/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
               <div className="flex flex-col">
-                <span 
+                <span
                   className="text-white transition-all duration-500 group-hover:scale-105"
                   style={{
                     fontSize: '2.5rem',
@@ -507,7 +532,7 @@ export function AppShell({ state, actions }: AppShellProps) {
                 >
                   EduLearn
                 </span>
-                <span 
+                <span
                   className="text-white/90 text-sm mt-1 transition-all duration-500 group-hover:text-white"
                   style={{ letterSpacing: '0.1em' }}
                 >
