@@ -7,6 +7,81 @@ GET http://localhost:5000/api/health
 Content-Type: application/json
 
 ###############################################
+# AUTH API
+###############################################
+
+### Signup - Create new account
+POST http://localhost:5000/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Password123!",
+  "full_name": "Test User"
+}
+
+### Login - Valid credentials
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Password123!"
+}
+
+### Login - Invalid email
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "invalid@example.com",
+  "password": "Password123!"
+}
+
+### Login - Invalid password
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "WrongPassword"
+}
+
+### Login - Missing email
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "password": "Password123!"
+}
+
+### Login - Missing password
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com"
+}
+
+### Get Profile (requires token - will fail without auth header)
+GET http://localhost:5000/api/auth/profile
+Content-Type: application/json
+
+### Logout
+POST http://localhost:5000/api/auth/logout
+Content-Type: application/json
+
+### Update Profile (requires token)
+PATCH http://localhost:5000/api/auth/profile
+Content-Type: application/json
+
+{
+  "full_name": "Updated Name",
+  "phone": "+1234567890",
+  "bio": "Software developer"
+}
+
+###############################################
 # TAGS API
 ###############################################
 

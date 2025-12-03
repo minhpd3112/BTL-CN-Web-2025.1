@@ -1,52 +1,64 @@
 export interface User {
-  id: string;
-  email: string;
+  id: number;
+  username: string;
+  password: string;
   role: 'admin' | 'user';
-  raw_user_meta_data?: Record<string, any>;
+  name: string;
+  avatar: string;
+  email: string;
+  fullName?: string;
+  phone?: string;
+  bio?: string;
+  joinedDate: string;
+  coursesCreated: number;
+  coursesEnrolled: number;
+  totalStudents: number;
+  status: 'active' | 'inactive';
+  lastLogin: string;
+  location?: string;
+  googleId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Tag {
-  id: string;
+  id: number;
   name: string;
-  description?: string;
-  color?: string;
-  icon?: string;
-  created_at: string;
-  updated_at: string;
+  color: string;
+  icon: string;
+  courseCount: number;
+  description: string;
+  image?: string;
 }
 
 export interface Course {
-  id: string;
-  owner_id: string;
+  id: number;
   title: string;
-  description?: string;
-  short_description?: string;
+  description: string;
   overview?: string;
-  image_url?: string;
-  requirements?: string;
-  level?: 'beginner' | 'intermediate' | 'advanced';
-  language?: string;
-  duration_hours?: number;
-  certificate_enabled?: boolean;
-  status: 'draft' | 'pending' | 'approved' | 'rejected';
+  ownerName: string;
+  ownerId: number;
+  ownerAvatar: string;
+  rating: number;
+  students: number;
+  duration: string;
+  image: string;
+  tags: string[];
+  status: 'pending' | 'approved' | 'rejected';
   visibility: 'public' | 'private';
-  rejection_reason?: string;
-  rejected_by?: string;
-  rejected_at?: string;
-  approved_by?: string;
-  approved_at?: string;
-  created_at: string;
-  updated_at: string;
+  lessons: number;
+  enrolledUsers: number[];
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Section {
-  id: string;
-  course_id: string;
+  id: number;
+  courseId: number;
   title: string;
-  description?: string;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
+  description: string;
+  order: number;
+  lessons: Lesson[];
 }
 
 export interface Lesson {
