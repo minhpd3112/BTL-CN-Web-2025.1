@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 // Import Pages
 import { HomePage } from '@/pages/HomePage';
@@ -76,6 +77,17 @@ export function AppShell({ state, actions }: AppShellProps) {
     currentRole,
     unreadCount,
   } = state;
+
+  // Generate stable particle positions
+  const particles = useState(() => 
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      duration: 3 + Math.random() * 4,
+      delay: Math.random() * 2,
+    }))
+  )[0];
 
   const {
     navigateTo,
@@ -446,55 +458,98 @@ export function AppShell({ state, actions }: AppShellProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <GraduationCap className="w-8 h-8 text-[#1E88E5]" />
+      <footer className="relative overflow-hidden mt-16">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1]">
+          {/* Animated Gradient Orbs */}
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }}></div>
+          
+          {/* Floating Particles */}
+          <div className="absolute inset-0 overflow-hidden">
+            {particles.map((particle) => (
+              <div
+                key={particle.id}
+                className="absolute w-2 h-2 bg-white/20 rounded-full"
+                style={{
+                  left: `${particle.left}%`,
+                  top: `${particle.top}%`,
+                  animation: `float ${particle.duration}s ease-in-out infinite`,
+                  animationDelay: `${particle.delay}s`
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="flex flex-col items-center justify-center text-center space-y-8">
+            {/* Logo with Animation */}
+            <div className="flex items-center gap-4 group">
+              <div className="relative">
+                <GraduationCap 
+                  className="w-16 h-16 text-white transition-all duration-500 group-hover:scale-110 group-hover:rotate-12" 
+                />
+                <div className="absolute -inset-3 bg-white/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
+                <div className="absolute -inset-1 bg-white/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              </div>
+              <div className="flex flex-col">
                 <span 
+                  className="text-white transition-all duration-500 group-hover:scale-105"
                   style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
+                    fontSize: '2.5rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    textShadow: '0 4px 20px rgba(0,0,0,0.3)'
                   }}
                 >
                   EduLearn
                 </span>
+                <span 
+                  className="text-white/90 text-sm mt-1 transition-all duration-500 group-hover:text-white"
+                  style={{ letterSpacing: '0.1em' }}
+                >
+                  Học tập không giới hạn
+                </span>
               </div>
-              <p className="text-gray-600 text-sm">Nền tảng học tập trực tuyến hàng đầu Việt Nam</p>
             </div>
-            <div>
-              <h3 className="mb-4">Về chúng tôi</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-[#1E88E5]">Giới thiệu</a></li>
-                <li><a href="#" className="hover:text-[#1E88E5]">Liên hệ</a></li>
-                <li><a href="#" className="hover:text-[#1E88E5]">Careers</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4">Hỗ trợ</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-[#1E88E5]">Trung tâm trợ giúp</a></li>
-                <li><a href="#" className="hover:text-[#1E88E5]">Điều khoản</a></li>
-                <li><a href="#" className="hover:text-[#1E88E5]">Chính sách</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4">Kết nối</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-[#1E88E5]">Facebook</a></li>
-                <li><a href="#" className="hover:text-[#1E88E5]">LinkedIn</a></li>
-                <li><a href="#" className="hover:text-[#1E88E5]">YouTube</a></li>
-              </ul>
+
+
+            {/* Copyright */}
+            <div className="flex items-center gap-2 text-white/80 text-sm">
+              <span>© 2025</span>
+              <span className="font-semibold text-white">EduLearn Platform</span>
+              <span>All rights reserved</span>
             </div>
           </div>
-          <Separator className="my-6" />
-          <p className="text-center text-sm text-gray-600">© 2025 EduLearn Platform. All rights reserved.</p>
         </div>
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px) translateX(0px);
+              opacity: 0.3;
+            }
+            50% {
+              transform: translateY(-20px) translateX(10px);
+              opacity: 0.6;
+            }
+          }
+          @keyframes shimmer {
+            0% {
+              transform: translateX(-100%);
+            }
+            100% {
+              transform: translateX(100%);
+            }
+          }
+          .animate-shimmer {
+            animation: shimmer 3s ease-in-out infinite;
+          }
+        `}</style>
       </footer>
     </div>
   );
