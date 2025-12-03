@@ -21,8 +21,7 @@ import { LearningPage } from '@/pages/LearningPage';
 import { QuizPage } from '@/pages/QuizPage';
 import { ManageTagsPage } from '@/pages/ManageTagsPage';
 import { ManageUsersPage } from '@/pages/ManageUsersPage';
-import { CourseStudentsPage } from '@/pages/CourseStudentsPage';
-import { EditCoursePage } from '@/pages/EditCoursePage';
+
 import { ManageCoursesPage } from '@/pages/ManageCoursesPage';
 import { UserDetailPage } from '@/pages/UserDetailPage';
 import { AccountSettingsPage } from '@/pages/AccountSettingsPage';
@@ -458,21 +457,16 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'quiz' && <QuizPage navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
-        {currentPage === 'edit-course' && <EditCoursePage navigateTo={navigateTo} course={selectedCourse} currentUser={currentUser!} />}
+
         {currentPage === 'course-dashboard' && <CourseDashboardPage
           course={selectedCourse}
           navigateTo={navigateTo}
           enrollmentRequests={enrollmentRequests}
           onApproveRequest={handleApproveRequest}
           onRejectRequest={handleRejectRequest}
+          currentUser={currentUser}
         />}
-        {currentPage === 'course-students' && <CourseStudentsPage
-          course={selectedCourse}
-          navigateTo={navigateTo}
-          enrollmentRequests={enrollmentRequests}
-          onApproveRequest={handleApproveRequest}
-          onRejectRequest={handleRejectRequest}
-        />}
+
         {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
         {currentPage === 'approve-courses' && <ApproveCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
         {currentPage === 'manage-courses' && <ManageCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
