@@ -1,5 +1,54 @@
+import axios, { AxiosInstance } from 'axios';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// -----------------------------
+// Axios instance
+// -----------------------------
+const api: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// -----------------------------
+// Auth token helpers
+// -----------------------------
+const getAuthToken = (): string | null => localStorage.getItem('auth_token');
+
+const setAuthToken = (token: string) => localStorage.setItem('auth_token', token);
+
+const clearAuthToken = () => {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('user_data');
+};
+
+// Axios request interceptor to attach token
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Axios response interceptor for global error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      clearAuthToken();
+      // Optional: redirect to login
+      // window.location.href = '/login';
+    }
+    return Promise.reject(error.response?.data || error.message);
+  }
+);
+
+// -----------------------------
+// Types
+// -----------------------------
 export interface LoginRequest {
   email: string;
   password: string;
@@ -44,89 +93,54 @@ export interface ProfileResponse {
   };
 }
 
-// Helper function to get auth token
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('auth_token');
-};
-
-// Helper function to set auth token
-const setAuthToken = (token: string): void => {
-  localStorage.setItem('auth_token', token);
-};
-
-// Helper function to clear auth token
-const clearAuthToken = (): void => {
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('user_data');
-};
-
-// Helper function for API requests with auth
-const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const token = getAuthToken();
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `API Error: ${response.status}`);
-  }
-
-  return response.json();
-};
-
+// -----------------------------
+// Auth API
+// -----------------------------
 export const authAPI = {
   async signup(data: SignupRequest): Promise<AuthResponse> {
-    const response = await fetchWithAuth(`${API_BASE_URL}/auth/signup`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return response;
+    const response = await api.post<AuthResponse>('/auth/signup', data);
+    return response.data;
   },
 
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await fetchWithAuth(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    const response = await api.post<AuthResponse>('/auth/login', data);
 
-    if (response.success) {
-      setAuthToken(response.data.session.access_token);
-      localStorage.setItem('user_data', JSON.stringify(response.data.user));
+    if (response.data.success) {
+      setAuthToken(response.data.data.session.access_token);
+      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
     }
 
-    return response;
+    return response.data;
+  },
+
+  async loginWithGoogle(token: string): Promise<AuthResponse> {
+    // Replace '/auth/google' with your backend Google login endpoint
+    const response = await api.post<AuthResponse>('/auth/google', { token });
+
+    if (response.data.success) {
+      setAuthToken(response.data.data.session.access_token);
+      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+    }
+
+    return response.data;
   },
 
   async logout(): Promise<void> {
     try {
-      await fetchWithAuth(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-      });
+      await api.post('/auth/logout');
     } finally {
       clearAuthToken();
     }
   },
 
   async getProfile(): Promise<ProfileResponse> {
-    return fetchWithAuth(`${API_BASE_URL}/auth/profile`);
+    const response = await api.get<ProfileResponse>('/auth/profile');
+    return response.data;
   },
 
   async updateProfile(data: Partial<ProfileResponse['data']>): Promise<ProfileResponse> {
-    return fetchWithAuth(`${API_BASE_URL}/auth/profile`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
+    const response = await api.patch<ProfileResponse>('/auth/profile', data);
+    return response.data;
   },
 
   getStoredUser() {
@@ -147,62 +161,24 @@ export const authAPI = {
   },
 };
 
+// -----------------------------
+// Courses API
+// -----------------------------
 export const coursesAPI = {
-  async getAllCourses() {
-    return fetchWithAuth(`${API_BASE_URL}/courses`);
-  },
-
-  async getCourseById(id: string) {
-    return fetchWithAuth(`${API_BASE_URL}/courses/${id}`);
-  },
-
-  async createCourse(data: any) {
-    return fetchWithAuth(`${API_BASE_URL}/courses`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async updateCourse(id: string, data: any) {
-    return fetchWithAuth(`${API_BASE_URL}/courses/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async deleteCourse(id: string) {
-    return fetchWithAuth(`${API_BASE_URL}/courses/${id}`, {
-      method: 'DELETE',
-    });
-  },
+  getAllCourses: () => api.get('/courses').then(res => res.data),
+  getCourseById: (id: string) => api.get(`/courses/${id}`).then(res => res.data),
+  createCourse: (data: any) => api.post('/courses', data).then(res => res.data),
+  updateCourse: (id: string, data: any) => api.patch(`/courses/${id}`, data).then(res => res.data),
+  deleteCourse: (id: string) => api.delete(`/courses/${id}`).then(res => res.data),
 };
 
+// -----------------------------
+// Tags API
+// -----------------------------
 export const tagsAPI = {
-  async getAllTags() {
-    return fetchWithAuth(`${API_BASE_URL}/tags`);
-  },
-
-  async getTagById(id: string) {
-    return fetchWithAuth(`${API_BASE_URL}/tags/${id}`);
-  },
-
-  async createTag(data: any) {
-    return fetchWithAuth(`${API_BASE_URL}/tags`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async updateTag(id: string, data: any) {
-    return fetchWithAuth(`${API_BASE_URL}/tags/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async deleteTag(id: string) {
-    return fetchWithAuth(`${API_BASE_URL}/tags/${id}`, {
-      method: 'DELETE',
-    });
-  },
+  getAllTags: () => api.get('/tags').then(res => res.data),
+  getTagById: (id: string) => api.get(`/tags/${id}`).then(res => res.data),
+  createTag: (data: any) => api.post('/tags', data).then(res => res.data),
+  updateTag: (id: string, data: any) => api.patch(`/tags/${id}`, data).then(res => res.data),
+  deleteTag: (id: string) => api.delete(`/tags/${id}`).then(res => res.data),
 };
