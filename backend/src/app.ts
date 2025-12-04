@@ -3,11 +3,24 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
+import { supabase } from './config/supabase';
+import { logger } from './config/logger';
 import routes from './routes/index';
 import { errorHandler } from './middlewares/errorHandler';
 import { notFoundHandler } from './middlewares/notFoundHandler';
 
 const app: Express = express();
+
+// ============= DATABASE CONNECTION TEST =============
+(async () => {
+  try {
+    const { data, error } = await supabase.from('tags').select('count', { count: 'exact', head: true });
+    if (error) throw error;
+    logger.info('✅ Database connection successful');
+  } catch (err) {
+    logger.error('❌ Database connection failed:', err);
+  }
+})();
 
 // ============= MIDDLEWARES =============
 app.use(helmet()); // Security headers
