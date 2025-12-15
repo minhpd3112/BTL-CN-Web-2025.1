@@ -15,6 +15,8 @@ import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 // Không cần StatsCounter
 import { createClient } from '@supabase/supabase-js';
+import { authAPI } from '@/services/api'; // Giả sử api.ts nằm ở đường dẫn này
+
 
 // Khởi tạo Supabase client (dùng Vite env hoặc hardcode tạm)
 const supabase = createClient(
@@ -33,50 +35,64 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleEmailLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      toast.error('Vui lòng nhập đầy đủ email và mật khẩu');
-      return;
+  // Trong LoginPage.tsx, thay thế hàm handleEmailLogin
+const handleEmailLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!email || !password) {
+    toast.error('Vui lòng nhập đầy đủ email và mật khẩu');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    if (isSignUp) {
+      // Logic cho Đăng ký
+      const fullName = email.split('@')[0];
+      const response = await authAPI.signup({ email, password, full_name: fullName });
+
+      if (response.success) {
+        toast.success(response.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.');
+        setIsSignUp(false); // Chuyển về trạng thái Đăng nhập
+        setEmail('');
+        setPassword('');
+      } else {
+         // Trường hợp này hiếm xảy ra nếu response.ok đã được kiểm tra trong interceptor,
+         // nhưng vẫn giữ để đảm bảo
+         throw new Error(response.message);
+      }
+    } else {
+      // Logic cho Đăng nhập
+      const response = await authAPI.login({ email, password });
+
+      if (response.success) {
+        // Sau khi login thành công, api.ts đã tự động lưu token và user_data.
+        const storedUser = authAPI.getStoredUser(); 
+        
+        // Cần đảm bảo rằng `storedUser` có type User của FE.
+        // Tạm thời ép kiểu nếu cần thiết, hoặc điều chỉnh type trong api.ts
+        if (storedUser) {
+           onLogin(storedUser as User); // Gọi onLogin với dữ liệu người dùng đã lưu
+           toast.success(`Chào mừng trở lại, ${storedUser.name || storedUser.full_name || storedUser.email}!`);
+        } else {
+           throw new Error("Lỗi dữ liệu người dùng sau đăng nhập.");
+        }
+      } else {
+        throw new Error(response.message);
+      }
     }
 
-    setIsLoading(true);
+  } catch (error: any) {
+    // Error đã được Promise.reject trong interceptor của api.ts
+    // error ở đây là error.response?.data (hoặc message)
+    console.error('API Error:', error);
+    // Hiển thị thông báo lỗi từ server
+    toast.error(error.message || 'Lỗi kết nối hoặc xử lý. Vui lòng thử lại.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    // Simulate API delay
-    setTimeout(() => {
-      const user = mockUsers.find(u => u.email === email);
-
-      if (user) {
-        // Login existing user
-        onLogin(user);
-        toast.success(`Chào mừng trở lại, ${user.name}!`);
-      } else {
-        if (isSignUp) {
-          // Create new user
-          const newUser: User = {
-            id: Date.now(),
-            username: email.split('@')[0],
-            password: password,
-            role: 'user',
-            name: email.split('@')[0],
-            avatar: email[0].toUpperCase(),
-            email: email,
-            joinedDate: new Date().toISOString().split('T')[0],
-            coursesCreated: 0,
-            coursesEnrolled: 0,
-            totalStudents: 0,
-            status: 'active',
-            lastLogin: new Date().toISOString()
-          };
-          onLogin(newUser);
-          toast.success('Tạo tài khoản thành công!');
-        } else {
-          toast.error('Không tìm thấy tài khoản. Vui lòng đăng ký.');
-        }
-      }
-      setIsLoading(false);
-    }, 1000);
-  };
 
   const handleQuickLogin = (user: User) => {
     onLogin(user);
