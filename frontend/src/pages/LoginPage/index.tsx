@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 // Đã xóa Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
 import { mockUsers } from '@/services/mocks';
 import { User } from '@/types';
 // Không cần mockGoogleAccounts nữa
@@ -47,47 +47,45 @@ const handleEmailLogin = async (e: React.FormEvent) => {
 
   try {
     if (isSignUp) {
-      // Logic cho Đăng ký
+      // Logic cho Đăng ký (giữ nguyên của bạn)
       const fullName = email.split('@')[0];
       const response = await authAPI.signup({ email, password, full_name: fullName });
-
       if (response.success) {
-        toast.success(response.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.');
-        setIsSignUp(false); // Chuyển về trạng thái Đăng nhập
-        setEmail('');
-        setPassword('');
+        toast.success('Đăng ký thành công! Vui lòng kiểm tra email.');
+        setIsSignUp(false);
       } else {
-         // Trường hợp này hiếm xảy ra nếu response.ok đã được kiểm tra trong interceptor,
-         // nhưng vẫn giữ để đảm bảo
-         throw new Error(response.message);
+        throw new Error(response.message);
       }
     } else {
-      // Logic cho Đăng nhập
+      // LOGIC ĐĂNG NHẬP CÓ XỬ LÝ LỖI MẬT KHẨU
       const response = await authAPI.login({ email, password });
 
       if (response.success) {
-        // Sau khi login thành công, api.ts đã tự động lưu token và user_data.
         const storedUser = authAPI.getStoredUser(); 
-        
-        // Cần đảm bảo rằng `storedUser` có type User của FE.
-        // Tạm thời ép kiểu nếu cần thiết, hoặc điều chỉnh type trong api.ts
         if (storedUser) {
-           onLogin(storedUser as User); // Gọi onLogin với dữ liệu người dùng đã lưu
-           toast.success(`Chào mừng trở lại, ${storedUser.name || storedUser.full_name || storedUser.email}!`);
-        } else {
-           throw new Error("Lỗi dữ liệu người dùng sau đăng nhập.");
+           onLogin(storedUser as User);
+           toast.success(`Chào mừng trở lại, ${storedUser.name || 'Học viên'}!`);
         }
       } else {
+        // Đây là nơi xử lý lỗi trả về từ server (ví dụ: "Invalid login credentials")
         throw new Error(response.message);
       }
     }
 
   } catch (error: any) {
-    // Error đã được Promise.reject trong interceptor của api.ts
-    // error ở đây là error.response?.data (hoặc message)
-    console.error('API Error:', error);
-    // Hiển thị thông báo lỗi từ server
-    toast.error(error.message || 'Lỗi kết nối hoặc xử lý. Vui lòng thử lại.');
+    console.error('Login Error:', error);
+
+    // Lấy message từ object error (vì cấu trúc của bạn là error.message)
+    const serverMessage = error?.message || error?.data?.message;
+
+    if (serverMessage === "Invalid login credentials") {
+      toast.error("Email hoặc mật khẩu không chính xác. Vui lòng thử lại!");
+    } else if (serverMessage) {
+      toast.error(serverMessage);
+    } else {
+      toast.error("Đã xảy ra lỗi kết nối. Vui lòng thử lại sau.");
+    }
+
   } finally {
     setIsLoading(false);
   }
@@ -330,7 +328,7 @@ const handleEmailLogin = async (e: React.FormEvent) => {
       </div>
 
       {/* ĐÃ XÓA GOOGLE LOGIN MODAL (Dialog component) Ở ĐÂY */}
-
+      <Toaster position="top-right" richColors closeButton />               
     </div>
   );
 }
