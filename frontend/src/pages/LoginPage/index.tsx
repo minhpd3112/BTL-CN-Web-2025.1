@@ -20,8 +20,8 @@ import { authAPI } from '@/services/api'; // Giả sử api.ts nằm ở đườ
 
 // Khởi tạo Supabase client (dùng Vite env hoặc hardcode tạm)
 const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || 'https://tfdqmenqfwbuuzxlrekm.supabase.co',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmZHFtZW5xZndidXV6eGxyZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MDY4NjgsImV4cCI6MjA4MDA4Mjg2OH0.y3QYypkusHdBQnVkgquB36S5nFvkybX-4b51MALXTSo'
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
 interface LoginPageProps {
