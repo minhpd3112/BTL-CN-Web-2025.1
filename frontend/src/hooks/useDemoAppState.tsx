@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react'; // Thêm useEffect vào đây
+import { supabase } from '@/services/api'; // Thêm dòng này ở đây
 import {
   mockUsers,
   mockCourses,
@@ -146,8 +147,14 @@ const mockNotifications: Notification[] = [
 ];
 
 export function useDemoAppState() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState<Page>('login');
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('user_data');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const saved = localStorage.getItem('user_data');
+    return saved ? 'home' : 'login';
+  });
   const [selectedCourse, setSelectedCourse] = useState<Course>(mockCourses[0]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
@@ -156,7 +163,38 @@ export function useDemoAppState() {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [showNotifications, setShowNotifications] = useState(false);
   const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>(mockEnrollmentRequests);
+useEffect(() => {
+    // Lắng nghe thay đổi trạng thái đăng nhập
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      
+      // Nếu thấy có session (Google vừa trả về) và hiện tại chưa có user trong app
+      if (session && event === 'SIGNED_IN' && !currentUser) {
+        
+        // Tạo object user theo định dạng của App bạn
+        const user = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0],
+          avatar: session.user.user_metadata.avatar_url || session.user.user_metadata.picture,
+          role: 'user', // Mặc định là user
+          joinedDate: new Date().toLocaleDateString('vi-VN'),
+          status: 'active',
+          coursesCreated: 0,
+          totalStudents: 0
+        };
 
+        // Lưu vào LocalStorage để khi F5 không bị mất
+        localStorage.setItem('auth_token', session.access_token);
+        localStorage.setItem('user_data', JSON.stringify(user));
+
+        // Cập nhật state để App chuyển sang trang chủ
+        setCurrentUser(user as any);
+        setCurrentPage('home');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUser]);
   // Helper functions
   const navigateTo = useCallback((page: Page, course?: Course) => {
     setCurrentPage(page);
@@ -171,11 +209,30 @@ export function useDemoAppState() {
     navigateTo('home');
   }, [navigateTo]);
 
-  const handleLogout = useCallback(() => {
-    setCurrentUser(null);
-    setUserGooglePicture(null);
-    navigateTo('login');
-  }, [navigateTo]);
+  const handleLogout = useCallback(async () => {
+  try {
+    // 1. Gửi lệnh đăng xuất tới Supabase để huỷ Session trên máy chủ Google/Supabase
+    await supabase.auth.signOut();
+  } catch (error) {
+    console.error("Lỗi khi đăng xuất Supabase:", error);
+  }
+
+  // 2. Xoá sạch dữ liệu đã lưu trong LocalStorage của trình duyệt
+  localStorage.removeItem('user_data');
+  localStorage.removeItem('auth_token');
+  // Nếu bạn có lưu key nào khác của Supabase (thường bắt đầu bằng sb-...), có thể dùng:
+  // localStorage.clear(); // Lưu ý: cái này sẽ xoá sạch TẤT CẢ dữ liệu trong LocalStorage
+
+  // 3. Cập nhật State để giao diện biến mất thông tin người dùng ngay lập tức
+  setCurrentUser(null);
+  setUserGooglePicture(null);
+  
+  // 4. Đưa người dùng quay lại trang Login
+  setCurrentPage('login');
+  
+  // Tuỳ chọn: Tải lại trang để xoá sạch các biến tạm trong bộ nhớ
+  // window.location.reload(); 
+}, []);
 
   const isOwner = useCallback((course: Course): boolean => {
     return currentUser ? course.ownerId === currentUser.id : false;
