@@ -3,6 +3,7 @@ import {
   User as UserIcon, Mail, Phone, MapPin, Calendar, 
   Save, Trash2, AlertTriangle, Settings, Loader2, Camera 
 } from 'lucide-react';
+import { supabase } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,11 +27,7 @@ import { toast } from 'sonner';
 import { User, Page } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 
-// Khởi tạo Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+
 
 interface AccountSettingsPageProps {
   user: User;
@@ -45,15 +42,17 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
   const [bio, setBio] = useState(user.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(user.avatar || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState(user.avatar || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Xử lý Upload Ảnh Đại Diện
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+// 1. Xử lý Chọn Ảnh (Chỉ Preview, CHƯA upload)
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (!isNaN(Number(user.id))) {
-      toast.error('Tài khoản demo không thể upload ảnh. Vui lòng đăng nhập bằng tài khoản thật.');
+      toast.error('Tài khoản demo không thể đổi ảnh.');
       return;
     }
 
@@ -62,61 +61,47 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      // Upload lên Supabase Storage (Bucket 'avatars')
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Lấy URL công khai
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      // Cập nhật DB
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ 
-          avatar_url: publicUrl,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', user.id);
-      if (updateError) throw updateError;
-      setAvatarUrl(publicUrl);
-      onUpdateUser({ ...user, avatar: publicUrl });
-      toast.success('Cập nhật ảnh đại diện thành công!');
-    } catch (error: any) {
-      toast.error('Lỗi upload: ' + error.message);
-    } finally {
-      setIsLoading(false);
-    }
+    // Tạo URL tạm thời để hiển thị lên vòng tròn Avatar ngay lập tức
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl); 
+    setSelectedFile(file); // Lưu file vào bộ nhớ đệm, chờ bấm "Lưu"
   };
 
-  // 2. Lưu thay đổi thông tin (Dữ liệu thật)
+  // 2. Lưu thay đổi (Bao gồm cả Upload ảnh và Lưu thông tin)
   const handleSaveChanges = async () => {
     if (!name.trim()) {
       toast.error('Họ và tên không được để trống');
       return;
     }
 
-    if (!isNaN(Number(user.id))) {
-      toast.error('Lỗi: Bạn đang dùng tài khoản Demo (ID số). Vui lòng đăng nhập Google để thực hiện lệnh này.');
-      console.error("ID hiện tại không phải UUID:", user.id);
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      let finalAvatarUrl = avatarUrl;
+
+      // BƯỚC A: Nếu có chọn file mới, tiến hành Upload lên Storage trước
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, selectedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+        
+        finalAvatarUrl = publicUrl;
+      }
+
+      // BƯỚC B: Cập nhật bảng user_profiles trong Database
+      const { error: dbError } = await supabase
         .from('user_profiles')
         .update({
           full_name: name,
+          avatar_url: finalAvatarUrl,
           phone: phone,
           address: location,
           bio: bio,
@@ -124,17 +109,30 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      // Cập nhật lại state của App để Header thay đổi theo
+      // BƯỚC C: Cập nhật Metadata của Auth (Để Login lại không mất ảnh/tên)
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { 
+          full_name: name,
+          avatar_url: finalAvatarUrl 
+        }
+      });
+
+      if (authError) throw authError;
+
+      // BƯỚC D: Cập nhật State toàn cục của App (Header sẽ đổi theo)
       onUpdateUser({ 
         ...user, 
         name: name, 
+        avatar: finalAvatarUrl,
         phone: phone, 
         location: location, 
         bio: bio 
       });
       
+      setAvatarUrl(finalAvatarUrl);
+      setSelectedFile(null); // Xóa file tạm sau khi lưu thành công
       toast.success('Đã lưu mọi thay đổi vào hệ thống!');
     } catch (error: any) {
       toast.error('Lỗi khi lưu dữ liệu: ' + error.message);
@@ -143,18 +141,39 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
     }
   };
 
-  const handleDeleteAccount = async () => {
-    setIsLoading(true);
-    try {
-      await supabase.auth.signOut();
-      toast.success('Đã đăng xuất thành công.');
-      navigateTo('login');
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const handleDeleteAccount = async () => {
+  setIsLoading(true);
+  try {
+    // 1. Xóa dữ liệu trong bảng user_profiles (Dữ liệu do bạn quản lý)
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .delete()
+      .eq('id', user.id);
+
+    if (profileError) throw profileError;
+
+    // 2. Đăng xuất người dùng ngay lập tức
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) throw signOutError;
+
+    // 3. Xóa sạch Local Storage để App không nhận diện User cũ
+    localStorage.clear(); 
+    
+    toast.success('Tài khoản đã được xóa khỏi hệ thống.');
+    
+    // 4. Chuyển hướng về trang login
+    navigateTo('login');
+    
+    // Tùy chọn: Làm mới trang để đảm bảo sạch state
+    window.location.reload(); 
+
+  } catch (error: any) {
+    toast.error('Lỗi khi xóa tài khoản: ' + error.message);
+    console.error(error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
@@ -178,7 +197,7 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Avatar className="w-28 h-28 -mt-14 border-4 border-white shadow-lg transition-all group-hover:brightness-75">
-                    <AvatarImage src={avatarUrl} className="object-cover" />
+                    <AvatarImage src={previewUrl} className="object-cover" />
                     <AvatarFallback className="text-2xl bg-gray-200 text-[#1E88E5] font-bold">
                       {name?.charAt(0)}
                     </AvatarFallback>
