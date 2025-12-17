@@ -18,13 +18,13 @@ interface TagDetailPageProps {
 
 export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, selectedTag }: TagDetailPageProps) {
   const [sortBy, setSortBy] = useState<string>('popular');
-  
+
   // Filter courses by tag
   const tagCourses = useMemo(() => {
     if (!selectedTag) return [];
-    
-    let filtered = mockCourses.filter(course => 
-      course.visibility === 'public' && 
+
+    let filtered = mockCourses.filter(course =>
+      course.visibility === 'public' &&
       course.status === 'approved' &&
       course.tags.includes(selectedTag.name)
     );
@@ -49,7 +49,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
           <CardContent className="p-12 text-center">
             <Tag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-600">Không tìm thấy chủ đề</p>
-            <Button 
+            <Button
               className="mt-4 bg-[#1E88E5] text-white hover:bg-[#1565C0]"
               onClick={() => navigateTo('home')}
             >
@@ -62,7 +62,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
   }
 
   const totalStudents = tagCourses.reduce((sum, course) => sum + course.students, 0);
-  const avgRating = tagCourses.length > 0 
+  const avgRating = tagCourses.length > 0
     ? (tagCourses.reduce((sum, course) => sum + course.rating, 0) / tagCourses.length).toFixed(1)
     : '0.0';
 
@@ -71,7 +71,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
       {/* Hero Banner with Topic Image */}
       <div className="relative overflow-hidden">
         {/* Background Image with Overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: `url(${selectedTag.image || 'https://images.unsplash.com/photo-1667984436026-99b165e3672b?w=1080'})`,
@@ -79,12 +79,12 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#1E88E5]/95 via-[#1565C0]/90 to-[#0D47A1]/85"></div>
         </div>
-        
+
         {/* Content */}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           {/* Back Button */}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigateTo('home')}
             className="mb-6 text-white hover:bg-white/20"
           >
@@ -100,7 +100,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
             </div>
 
             {/* Topic Title */}
-            <h1 
+            <h1
               className="mb-6 leading-tight text-white"
               style={{
                 fontSize: '3rem',
@@ -109,7 +109,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
             >
               {selectedTag.name}
             </h1>
-            
+
             {/* Topic Description */}
             <p className="text-xl text-white/95 mb-8 max-w-2xl">
               {selectedTag.description}
@@ -135,19 +135,10 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
                   <p className="text-sm text-white/80">Học viên</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-2xl">{avgRating} ⭐</p>
-                  <p className="text-sm text-white/80">Đánh giá TB</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
-        
+
         {/* Decorative gradient overlay at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-50 to-transparent"></div>
       </div>
@@ -205,16 +196,18 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
 
         {/* Courses Grid */}
         {tagCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tagCourses.map((course, index) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
-                <CourseCard 
-                  course={course} 
-                  onClick={() => {
-                    setSelectedCourse(course);
-                    navigateTo('course-detail');
-                  }} 
-                />
+                <div className="max-w-[420px]">
+                  <CourseCard
+                    course={course}
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      navigateTo('course-detail');
+                    }}
+                  />
+                </div>
               </AnimatedSection>
             ))}
           </div>
@@ -230,7 +223,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
                   Hiện tại chưa có khóa học nào trong chủ đề này.
                 </p>
                 {currentUser && (
-                  <Button 
+                  <Button
                     className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
                     onClick={() => navigateTo('create-course')}
                   >

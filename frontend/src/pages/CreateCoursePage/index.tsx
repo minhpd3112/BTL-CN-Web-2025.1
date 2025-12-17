@@ -48,14 +48,14 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [courseOverview, setCourseOverview] = useState('');
-  
+
   // Sections and lessons
   const [sections, setSections] = useState<Section[]>([]);
   const [showAddSection, setShowAddSection] = useState(false);
   const [sectionTitle, setSectionTitle] = useState('');
   const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
-  
+
   // Lessons
   const [showAddLesson, setShowAddLesson] = useState(false);
   const [lessonType, setLessonType] = useState<'video' | 'text' | 'pdf' | 'quiz'>('video');
@@ -66,7 +66,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [quizSettings, setQuizSettings] = useState<QuizSettings>({ quizType: 'practice', passingScore: 70 });
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
-  
+
   const handleEditSection = (section: Section) => {
     setEditingSection(section);
     setSectionTitle(section.title);
@@ -77,8 +77,8 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
     if (sectionTitle.trim()) {
       if (editingSection) {
         // Update existing section
-        setSections(sections.map(s => 
-          s.id === editingSection.id 
+        setSections(sections.map(s =>
+          s.id === editingSection.id
             ? { ...s, title: sectionTitle }
             : s
         ));
@@ -100,7 +100,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       setShowAddSection(false);
     }
   };
-  
+
   const handleEditLesson = (lesson: Lesson, sectionId: number) => {
     setEditingLesson(lesson);
     setCurrentSectionId(sectionId);
@@ -123,7 +123,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         setShowQuizEditor(true);
         return;
       }
-      
+
       if (editingLesson) {
         // Update existing lesson
         const updatedLesson: Lesson = {
@@ -135,13 +135,13 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
           ...(lessonType === 'text' && { content: lessonContent }),
           ...(lessonType === 'quiz' && { quizQuestions })
         };
-        
-        setSections(sections.map(section => 
+
+        setSections(sections.map(section =>
           section.id === currentSectionId
             ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
             : section
         ));
-        
+
         toast.success('Đã cập nhật mục nhỏ!');
       } else {
         // Add new lesson
@@ -154,16 +154,16 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
           ...(lessonType === 'video' && { youtubeUrl }),
           ...(lessonType === 'text' && { content: lessonContent })
         };
-        
-        setSections(sections.map(section => 
+
+        setSections(sections.map(section =>
           section.id === currentSectionId
             ? { ...section, lessons: [...section.lessons, newLesson] }
             : section
         ));
-        
+
         toast.success('Đã thêm mục nhỏ!');
       }
-      
+
       setLessonTitle('');
       setYoutubeUrl('');
       setLessonContent('');
@@ -174,12 +174,12 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
 
   const handleSaveQuiz = (questions: QuizQuestion[], settings: QuizSettings) => {
     if (!currentSectionId) return;
-    
+
     // Calculate estimated duration based on quiz type
-    const estimatedDuration = settings.quizType === 'exam' 
+    const estimatedDuration = settings.quizType === 'exam'
       ? `${settings.timeLimit} phút`
       : `${questions.length * 2} phút`;
-    
+
     if (editingLesson) {
       // Update existing quiz
       const updatedLesson: Lesson = {
@@ -191,13 +191,13 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         quizQuestions: questions,
         quizSettings: settings
       };
-      
-      setSections(sections.map(section => 
+
+      setSections(sections.map(section =>
         section.id === currentSectionId
           ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
           : section
       ));
-      
+
       toast.success('Đã cập nhật quiz!');
     } else {
       // Add new quiz
@@ -210,16 +210,16 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         quizQuestions: questions,
         quizSettings: settings
       };
-      
-      setSections(sections.map(section => 
+
+      setSections(sections.map(section =>
         section.id === currentSectionId
           ? { ...section, lessons: [...section.lessons, newLesson] }
           : section
       ));
-      
+
       toast.success('Đã thêm quiz!');
     }
-    
+
     setLessonTitle('');
     setQuizQuestions([]);
     setQuizSettings({ quizType: 'practice', passingScore: 70 });
@@ -256,7 +256,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <Plus className="w-8 h-8 text-[#1E88E5]" />
-            <h1 
+            <h1
               style={{
                 fontSize: '2rem',
                 fontWeight: 700,
@@ -278,438 +278,445 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         <div className="lg:col-span-2">
           <AnimatedSection animation="fade-up" delay={100}>
             <Card className="mb-6 hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle>Thông tin cơ bản</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="course-name">Tên khóa học *</Label>
-                <Input
-                  id="course-name"
-                  placeholder="VD: Lập trình React từ cơ bản đến nâng cao"
-                  value={courseName}
-                  onChange={(e) => setCourseName(e.target.value)}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Mô tả *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Mô tả ngắn gọn về khóa học..."
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label htmlFor="overview">Tổng quan khóa học</Label>
-                <Textarea
-                  id="overview"
-                  placeholder={`Nhập nội dung theo định dạng Markdown. Ví dụ:\n\n## Bạn sẽ học được gì?\n- Nắm vững kiến thức cơ bản\n- Xây dựng dự án thực tế\n- Áp dụng vào công việc\n\n## Yêu cầu\n- Kiến thức lập trình cơ bản\n- Máy tính cá nhân\n- Tinh thần học hỏi`}
-                  rows={10}
-                  value={courseOverview}
-                  onChange={(e) => setCourseOverview(e.target.value)}
-                  className="mt-2 font-mono text-sm"
-                />
-              </div>
-              <div>
-                <Label htmlFor="image">Ảnh bìa</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label>Chủ đề khóa học (có thể chọn nhiều) *</Label>
-                <div className="mt-2 space-y-2">
-                  {/* Selected Tags Display */}
-                  {selectedTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      {selectedTags.map(tag => (
-                        <Badge key={tag} className="bg-[#1E88E5] text-white gap-1 px-3 py-1">
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTags(selectedTags.filter(t => t !== tag))}
-                            className="ml-1 hover:text-red-200"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Tag Selection Dropdown */}
-                  <Select 
-                    value="" 
-                    onValueChange={(value) => {
-                      if (value && !selectedTags.includes(value)) {
-                        setSelectedTags([...selectedTags, value]);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Thêm chủ đề..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockTags.map(tag => (
-                        <SelectItem key={tag.id} value={tag.name}>
-                          {tag.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500">
-                    Chọn các chủ đề phù hợp để học viên dễ tìm kiếm khóa học của bạn
-                  </p>
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <CardTitle className="text-lg font-bold text-[#1E88E5]">
+                  Thông tin cơ bản
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="course-name">Tên khóa học *</Label>
+                  <Input
+                    id="course-name"
+                    placeholder="VD: Lập trình React từ cơ bản đến nâng cao"
+                    value={courseName}
+                    onChange={(e) => setCourseName(e.target.value)}
+                    className="mt-2"
+                  />
                 </div>
-              </div>
-              <div>
-                <Label>Chế độ hiển thị</Label>
-                <div className="mt-3 space-y-3">
-                  <label 
-                    className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      visibility === 'private' ? 'border-[#1E88E5] bg-[#1E88E5]/5' : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setVisibility('private')}
-                  >
-                    <div className="mt-0.5 flex-shrink-0">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        visibility === 'private' 
-                          ? 'border-[#1E88E5] bg-white' 
-                          : 'border-gray-400 bg-white'
-                      }`}>
-                        {visibility === 'private' && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#1E88E5]"></div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Lock className="w-4 h-4" />
-                        <span className="font-medium">Riêng tư</span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Chỉ người bạn mời mới có thể xem và học
-                      </p>
-                    </div>
-                  </label>
-                  <label 
-                    className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      visibility === 'public' ? 'border-[#1E88E5] bg-[#1E88E5]/5' : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setVisibility('public')}
-                  >
-                    <div className="mt-0.5 flex-shrink-0">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        visibility === 'public' 
-                          ? 'border-[#1E88E5] bg-white' 
-                          : 'border-gray-400 bg-white'
-                      }`}>
-                        {visibility === 'public' && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#1E88E5]"></div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Globe className="w-4 h-4" />
-                        <span className="font-medium">Công khai</span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Sau khi admin duyệt, mọi người đều có thể xem
-                      </p>
-                    </div>
-                  </label>
+                <div>
+                  <Label htmlFor="description">Mô tả *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Mô tả ngắn gọn về khóa học..."
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="mt-2"
+                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div>
+                  <Label htmlFor="overview">Tổng quan khóa học</Label>
+                  <Textarea
+                    id="overview"
+                    placeholder={`Nhập nội dung theo định dạng Markdown. Ví dụ:\n\n## Bạn sẽ học được gì?\n- Nắm vững kiến thức cơ bản\n- Xây dựng dự án thực tế\n- Áp dụng vào công việc\n\n## Yêu cầu\n- Kiến thức lập trình cơ bản\n- Máy tính cá nhân\n- Tinh thần học hỏi`}
+                    rows={10}
+                    value={courseOverview}
+                    onChange={(e) => setCourseOverview(e.target.value)}
+                    className="mt-2 font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="image">Ảnh bìa</Label>
+                  <div className="mt-2">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer bg-gray-50/50 hover:bg-[#1E88E5]/5">
+                      <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">Kéo thả ảnh vào đây hoặc click để chọn</p>
+                      <p className="text-xs text-gray-500">PNG, JPG (tối đa 5MB)</p>
+                      <input type="file" id="image" accept="image/*" className="hidden" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <Label>Chủ đề khóa học (có thể chọn nhiều) *</Label>
+                  <div className="mt-2 space-y-2">
+                    {/* Selected Tags Display */}
+                    {selectedTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        {selectedTags.map(tag => (
+                          <Badge key={tag} className="bg-[#1E88E5] text-white gap-1 px-3 py-1">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTags(selectedTags.filter(t => t !== tag))}
+                              className="ml-1 hover:text-red-200"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Tag Selection Dropdown */}
+                    <Select
+                      value=""
+                      onValueChange={(value) => {
+                        if (value && !selectedTags.includes(value)) {
+                          setSelectedTags([...selectedTags, value]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Thêm chủ đề..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockTags.map(tag => (
+                          <SelectItem key={tag.id} value={tag.name}>
+                            {tag.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      Chọn các chủ đề phù hợp để học viên dễ tìm kiếm khóa học của bạn
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <Label>Chế độ hiển thị</Label>
+                  <div className="mt-3 space-y-3">
+                    <label
+                      className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${visibility === 'private' ? 'border-[#1E88E5] bg-[#1E88E5]/5' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      onClick={() => setVisibility('private')}
+                    >
+                      <div className="mt-0.5 flex-shrink-0">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${visibility === 'private'
+                          ? 'border-[#1E88E5] bg-white'
+                          : 'border-gray-400 bg-white'
+                          }`}>
+                          {visibility === 'private' && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#1E88E5]"></div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Lock className="w-4 h-4" />
+                          <span className="font-medium">Riêng tư</span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Chỉ người bạn mời mới có thể xem và học
+                        </p>
+                      </div>
+                    </label>
+                    <label
+                      className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${visibility === 'public' ? 'border-[#1E88E5] bg-[#1E88E5]/5' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      onClick={() => setVisibility('public')}
+                    >
+                      <div className="mt-0.5 flex-shrink-0">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${visibility === 'public'
+                          ? 'border-[#1E88E5] bg-white'
+                          : 'border-gray-400 bg-white'
+                          }`}>
+                          {visibility === 'public' && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#1E88E5]"></div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Globe className="w-4 h-4" />
+                          <span className="font-medium">Công khai</span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Sau khi admin duyệt, mọi người đều có thể xem
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </AnimatedSection>
 
           <AnimatedSection animation="fade-up" delay={200}>
             <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Nội dung khóa học</CardTitle>
-                <div className="flex gap-2">
-                  <Dialog open={showAddSection} onOpenChange={setShowAddSection}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Thêm mục
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Thêm mục mới</DialogTitle>
-                        <DialogDescription>Tạo một mục để nhóm các nội dung</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="section-title">Tên mục * (tối đa 100 ký tự)</Label>
-                          <Input
-                            id="section-title"
-                            placeholder="VD: Giới thiệu, Bài học nâng cao..."
-                            value={sectionTitle}
-                            onChange={(e) => setSectionTitle(e.target.value)}
-                            className="mt-2"
-                            maxLength={100}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">{sectionTitle.length}/100 ký tự</p>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAddSection(false)}>Hủy</Button>
-                        <Button className="bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleAddSection}>
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-bold text-[#1E88E5]">
+                    Nội dung khóa học
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Dialog open={showAddSection} onOpenChange={setShowAddSection}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white">
+                          <Plus className="w-4 h-4 mr-2" />
                           Thêm mục
                         </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  
-                  <Dialog open={showAddLesson} onOpenChange={(open) => {
-                    setShowAddLesson(open);
-                    if (!open) {
-                      setEditingLesson(null);
-                      setLessonTitle('');
-                      setYoutubeUrl('');
-                      setLessonContent('');
-                      setQuizQuestions([]);
-                    }
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" disabled={sections.length === 0}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Thêm mục nhỏ
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>{editingLesson ? 'Chỉnh sửa mục nhỏ' : 'Thêm mục nhỏ mới'}</DialogTitle>
-                        <DialogDescription>
-                          {editingLesson ? 'Cập nhật thông tin mục nhỏ' : 'Chọn loại nội dung và điền thông tin'}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Mục *</Label>
-                          <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(Number(val))}>
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Chọn mục" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {sections.map(section => (
-                                <SelectItem key={section.id} value={section.id.toString()}>
-                                  {section.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label>Loại nội dung</Label>
-                          <Select value={lessonType} onValueChange={(val: any) => setLessonType(val)}>
-                            <SelectTrigger className="mt-2">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="video">Video</SelectItem>
-                              <SelectItem value="text">Text</SelectItem>
-                              <SelectItem value="pdf">PDF</SelectItem>
-                              <SelectItem value="quiz">Quiz</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="lesson-title">Tiêu đề * (tối đa 150 ký tự)</Label>
-                          <Input
-                            id="lesson-title"
-                            placeholder="VD: Giới thiệu về React Hooks"
-                            value={lessonTitle}
-                            onChange={(e) => setLessonTitle(e.target.value)}
-                            className="mt-2"
-                            maxLength={150}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">{lessonTitle.length}/150 ký tự</p>
-                        </div>
-
-                        {lessonType === 'video' && (
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Thêm mục mới</DialogTitle>
+                          <DialogDescription>Tạo một mục để nhóm các nội dung</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
                           <div>
-                            <Label htmlFor="youtube-url">Link YouTube *</Label>
-                            <div className="flex gap-2 mt-2">
-                              <LinkIcon className="w-5 h-5 text-gray-400 mt-2" />
-                              <Input
-                                id="youtube-url"
-                                placeholder="https://www.youtube.com/watch?v=..."
-                                value={youtubeUrl}
-                                onChange={(e) => setYoutubeUrl(e.target.value)}
-                              />
-                            </div>
-                            <p className="text-sm text-gray-600 mt-2">
-                              💡 Có thể nhập link đầy đủ hoặc chỉ ID video
-                            </p>
-                          </div>
-                        )}
-                        
-                        {lessonType === 'text' && (
-                          <div>
-                            <Label htmlFor="lesson-content">Nội dung bài viết * (tối đa 10000 ký tự)</Label>
-                            <Textarea
-                              id="lesson-content"
-                              placeholder="Nhập nội dung bài học..."
-                              value={lessonContent}
-                              onChange={(e) => setLessonContent(e.target.value)}
-                              className="mt-2 font-mono text-sm"
-                              rows={10}
-                              maxLength={10000}
+                            <Label htmlFor="section-title">Tên mục * (tối đa 100 ký tự)</Label>
+                            <Input
+                              id="section-title"
+                              placeholder="VD: Giới thiệu, Bài học nâng cao..."
+                              value={sectionTitle}
+                              onChange={(e) => setSectionTitle(e.target.value)}
+                              className="mt-2"
+                              maxLength={100}
                             />
-                            <p className="text-xs text-gray-500 mt-1">{lessonContent.length}/10000 ký tự</p>
+                            <p className="text-xs text-gray-500 mt-1">{sectionTitle.length}/100 ký tự</p>
                           </div>
-                        )}
-
-                        {lessonType === 'pdf' && (
-                          <div>
-                            <Label htmlFor="pdf-file">Tải lên file PDF</Label>
-                            <div className="mt-2">
-                              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
-                                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                <p className="text-sm text-gray-600 mb-1">
-                                  Kéo thả file PDF vào đây hoặc click để chọn
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  Tối đa 50MB
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => {
-                          setShowAddLesson(false);
-                          setEditingLesson(null);
-                          setLessonTitle('');
-                          setYoutubeUrl('');
-                          setLessonContent('');
-                        }}>
-                          Hủy
-                        </Button>
-                        <Button className="bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleAddLesson}>
-                          {editingLesson ? 'Cập nhật' : 'Thêm mục nhỏ'}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {sections.length > 0 ? (
-                <div className="space-y-6">
-                  {sections.map((section) => (
-                    <div key={section.id} className="border-2 border-gray-200 rounded-lg overflow-hidden">
-                      {/* Section Header */}
-                      <div className="bg-gray-50 px-4 py-3 flex items-center justify-between group">
-                        <div 
-                          className="flex-1 cursor-pointer"
-                          onClick={() => handleEditSection(section)}
-                        >
-                          <h4 className="text-sm font-medium">{section.title}</h4>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">{section.lessons.length} mục nhỏ</Badge>
-                          <Button variant="ghost" size="icon" onClick={(e) => {
-                            e.stopPropagation();
-                            setSections(sections.filter(s => s.id !== section.id));
-                            toast.success('Đã xóa mục');
-                          }}>
-                            <Trash2 className="w-4 h-4" />
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setShowAddSection(false)}>Hủy</Button>
+                          <Button className="bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleAddSection}>
+                            Thêm mục
                           </Button>
-                        </div>
-                      </div>
-                      
-                      {/* Lessons in Section */}
-                      <div className="p-4 space-y-2">
-                        {section.lessons.length > 0 ? (
-                          section.lessons.map((lesson, lessonIndex) => (
-                            <div key={lesson.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg hover:border-[#1E88E5]/50 transition-colors group">
-                              <div className="w-8 h-8 rounded bg-[#1E88E5]/10 flex items-center justify-center flex-shrink-0 text-sm text-[#1E88E5]">
-                                {lessonIndex + 1}
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={showAddLesson} onOpenChange={(open) => {
+                      setShowAddLesson(open);
+                      if (!open) {
+                        setEditingLesson(null);
+                        setLessonTitle('');
+                        setYoutubeUrl('');
+                        setLessonContent('');
+                        setQuizQuestions([]);
+                      }
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" disabled={sections.length === 0} className="bg-[#1E88E5] text-white hover:bg-[#1565C0]">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Thêm mục nhỏ
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>{editingLesson ? 'Chỉnh sửa mục nhỏ' : 'Thêm mục nhỏ mới'}</DialogTitle>
+                          <DialogDescription>
+                            {editingLesson ? 'Cập nhật thông tin mục nhỏ' : 'Chọn loại nội dung và điền thông tin'}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Mục *</Label>
+                            <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(Number(val))}>
+                              <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Chọn mục" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sections.map(section => (
+                                  <SelectItem key={section.id} value={section.id.toString()}>
+                                    {section.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label>Loại nội dung</Label>
+                            <Select value={lessonType} onValueChange={(val: any) => setLessonType(val)}>
+                              <SelectTrigger className="mt-2">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="video">Video</SelectItem>
+                                <SelectItem value="text">Text</SelectItem>
+                                <SelectItem value="pdf">PDF</SelectItem>
+                                <SelectItem value="quiz">Quiz</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="lesson-title">Tiêu đề * (tối đa 150 ký tự)</Label>
+                            <Input
+                              id="lesson-title"
+                              placeholder="VD: Giới thiệu về React Hooks"
+                              value={lessonTitle}
+                              onChange={(e) => setLessonTitle(e.target.value)}
+                              className="mt-2"
+                              maxLength={150}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">{lessonTitle.length}/150 ký tự</p>
+                          </div>
+
+                          {lessonType === 'video' && (
+                            <div>
+                              <Label htmlFor="youtube-url">Link YouTube *</Label>
+                              <div className="flex gap-2 mt-2">
+                                <LinkIcon className="w-5 h-5 text-gray-400 mt-2" />
+                                <Input
+                                  id="youtube-url"
+                                  placeholder="https://www.youtube.com/watch?v=..."
+                                  value={youtubeUrl}
+                                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                                />
                               </div>
-                              <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#1E88E5]" />}
-                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-green-600" />}
-                                {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-red-600" />}
-                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
-                              </div>
-                              <div 
-                                className="flex-1 min-w-0 cursor-pointer"
-                                onClick={() => handleEditLesson(lesson, section.id)}
-                              >
-                                <div className="text-sm mb-1">{lesson.title}</div>
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                  <span>
-                                    {lesson.type === 'video' && '📹 Video'}
-                                    {lesson.type === 'text' && '📝 Bài viết'}
-                                    {lesson.type === 'pdf' && '📄 PDF'}
-                                    {lesson.type === 'quiz' && '✅ Quiz'}
-                                  </span>
-                                  <span>•</span>
-                                  <span>{lesson.duration}</span>
+                              <p className="text-sm text-gray-600 mt-2">
+                                💡 Có thể nhập link đầy đủ hoặc chỉ ID video
+                              </p>
+                            </div>
+                          )}
+
+                          {lessonType === 'text' && (
+                            <div>
+                              <Label htmlFor="lesson-content">Nội dung bài viết * (tối đa 10000 ký tự)</Label>
+                              <Textarea
+                                id="lesson-content"
+                                placeholder="Nhập nội dung bài học..."
+                                value={lessonContent}
+                                onChange={(e) => setLessonContent(e.target.value)}
+                                className="mt-2 font-mono text-sm"
+                                rows={10}
+                                maxLength={10000}
+                              />
+                              <p className="text-xs text-gray-500 mt-1">{lessonContent.length}/10000 ký tự</p>
+                            </div>
+                          )}
+
+                          {lessonType === 'pdf' && (
+                            <div>
+                              <Label htmlFor="pdf-file">Tải lên file PDF</Label>
+                              <div className="mt-2">
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
+                                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                  <p className="text-sm text-gray-600 mb-1">
+                                    Kéo thả file PDF vào đây hoặc click để chọn
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Tối đa 50MB
+                                  </p>
                                 </div>
                               </div>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="flex-shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSections(sections.map(s =>
-                                    s.id === section.id
-                                      ? { ...s, lessons: s.lessons.filter(l => l.id !== lesson.id) }
-                                      : s
-                                  ));
-                                  toast.success('Đã xóa bài học');
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
                             </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-6 text-gray-500 text-sm">
-                            Chưa có mục nhỏ nào trong mục này
+                          )}
+
+
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => {
+                            setShowAddLesson(false);
+                            setEditingLesson(null);
+                            setLessonTitle('');
+                            setYoutubeUrl('');
+                            setLessonContent('');
+                          }}>
+                            Hủy
+                          </Button>
+                          <Button className="bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleAddLesson}>
+                            {editingLesson ? 'Cập nhật' : 'Thêm mục nhỏ'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {sections.length > 0 ? (
+                  <div className="space-y-6">
+                    {sections.map((section) => (
+                      <div key={section.id} className="border-2 border-gray-200 rounded-lg overflow-hidden">
+                        {/* Section Header */}
+                        <div className="bg-gray-50 px-4 py-3 flex items-center justify-between group">
+                          <div
+                            className="flex-1 cursor-pointer"
+                            onClick={() => handleEditSection(section)}
+                          >
+                            <h4 className="text-sm font-medium">{section.title}</h4>
                           </div>
-                        )}
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{section.lessons.length} mục nhỏ</Badge>
+                            <Button variant="ghost" size="icon" onClick={(e) => {
+                              e.stopPropagation();
+                              setSections(sections.filter(s => s.id !== section.id));
+                              toast.success('Đã xóa mục');
+                            }}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Lessons in Section */}
+                        <div className="p-4 space-y-2">
+                          {section.lessons.length > 0 ? (
+                            section.lessons.map((lesson, lessonIndex) => (
+                              <div key={lesson.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg hover:border-[#1E88E5]/50 transition-colors group">
+                                <div className="w-8 h-8 rounded bg-[#1E88E5]/10 flex items-center justify-center flex-shrink-0 text-sm text-[#1E88E5]">
+                                  {lessonIndex + 1}
+                                </div>
+                                <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                  {lesson.type === 'video' && <Video className="w-5 h-5 text-[#1E88E5]" />}
+                                  {lesson.type === 'text' && <FileText className="w-5 h-5 text-green-600" />}
+                                  {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-red-600" />}
+                                  {lesson.type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
+                                </div>
+                                <div
+                                  className="flex-1 min-w-0 cursor-pointer"
+                                  onClick={() => handleEditLesson(lesson, section.id)}
+                                >
+                                  <div className="text-sm mb-1">{lesson.title}</div>
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <span>
+                                      {lesson.type === 'video' && '📹 Video'}
+                                      {lesson.type === 'text' && '📝 Bài viết'}
+                                      {lesson.type === 'pdf' && '📄 PDF'}
+                                      {lesson.type === 'quiz' && '✅ Quiz'}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{lesson.duration}</span>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSections(sections.map(s =>
+                                      s.id === section.id
+                                        ? { ...s, lessons: s.lessons.filter(l => l.id !== lesson.id) }
+                                        : s
+                                    ));
+                                    toast.success('Đã xóa bài học');
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-6 text-gray-500 text-sm">
+                              Chưa có mục nhỏ nào trong mục này
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 rounded-full bg-[#1E88E5]/10 flex items-center justify-center mx-auto mb-4">
+                      <BookOpen className="w-10 h-10 text-[#1E88E5]" />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                  <h4 className="mb-2">Chưa có mục nào</h4>
-                  <p className="text-gray-600 mb-6 text-sm">
-                    Hãy tạo mục đầu tiên để bắt đầu xây dựng khóa học
-                  </p>
-                  <Button variant="outline" onClick={() => setShowAddSection(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tạo mục đầu tiên
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <h4 className="font-semibold text-gray-900 mb-2">Chưa có mục nào</h4>
+                    <p className="text-gray-500 mb-6 text-sm max-w-xs mx-auto">
+                      Hãy tạo mục đầu tiên để bắt đầu xây dựng khóa học
+                    </p>
+                    <button
+                      onClick={() => setShowAddSection(true)}
+                      className="inline-flex items-center justify-center gap-2 h-9 px-4 py-2 rounded-md text-sm font-medium border-2 border-[#1E88E5] text-[#1E88E5] bg-white hover:bg-[#1E88E5] hover:text-white transition-all duration-200"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Tạo mục đầu tiên
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </AnimatedSection>
         </div>
 
@@ -741,7 +748,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
               Nhập câu hỏi theo format đặc biệt
             </DialogDescription>
           </DialogHeader>
-          <QuizEditor 
+          <QuizEditor
             onSave={handleSaveQuiz}
             initialQuestions={quizQuestions}
             initialSettings={quizSettings}

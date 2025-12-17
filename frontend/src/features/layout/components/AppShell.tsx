@@ -132,7 +132,7 @@ export function AppShell({ state, actions }: AppShellProps) {
   }, [isNotificationsHovered, setShowNotifications]);
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       <Toaster />
 
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
@@ -156,16 +156,25 @@ export function AppShell({ state, actions }: AppShellProps) {
 
               <nav className="hidden lg:flex items-center gap-3 ml-8">
                 {currentRole !== 'admin' && (
-                  <Button onClick={() => navigateTo('explore')} className="bg-[#1E88E5] hover:bg-[#1565C0] shadow-blue-200 shadow-lg">
+                  <Button
+                    onClick={() => navigateTo('explore')}
+                    className="bg-[#1E88E5] text-white hover:bg-[#1565C0] hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-300/50 transition-all duration-200"
+                  >
                     <Search className="w-4 h-4 mr-2" /> Khám phá
                   </Button>
                 )}
                 {currentRole === 'admin' && (
-                  <Button onClick={() => navigateTo('admin-dashboard')} className="bg-[#1E88E5] hover:bg-[#1565C0] shadow-blue-200 shadow-lg">
+                  <Button
+                    onClick={() => navigateTo('admin-dashboard')}
+                    className="bg-[#1E88E5] text-white hover:bg-[#1565C0] hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-300/50 transition-all duration-200"
+                  >
                     <BarChart3 className="w-4 h-4 mr-2" /> Dashboard
                   </Button>
                 )}
-                <Button onClick={() => navigateTo('create-course')} className="bg-[#1E88E5] hover:bg-[#1565C0] shadow-blue-200 shadow-lg">
+                <Button
+                  onClick={() => navigateTo('create-course')}
+                  className="bg-[#1E88E5] text-white hover:bg-[#1565C0] hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-300/50 transition-all duration-200"
+                >
                   <Plus className="w-4 h-4 mr-2" /> Tạo khóa học
                 </Button>
               </nav>
@@ -215,7 +224,7 @@ export function AppShell({ state, actions }: AppShellProps) {
               <div className="relative" onMouseEnter={() => setIsAvatarHovered(true)} onMouseLeave={() => setIsAvatarHovered(false)}>
                 <Popover open={showAvatarMenu} onOpenChange={(open) => !open && setIsAvatarPinned(false)}>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center gap-3 px-2 py-2 hover:bg-[#1E88E5]/5 rounded-lg transition-all group" onClick={() => setIsAvatarPinned(!isAvatarPinned)}>
+                    <button className="flex items-center gap-3 px-2 py-2 hover:bg-[#1E88E5]/5 rounded-lg transition-all group outline-none focus:outline-none" onClick={() => setIsAvatarPinned(!isAvatarPinned)}>
                       <div className="relative">
                         <Avatar className="w-10 h-10 ring-2 ring-[#1E88E5]/30 transition-all group-hover:ring-[#1E88E5] group-hover:ring-4 group-hover:scale-110">
                           <AvatarImage src={currentUser?.avatar} alt={currentUser?.name} className="object-cover" />
@@ -232,10 +241,10 @@ export function AppShell({ state, actions }: AppShellProps) {
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-2" align="end">
                     <div className="space-y-1">
-                      <button onClick={() => navigateTo('my-courses')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md"><BookOpen className="w-4 h-4" /> Khóa học của tôi</button>
-                      <button onClick={() => navigateTo('account-settings')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md"><User className="w-4 h-4" /> Tài khoản</button>
+                      <button onClick={() => navigateTo('my-courses')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md outline-none focus:outline-none"><BookOpen className="w-4 h-4" /> Khóa học của tôi</button>
+                      <button onClick={() => navigateTo('account-settings')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md outline-none focus:outline-none"><User className="w-4 h-4" /> Tài khoản</button>
                       <Separator className="my-1" />
-                      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"><LogOut className="w-4 h-4" /> Đăng xuất</button>
+                      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md outline-none focus:outline-none"><LogOut className="w-4 h-4" /> Đăng xuất</button>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -245,7 +254,97 @@ export function AppShell({ state, actions }: AppShellProps) {
         </div>
       </header>
 
-      <main className="page-transition">
+      {/* Mobile Sidebar */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={() => setSidebarOpen(false)}
+          />
+
+          {/* Sidebar Panel */}
+          <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-8 h-8 text-[#1E88E5]" />
+                <span className="text-xl font-bold text-[#1E88E5]">Menu</span>
+              </div>
+              <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <nav className="p-4 space-y-2">
+              <button
+                onClick={() => { navigateTo('home'); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+              >
+                <GraduationCap className="w-5 h-5 text-[#1E88E5]" />
+                <span>Trang chủ</span>
+              </button>
+
+              {currentRole !== 'admin' && (
+                <button
+                  onClick={() => { navigateTo('explore'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <Search className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Khám phá</span>
+                </button>
+              )}
+
+              {currentRole === 'admin' && (
+                <button
+                  onClick={() => { navigateTo('admin-dashboard'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <BarChart3 className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Dashboard</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+              >
+                <BookOpen className="w-5 h-5 text-[#1E88E5]" />
+                <span>Khóa học của tôi</span>
+              </button>
+
+              <button
+                onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+              >
+                <Plus className="w-5 h-5 text-[#1E88E5]" />
+                <span>Tạo khóa học</span>
+              </button>
+
+              <Separator className="my-4" />
+
+              <button
+                onClick={() => { navigateTo('account-settings'); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <User className="w-5 h-5 text-gray-600" />
+                <span>Cài đặt tài khoản</span>
+              </button>
+
+              <button
+                onClick={() => { handleLogout(); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Đăng xuất</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      <main className="page-transition flex-1">
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} setSelectedTag={setSelectedTag} currentUser={currentUser} />}
         {currentPage === 'my-courses' && <MyCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser!} />}
         {currentPage === 'explore' && <ExplorePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} />}
@@ -255,15 +354,15 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
         {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
         {currentPage === 'account-settings' && currentUser && (
-  <AccountSettingsPage 
-    user={currentUser} 
-    navigateTo={navigateTo} 
-    onUpdateUser={actions.handleUpdateUser} // THÊM DÒNG NÀY VÀO
-  />
-)}
+          <AccountSettingsPage
+            user={currentUser}
+            navigateTo={navigateTo}
+            onUpdateUser={actions.handleUpdateUser} // THÊM DÒNG NÀY VÀO
+          />
+        )}
       </main>
 
-      <footer className="relative overflow-hidden mt-16 bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
+      <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
         <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
           <div className="flex items-center justify-center gap-4 group">
             <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
@@ -276,8 +375,8 @@ export function AppShell({ state, actions }: AppShellProps) {
         </div>
         {/* Particles */}
         {particles.map((p) => (
-          <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse" 
-               style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
+          <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
+            style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
         ))}
       </footer>
     </div>
