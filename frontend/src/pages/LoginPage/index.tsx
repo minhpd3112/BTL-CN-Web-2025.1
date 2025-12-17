@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/services/api';
 // Đã xóa Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
 import { toast, Toaster } from 'sonner';
 import { mockUsers } from '@/services/mocks';
@@ -18,11 +19,7 @@ import { createClient } from '@supabase/supabase-js';
 import { authAPI } from '@/services/api'; // Giả sử api.ts nằm ở đường dẫn này
 
 
-// Khởi tạo Supabase client (dùng Vite env hoặc hardcode tạm)
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+
 
 interface LoginPageProps {
   onLogin: (user: User, googlePicture?: string) => void;
@@ -35,26 +32,54 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-const handleEmailLogin = async () => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+const handleEmailLogin = async (e: React.FormEvent) => {
+  e.preventDefault(); // Rất quan trọng để tránh load lại trang
+  setIsLoading(true);
 
-  if (data?.user) {
-    // TẠO OBJECT USER MỚI VỚI ID THẬT (UUID)
-    const realUser = {
-      id: data.user.id, // Đây sẽ là chuỗi UUID, không phải số 195926252
-      email: data.user.email,
-      name: data.user.user_metadata.full_name || 'Người dùng mới',
-      role: 'user',
-      // ... các trường khác
-    };
+  try {
+    if (isSignUp) {
+      // Nếu đang ở trạng thái Đăng ký
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: 'Người dùng mới' }
+        }
+      });
 
-    // QUAN TRỌNG: Cập nhật lại LocalStorage và State
-    localStorage.setItem('user_data', JSON.stringify(realUser));
-    onLogin(realUser); // Hàm này gọi đến setCurrentUser trong App của bạn
-    toast.success("Đăng nhập thành công!");
+      if (error) throw error;
+      
+      if (data.user) {
+        toast.success("Đăng ký thành công! Giờ bạn có thể đăng nhập.");
+        setIsSignUp(false); // Chuyển giao diện về Đăng nhập
+      }
+    } else {
+      // Nếu đang ở trạng thái Đăng nhập
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data?.user) {
+        const realUser = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata.full_name || 'Người dùng mới',
+          avatar: data.user.user_metadata.avatar_url || '',
+          role: 'user',
+        };
+        localStorage.setItem('user_data', JSON.stringify(realUser));
+        onLogin(realUser);
+        toast.success("Đăng nhập thành công!");
+      }
+    }
+  } catch (error: any) {
+    // Xử lý lỗi từ Supabase (ví dụ: sai mật khẩu, email đã tồn tại...)
+    toast.error(error.message || "Đã có lỗi xảy ra");
+  } finally {
+    setIsLoading(false);
   }
 };
  
