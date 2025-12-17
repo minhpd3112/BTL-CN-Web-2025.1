@@ -42,6 +42,7 @@ interface AppShellProps {
   actions: {
     navigateTo: (page: any, course?: any) => void;
     handleLogout: () => void;
+    handleUpdateUser: (user: any) => void;
     setSelectedCourse: (course: any) => void;
     setSelectedUser: (user: any) => void;
     setSelectedTag: (tag: any) => void;
@@ -253,8 +254,13 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
         {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
-        {currentPage === 'account-settings' && currentUser && <AccountSettingsPage user={currentUser} navigateTo={navigateTo} />}
-        {/* ... Thêm các trang khác tương tự ... */}
+        {currentPage === 'account-settings' && currentUser && (
+  <AccountSettingsPage 
+    user={currentUser} 
+    navigateTo={navigateTo} 
+    onUpdateUser={actions.handleUpdateUser} // THÊM DÒNG NÀY VÀO
+  />
+)}
       </main>
 
       <footer className="relative overflow-hidden mt-16 bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">

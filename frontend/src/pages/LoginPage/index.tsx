@@ -35,61 +35,29 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // Trong LoginPage.tsx, thay thế hàm handleEmailLogin
-const handleEmailLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!email || !password) {
-    toast.error('Vui lòng nhập đầy đủ email và mật khẩu');
-    return;
-  }
+const handleEmailLogin = async () => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-  setIsLoading(true);
+  if (data?.user) {
+    // TẠO OBJECT USER MỚI VỚI ID THẬT (UUID)
+    const realUser = {
+      id: data.user.id, // Đây sẽ là chuỗi UUID, không phải số 195926252
+      email: data.user.email,
+      name: data.user.user_metadata.full_name || 'Người dùng mới',
+      role: 'user',
+      // ... các trường khác
+    };
 
-  try {
-    if (isSignUp) {
-      // Logic cho Đăng ký (giữ nguyên của bạn)
-      const fullName = email.split('@')[0];
-      const response = await authAPI.signup({ email, password, full_name: fullName });
-      if (response.success) {
-        toast.success('Đăng ký thành công! Vui lòng kiểm tra email.');
-        setIsSignUp(false);
-      } else {
-        throw new Error(response.message);
-      }
-    } else {
-      // LOGIC ĐĂNG NHẬP CÓ XỬ LÝ LỖI MẬT KHẨU
-      const response = await authAPI.login({ email, password });
-
-      if (response.success) {
-        const storedUser = authAPI.getStoredUser(); 
-        if (storedUser) {
-           onLogin(storedUser as User);
-           toast.success(`Chào mừng trở lại, ${storedUser.name || 'Học viên'}!`);
-        }
-      } else {
-        // Đây là nơi xử lý lỗi trả về từ server (ví dụ: "Invalid login credentials")
-        throw new Error(response.message);
-      }
-    }
-
-  } catch (error: any) {
-    console.error('Login Error:', error);
-
-    // Lấy message từ object error (vì cấu trúc của bạn là error.message)
-    const serverMessage = error?.message || error?.data?.message;
-
-    if (serverMessage === "Invalid login credentials") {
-      toast.error("Email hoặc mật khẩu không chính xác. Vui lòng thử lại!");
-    } else if (serverMessage) {
-      toast.error(serverMessage);
-    } else {
-      toast.error("Đã xảy ra lỗi kết nối. Vui lòng thử lại sau.");
-    }
-
-  } finally {
-    setIsLoading(false);
+    // QUAN TRỌNG: Cập nhật lại LocalStorage và State
+    localStorage.setItem('user_data', JSON.stringify(realUser));
+    onLogin(realUser); // Hàm này gọi đến setCurrentUser trong App của bạn
+    toast.success("Đăng nhập thành công!");
   }
 };
+ 
 
 
   const handleQuickLogin = (user: User) => {
