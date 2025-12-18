@@ -226,13 +226,36 @@ export function AppShell({ state, actions }: AppShellProps) {
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-3 px-2 py-2 hover:bg-[#1E88E5]/5 rounded-lg transition-all group outline-none focus:outline-none" onClick={() => setIsAvatarPinned(!isAvatarPinned)}>
                       <div className="relative">
-                        <Avatar className="w-10 h-10 ring-2 ring-[#1E88E5]/30 transition-all group-hover:ring-[#1E88E5] group-hover:ring-4 group-hover:scale-110">
+                        {/* Christmas Wreath with Leaves */}
+                        {/* Leaf petals around avatar - 8 leaves */}
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[12px] z-5 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
+                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[12px] z-5 rotate-180 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
+                        <span className="absolute top-1/2 -left-2 -translate-y-1/2 text-[12px] z-5 -rotate-90 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
+                        <span className="absolute top-1/2 -right-2 -translate-y-1/2 text-[12px] z-5 rotate-90 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
+                        {/* Diagonal leaves */}
+                        <span className="absolute -top-1 -left-1 text-[10px] z-5 -rotate-45 animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.2s' }}>🌿</span>
+                        <span className="absolute -top-1 -right-1 text-[10px] z-5 rotate-45 animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.4s' }}>🌿</span>
+                        <span className="absolute -bottom-1 -left-1 text-[10px] z-5 rotate-[225deg] animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.6s' }}>🌿</span>
+                        <span className="absolute -bottom-1 -right-1 text-[10px] z-5 rotate-[135deg] animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.8s' }}>🌿</span>
+
+                        {/* Berries scattered on wreath */}
+                        <span className="absolute -top-0.5 left-1/4 text-[6px] text-red-500 z-20">●</span>
+                        <span className="absolute -top-0.5 right-1/4 text-[6px] text-red-500 z-20">●</span>
+                        <span className="absolute top-1/4 -left-0.5 text-[6px] text-red-500 z-20">●</span>
+                        <span className="absolute top-1/4 -right-0.5 text-[6px] text-red-500 z-20">●</span>
+                        <span className="absolute bottom-1/4 -left-0.5 text-[6px] text-red-500 z-20">●</span>
+                        <span className="absolute bottom-1/4 -right-0.5 text-[6px] text-red-500 z-20">●</span>
+
+                        {/* Bow at bottom */}
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-[14px] z-30">🎀</span>
+
+                        <Avatar className="w-10 h-10 ring-2 ring-green-600/60 transition-all group-hover:ring-green-500 group-hover:ring-4 group-hover:scale-110 relative z-10">
                           <AvatarImage src={currentUser?.avatar} alt={currentUser?.name} className="object-cover" />
                           <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
                             {currentUser?.name?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="absolute -inset-2 bg-[#1E88E5]/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
+                        <div className="absolute -inset-3 bg-green-500/15 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
                       </div>
                       <span className="hidden md:inline-block font-semibold bg-gradient-to-r from-[#1E88E5] to-[#0D47A1] bg-clip-text text-transparent">
                         {currentUser?.name}

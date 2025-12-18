@@ -1,0 +1,117 @@
+.christmas-loading {
+    display: flex;
+    align-items: flex-start;
+    /* Align top để dễ đẩy xuống bằng padding */
+    justify-content: center;
+    padding-top: 30vh;
+    /* Đẩy xuống 30% chiều cao màn hình -> Kết hợp với animation size sẽ ra giữa */
+    /* White background to hide content but show navigation */
+    background: white;
+    /* backdrop-filter removed as background is opaque white */
+    animation: none;
+    /* Removed heavy gradient shift */
+    transition: opacity 0.3s ease;
+    z-index: 39;
+    /* Just below Navbar (z-40) */
+    overflow: hidden;
+}
+
+.christmas-loading.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.christmas-loading.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+}
+
+.sleigh-animation {
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+/* Text and Dots styles removed as requested */
+
+.snowflakes-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.snowflake-loading {
+    position: absolute;
+    top: -20px;
+    color: rgba(30, 136, 229, 0.4);
+    /* Light blue snowflakes */
+    animation: snowfall 5s linear infinite;
+    text-shadow: none;
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(-20px) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sleigh-animation>div {
+        /* Target the Lottie container directly if needed, or rely on max-width in inline style */
+        width: 100% !important;
+        max-width: 350px !important;
+    }
+
+    .loading-message {
+        font-size: 1.5rem !important;
+    }
+}

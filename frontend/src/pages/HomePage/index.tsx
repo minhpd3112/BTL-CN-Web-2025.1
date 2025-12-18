@@ -8,6 +8,7 @@ import { AnimatedSection } from '@/utils/animations';
 import { StatsCounter } from '@/components/shared/StatsCounter';
 import { Snowfall } from '@/components/christmas/Snowfall';
 import { ChristmasCardWrapper } from '@/components/christmas/ChristmasCardWrapper';
+import { ChristmasHeroSection } from '@/components/christmas/ChristmasHeroSection';
 import './styles.css';
 
 interface HomePageProps {
@@ -81,70 +82,9 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
       </div>
 
-      {/* Statistics Section */}
-      <div className="relative -mt-12 z-10 overflow-hidden">
-        {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1]">
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          </div>
-        </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <AnimatedSection animation="fade-up">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-white text-center">
-              {/* Người dùng */}
-              <div className="flex flex-col items-center gap-3 group">
-                <div className="relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-white/30 to-white/10 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 border border-white/20">
-                    <Users className="w-8 h-8 transition-transform duration-300 group-hover:scale-110" />
-                  </div>
-                  <div className="absolute -inset-2 bg-white/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div>
-                  <div className="home-stats-counter mb-1">
-                    <StatsCounter end={10000} suffix="+" />
-                  </div>
-                  <p className="text-white/90 font-medium">Người dùng</p>
-                </div>
-              </div>
-
-              {/* Khóa học */}
-              <div className="flex flex-col items-center gap-3 group">
-                <div className="relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-white/30 to-white/10 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 border border-white/20">
-                    <BookOpen className="w-8 h-8 transition-transform duration-300 group-hover:scale-110" />
-                  </div>
-                  <div className="absolute -inset-2 bg-white/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div>
-                  <div className="home-stats-counter mb-1">
-                    <StatsCounter end={500} suffix="+" />
-                  </div>
-                  <p className="text-white/90 font-medium">Khóa học</p>
-                </div>
-              </div>
-
-              {/* Chủ đề */}
-              <div className="flex flex-col items-center gap-3 group col-span-2 md:col-span-1">
-                <div className="relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-white/30 to-white/10 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 border border-white/20">
-                    <Tag className="w-8 h-8 transition-transform duration-300 group-hover:scale-110" />
-                  </div>
-                  <div className="absolute -inset-2 bg-white/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div>
-                  <div className="home-stats-counter mb-1">
-                    <StatsCounter end={100} suffix="+" />
-                  </div>
-                  <p className="text-white/90 font-medium">Chủ đề</p>
-                </div>
-              </div>
-            </div>
-          </AnimatedSection>
-        </div>
-      </div>
+      {/* Christmas Countdown Section */}
+      <ChristmasHeroSection />
 
       {/* Featured Courses */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
