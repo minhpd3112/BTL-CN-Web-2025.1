@@ -25,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { mockUsers } from '@/services/mocks';
 
 // Mock lessons for curriculum display
 const mockLessons = [
@@ -116,6 +117,7 @@ interface CourseDetailPageProps {
   canAccess: boolean;
   enrollmentRequests?: any[];
   onEnrollRequest?: (request: any) => void;
+  setSelectedUser?: (user: User) => void;
 }
 
 export function CourseDetailPage({
@@ -125,13 +127,14 @@ export function CourseDetailPage({
   isOwner,
   canAccess,
   enrollmentRequests,
-  onEnrollRequest
+  onEnrollRequest,
+  setSelectedUser
 }: CourseDetailPageProps) {
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState('');
   const [expandedSections, setExpandedSections] = useState<number[]>([1]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
-  const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'content-preview' | 'reviews'>('overview');
+  const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
 
   // Check if user has pending request
   const hasPendingRequest = enrollmentRequests?.some(
@@ -164,6 +167,16 @@ export function CourseDetailPage({
     toast.success('Đã gửi yêu cầu đăng ký! Giảng viên sẽ xem xét và phản hồi sớm.');
     setShowEnrollDialog(false);
     setEnrollMessage('');
+  };
+
+  const handleOwnerClick = () => {
+    if (setSelectedUser) {
+      const owner = mockUsers.find(u => u.id === course.ownerId);
+      if (owner) {
+        setSelectedUser(owner);
+        navigateTo('user-detail');
+      }
+    }
   };
 
   const toggleSection = (sectionId: number) => {
@@ -204,19 +217,6 @@ export function CourseDetailPage({
       <div className="bg-[#1E88E5] -mt-6 pt-8 pb-12 mb-8 text-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6">
-            {/* Top Navigation */}
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigateTo('home')}
-                className="text-white hover:bg-white/20"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-
-
-            </div>
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -255,12 +255,15 @@ export function CourseDetailPage({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={handleOwnerClick}
+                  >
                     <Avatar className="w-8 h-8 border-2 border-white/20">
                       <AvatarImage src={course.ownerAvatar} />
                       <AvatarFallback className="bg-white text-[#1E88E5] font-bold">{course.ownerName?.[0]}</AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{course.ownerName}</span>
+                    <span className="font-medium hover:underline decoration-1 underline-offset-2">{course.ownerName}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -291,13 +294,21 @@ export function CourseDetailPage({
                     />
                   </div>
                   <CardContent className="p-4">
-                    {canManage ? (
+                    {isOwner ? (
                       <Button
                         className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
                         onClick={() => navigateTo('course-dashboard')}
                       >
                         <BarChart3 className="w-4 h-4 mr-2" />
                         Tổng quan khóa học
+                      </Button>
+                    ) : currentUser?.role === 'admin' ? (
+                      <Button
+                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
+                        onClick={() => navigateTo('learning')}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Xem nội dung
                       </Button>
                     ) : isEnrolled ? (
                       <Button
@@ -390,14 +401,14 @@ export function CourseDetailPage({
 
       {/* Course Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
-        <Tabs defaultValue="overview" onValueChange={(v) => setActiveDetailTab(v as 'overview' | 'content-preview' | 'reviews')}>
+        <Tabs defaultValue="overview" onValueChange={(v) => setActiveDetailTab(v as 'overview' | 'reviews')}>
           <TabsList className="mb-6 bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
             {/* Sliding indicator */}
             <div
               className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
               style={{
-                left: activeDetailTab === 'overview' ? '0%' : activeDetailTab === 'content-preview' ? '33.33%' : currentUser?.role === 'admin' ? '66.66%' : '50%',
-                width: currentUser?.role === 'admin' ? '33.33%' : '50%',
+                left: activeDetailTab === 'overview' ? '0%' : '50%',
+                width: '50%',
               }}
             />
             <TabsTrigger
@@ -407,15 +418,7 @@ export function CourseDetailPage({
             >
               Tổng quan
             </TabsTrigger>
-            {currentUser?.role === 'admin' && (
-              <TabsTrigger
-                value="content-preview"
-                className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-                style={{ color: activeDetailTab === 'content-preview' ? '#FFFFFF' : '#1E88E5' }}
-              >
-                Xem khóa học
-              </TabsTrigger>
-            )}
+
             <TabsTrigger
               value="reviews"
               className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"

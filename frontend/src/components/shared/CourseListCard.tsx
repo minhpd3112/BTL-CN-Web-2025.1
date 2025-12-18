@@ -64,17 +64,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
 
                                 {/* Top Right Actions - Moved View Details Here */}
                                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                    {!showProgress && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-gray-400 hover:text-[#1E88E5] hover:bg-[#1E88E5]/10"
-                                            onClick={onClick}
-                                            title="Xem chi tiết"
-                                        >
-                                            <ArrowUpRight className="w-5 h-5" />
-                                        </Button>
-                                    )}
+
                                     {action}
                                 </div>
                             </div>

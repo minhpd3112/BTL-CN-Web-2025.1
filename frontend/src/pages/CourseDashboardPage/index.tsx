@@ -39,7 +39,7 @@ export function CourseDashboardPage({
   onRejectRequest,
   currentUser
 }: CourseDashboardPageProps) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(currentUser.role === 'admin' ? 'content' : 'overview');
 
   if (!course) {
     return (
@@ -112,18 +112,22 @@ export function CourseDashboardPage({
           <div
             className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
             style={{
-              left: activeTab === 'overview' ? '0%' : activeTab === 'content' ? '33.33%' : '66.66%',
-              width: '33.33%',
+              left: currentUser.role === 'admin'
+                ? (activeTab === 'content' ? '0%' : '50%')
+                : (activeTab === 'overview' ? '0%' : activeTab === 'content' ? '33.33%' : '66.66%'),
+              width: currentUser.role === 'admin' ? '50%' : '33.33%',
             }}
           />
-          <TabsTrigger
-            value="overview"
-            className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
-            style={{ color: activeTab === 'overview' ? '#FFFFFF' : '#1E88E5' }}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Tổng quan
-          </TabsTrigger>
+          {currentUser.role !== 'admin' && (
+            <TabsTrigger
+              value="overview"
+              className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+              style={{ color: activeTab === 'overview' ? '#FFFFFF' : '#1E88E5' }}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Tổng quan
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="content"
             className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
@@ -142,12 +146,14 @@ export function CourseDashboardPage({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
-          <OverviewTab
-            course={course}
-            enrollmentRequests={enrollmentRequests}
-          />
-        </TabsContent>
+        {currentUser.role !== 'admin' && (
+          <TabsContent value="overview" className="mt-6">
+            <OverviewTab
+              course={course}
+              enrollmentRequests={enrollmentRequests}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="content" className="mt-6">
           <EditCourseTab

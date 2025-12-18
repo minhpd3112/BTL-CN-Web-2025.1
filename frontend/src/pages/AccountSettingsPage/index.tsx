@@ -11,18 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { User, Page } from '@/types';
 import { createClient } from '@supabase/supabase-js';
@@ -44,6 +33,7 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(user.avatar || '');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Xử lý Chọn Ảnh (Chỉ Preview, CHƯA upload)
@@ -306,29 +296,45 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogTrigger asChild>
                   <button className="w-full inline-flex items-center justify-center gap-2 h-9 px-4 py-2 rounded-md text-sm font-medium text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200">
                     <Trash2 className="w-4 h-4" />
                     Xóa tài khoản
                   </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-white z-[9999] border-2">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Bạn có chắc chắn không?</AlertDialogTitle>
-                    <AlertDialogDescription>Hành động này không thể hoàn tác. Tài khoản sẽ bị xóa vĩnh viễn.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Hủy</AlertDialogCancel>
-                    <AlertDialogAction
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Xác nhận xóa tài khoản</DialogTitle>
+                  </DialogHeader>
+
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={user.avatar} className="object-cover" />
+                      <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
+                        {user.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                      Hủy
+                    </Button>
+                    <Button
+                      className="bg-red-500 text-white hover:!bg-red-600"
                       onClick={handleDeleteAccount}
-                      className="bg-red-600 text-white hover:bg-red-700"
                     >
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Xác nhận xóa
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
 

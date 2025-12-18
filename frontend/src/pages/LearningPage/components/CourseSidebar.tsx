@@ -45,8 +45,19 @@ export function CourseSidebar({
 
     return (
         <div className={cn("flex flex-col h-full bg-white border-l border-gray-200", className)}>
-            <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
-                <h3 className="font-bold text-gray-800">Nội dung khóa học</h3>
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-[#1E88E5]/5 to-transparent sticky top-0 z-10">
+                <h3
+                    style={{
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                    }}
+                >
+                    Nội dung khóa học
+                </h3>
             </div>
 
             <ScrollArea className="flex-1">

@@ -117,7 +117,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
             </div>
 
             {/* Tag Filter */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <Combobox
                 items={allTags.map(tag => ({ value: tag, label: tag === 'all' ? 'Tất cả chủ đề' : tag }))}
                 value={selectedTag}
@@ -130,8 +130,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
             </div>
 
             {/* Sort Dropdown */}
-            <div className="md:col-span-3 flex items-center gap-3">
-              <span className="text-sm text-gray-600 whitespace-nowrap">Sắp xếp:</span>
+            <div className="md:col-span-2">
               <Select value={sortBy} onValueChange={handleSortChange}>
                 <SelectTrigger className="w-full transition-all duration-300 hover:border-[#1E88E5]/50">
                   <SelectValue />

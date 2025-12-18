@@ -10,6 +10,9 @@ import { mockCourses, mockEnrollments } from '@/services/mocks';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { CourseListCard } from '@/components/shared/CourseListCard';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 6;
 
 interface MyCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -37,6 +40,20 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
 
   // Active tab state for animations
   const [activeTab, setActiveTab] = useState<'created' | 'enrolled'>('created');
+
+  // Pagination states
+  const [createdPage, setCreatedPage] = useState(1);
+  const [enrolledPage, setEnrolledPage] = useState(1);
+
+  // Pagination logic for created courses
+  const createdTotalPages = Math.ceil(myCreatedCourses.length / ITEMS_PER_PAGE);
+  const createdStartIndex = (createdPage - 1) * ITEMS_PER_PAGE;
+  const paginatedCreatedCourses = myCreatedCourses.slice(createdStartIndex, createdStartIndex + ITEMS_PER_PAGE);
+
+  // Pagination logic for enrolled courses
+  const enrolledTotalPages = Math.ceil(enrolledCourses.length / ITEMS_PER_PAGE);
+  const enrolledStartIndex = (enrolledPage - 1) * ITEMS_PER_PAGE;
+  const paginatedEnrolledCourses = enrolledCourses.slice(enrolledStartIndex, enrolledStartIndex + ITEMS_PER_PAGE);
 
   const handleLeaveCourse = (courseId: number, courseTitle: string) => {
     setEnrolledCourses(prev => prev.filter(c => c.id !== courseId));
@@ -105,7 +122,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
           >
             {myCreatedCourses.length > 0 ? (
               <>
-                {myCreatedCourses.map((course, index) => (
+                {paginatedCreatedCourses.map((course, index) => (
                   <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
                     <CourseListCard
                       course={course}
@@ -116,6 +133,48 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                     />
                   </AnimatedSection>
                 ))}
+
+                {/* Created Courses Pagination */}
+                {createdTotalPages > 1 && (
+                  <div className="flex justify-center mt-6">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCreatedPage(p => Math.max(1, p - 1))}
+                            className={createdPage === 1 ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
+                          />
+                        </PaginationItem>
+
+                        {Array.from({ length: createdTotalPages }, (_, i) => i + 1).map((page) => {
+                          const showPage = page === 1 || page === createdTotalPages || (page >= createdPage - 1 && page <= createdPage + 1);
+                          if (!showPage) return null;
+
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCreatedPage(page)}
+                                className={createdPage === page
+                                  ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0] rounded-md shadow-md border-transparent hover:text-white transition-all'
+                                  : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md border-transparent text-gray-600 transition-all'
+                                }
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCreatedPage(p => Math.min(createdTotalPages, p + 1))}
+                            className={createdPage === createdTotalPages ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </>
             ) : (
               <AnimatedSection animation="fade-up">
@@ -146,7 +205,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
           >
             {enrolledCourses.length > 0 ? (
               <>
-                {enrolledCourses.map((course, index) => (
+                {paginatedEnrolledCourses.map((course, index) => (
                   <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
                     <CourseListCard
                       course={course}
@@ -195,6 +254,48 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                     />
                   </AnimatedSection>
                 ))}
+
+                {/* Enrolled Courses Pagination */}
+                {enrolledTotalPages > 1 && (
+                  <div className="flex justify-center mt-6">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setEnrolledPage(p => Math.max(1, p - 1))}
+                            className={enrolledPage === 1 ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
+                          />
+                        </PaginationItem>
+
+                        {Array.from({ length: enrolledTotalPages }, (_, i) => i + 1).map((page) => {
+                          const showPage = page === 1 || page === enrolledTotalPages || (page >= enrolledPage - 1 && page <= enrolledPage + 1);
+                          if (!showPage) return null;
+
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setEnrolledPage(page)}
+                                className={enrolledPage === page
+                                  ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0] rounded-md shadow-md border-transparent hover:text-white transition-all'
+                                  : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md border-transparent text-gray-600 transition-all'
+                                }
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setEnrolledPage(p => Math.min(enrolledTotalPages, p + 1))}
+                            className={enrolledPage === enrolledTotalPages ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </>
             ) : (
               <AnimatedSection animation="fade-up">
