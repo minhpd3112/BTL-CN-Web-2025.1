@@ -6,6 +6,7 @@ import { mockCourses, mockTags } from '@/services/mocks';
 import { Course, User, Page, Tag as TagType } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { StatsCounter } from '@/components/shared/StatsCounter';
+import { Snowfall } from '@/components/christmas/Snowfall';
 import './styles.css';
 
 interface HomePageProps {
@@ -24,6 +25,8 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
       {/* Hero Banner */}
       <div className="relative overflow-hidden">
         {/* Background Image with Overlay */}
+
+        <Snowfall />
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
