@@ -24,7 +24,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
       {/* Hero Banner */}
       <div className="relative overflow-hidden">
         {/* Background Image with Overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: 'url(https://sohocmattroi.com/wp-content/uploads/2022/12/hinh-anh-truyen-cam-hung-hoc-tap-dep.jpg)',
@@ -32,7 +32,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#1E88E5]/95 via-[#1565C0]/90 to-[#0D47A1]/85"></div>
         </div>
-        
+
         {/* Content */}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="max-w-4xl">
@@ -44,15 +44,15 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                 cùng EduLearn
               </span>
             </h1>
-            
+
             {/* Subtitle with better styling */}
             <p className="home-hero-subtitle mb-10 text-white/95 max-w-2xl">
               Tạo khóa học của riêng bạn hoặc khám phá hàng ngàn khóa học chất lượng cao từ cộng đồng.
             </p>
-            
+
             <div className="flex flex-wrap gap-4">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
                 style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
                 onClick={() => navigateTo('explore')}
@@ -60,8 +60,8 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                 <Search className="w-5 h-5 mr-2" />
                 Khám phá khóa học
               </Button>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
                 style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
                 onClick={() => navigateTo('create-course')}
@@ -72,7 +72,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             </div>
           </div>
         </div>
-        
+
         {/* Decorative gradient overlay at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
       </div>
@@ -86,7 +86,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
           </div>
         </div>
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <AnimatedSection animation="fade-up">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-white text-center">
@@ -164,12 +164,12 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
           {publicCourses.slice(0, 6).map((course, index) => (
             <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
-              <CourseCard 
-                course={course} 
+              <CourseCard
+                course={course}
                 onClick={() => {
                   setSelectedCourse(course);
                   navigateTo('course-detail');
-                }} 
+                }}
               />
             </AnimatedSection>
           ))}
@@ -181,14 +181,13 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <AnimatedSection animation="fade-up">
             <div className="mb-12">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-2">
                 <Tag className="w-8 h-8 text-[#1E88E5]" />
                 <h2 className="home-section-title relative">
                   Khám phá theo chủ đề
                 </h2>
               </div>
-              <p className="text-gray-600 ml-11">Tìm kiếm kiến thức trong lĩnh vực bạn quan tâm</p>
-              <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
+              <div className="w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full"></div>
             </div>
           </AnimatedSection>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -196,7 +195,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
               const tag = mockTags.find(t => t.name === category);
               return (
                 <AnimatedSection key={category} animation="fade-up" delay={index * 50}>
-                  <Card 
+                  <Card
                     className="home-category-card cursor-pointer"
                     onClick={() => {
                       if (tag) {

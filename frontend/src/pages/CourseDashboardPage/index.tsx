@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
-  BarChart3,
-  Users,
-  Settings,
   ArrowLeft,
   Share2,
-  MoreVertical
+  MoreVertical,
+  Eye,
+  BarChart3,
+  Settings,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -86,44 +87,56 @@ export function CourseDashboardPage({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleShare}>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleShare}
+            className="bg-white border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5]/10 shadow-sm hover:shadow-md transition-all"
+          >
             <Share2 className="w-4 h-4 mr-2" />
             Chia sẻ
           </Button>
           <Button
-            className="bg-[#1E88E5] hover:bg-[#1565C0] text-white"
+            className="bg-gradient-to-r from-[#1E88E5] to-[#1565C0] text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
             onClick={() => navigateTo('course-detail', course)}
           >
             Xem với tư cách học viên
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white">
-              <DropdownMenuItem className="text-red-600 focus:text-red-600">
-                Xóa khóa học
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-          <TabsTrigger value="overview" className="gap-2">
+        <TabsList className="bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
+          {/* Sliding indicator */}
+          <div
+            className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
+            style={{
+              left: activeTab === 'overview' ? '0%' : activeTab === 'content' ? '33.33%' : '66.66%',
+              width: '33.33%',
+            }}
+          />
+          <TabsTrigger
+            value="overview"
+            className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+            style={{ color: activeTab === 'overview' ? '#FFFFFF' : '#1E88E5' }}
+          >
             <BarChart3 className="w-4 h-4" />
             Tổng quan
           </TabsTrigger>
-          <TabsTrigger value="content" className="gap-2">
+          <TabsTrigger
+            value="content"
+            className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+            style={{ color: activeTab === 'content' ? '#FFFFFF' : '#1E88E5' }}
+          >
             <Settings className="w-4 h-4" />
             Nội dung
           </TabsTrigger>
-          <TabsTrigger value="students" className="gap-2">
+          <TabsTrigger
+            value="students"
+            className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+            style={{ color: activeTab === 'students' ? '#FFFFFF' : '#1E88E5' }}
+          >
             <Users className="w-4 h-4" />
             Học viên
           </TabsTrigger>

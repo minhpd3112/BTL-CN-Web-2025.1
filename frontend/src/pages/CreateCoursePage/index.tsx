@@ -62,6 +62,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [lessonTitle, setLessonTitle] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [lessonContent, setLessonContent] = useState('');
+  const [pdfUrl, setPdfUrl] = useState('');
   const [showQuizEditor, setShowQuizEditor] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [quizSettings, setQuizSettings] = useState<QuizSettings>({ quizType: 'practice', passingScore: 70 });
@@ -108,6 +109,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
     setLessonTitle(lesson.title);
     setYoutubeUrl(lesson.youtubeUrl || '');
     setLessonContent(lesson.content || '');
+    setPdfUrl(lesson.pdfUrl || '');
     setQuizQuestions(lesson.quizQuestions || []);
     setShowAddLesson(true);
   };
@@ -133,6 +135,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
           type: lessonType,
           ...(lessonType === 'video' && { youtubeUrl }),
           ...(lessonType === 'text' && { content: lessonContent }),
+          ...(lessonType === 'pdf' && { pdfUrl }),
           ...(lessonType === 'quiz' && { quizQuestions })
         };
 
@@ -152,7 +155,8 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
           type: lessonType,
           duration: '15:00',
           ...(lessonType === 'video' && { youtubeUrl }),
-          ...(lessonType === 'text' && { content: lessonContent })
+          ...(lessonType === 'text' && { content: lessonContent }),
+          ...(lessonType === 'pdf' && { pdfUrl })
         };
 
         setSections(sections.map(section =>
@@ -167,6 +171,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       setLessonTitle('');
       setYoutubeUrl('');
       setLessonContent('');
+      setPdfUrl('');
       setEditingLesson(null);
       setShowAddLesson(false);
     }
@@ -442,7 +447,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                   <div className="flex gap-2">
                     <Dialog open={showAddSection} onOpenChange={setShowAddSection}>
                       <DialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white">
+                        <Button size="sm" className="bg-[#1E88E5] text-white hover:bg-[#1565C0]">
                           <Plus className="w-4 h-4 mr-2" />
                           Thêm mục
                         </Button>
@@ -482,6 +487,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                         setLessonTitle('');
                         setYoutubeUrl('');
                         setLessonContent('');
+                        setPdfUrl('');
                         setQuizQuestions([]);
                       }
                     }}>
@@ -579,18 +585,19 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
 
                           {lessonType === 'pdf' && (
                             <div>
-                              <Label htmlFor="pdf-file">Tải lên file PDF</Label>
-                              <div className="mt-2">
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
-                                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                  <p className="text-sm text-gray-600 mb-1">
-                                    Kéo thả file PDF vào đây hoặc click để chọn
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Tối đa 50MB
-                                  </p>
-                                </div>
+                              <Label htmlFor="pdf-url">Link Google Drive PDF *</Label>
+                              <div className="flex gap-2 mt-2">
+                                <LinkIcon className="w-5 h-5 text-gray-400 mt-2" />
+                                <Input
+                                  id="pdf-url"
+                                  placeholder="https://drive.google.com/file/d/.../view"
+                                  value={pdfUrl}
+                                  onChange={(e) => setPdfUrl(e.target.value)}
+                                />
                               </div>
+                              <p className="text-sm text-gray-600 mt-2">
+                                💡 Paste link chia sẻ từ Google Drive (đảm bảo quyền xem công khai)
+                              </p>
                             </div>
                           )}
 
@@ -603,6 +610,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                             setLessonTitle('');
                             setYoutubeUrl('');
                             setLessonContent('');
+                            setPdfUrl('');
                           }}>
                             Hủy
                           </Button>
@@ -723,14 +731,14 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         <div className="lg:col-span-1">
           <AnimatedSection animation="slide-left" delay={150}>
             <Card className="sticky top-20 hover:shadow-lg transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle>Hành động</CardTitle>
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <CardTitle className="text-lg font-bold text-[#1E88E5]">Hành động</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 pt-6">
                 <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleSaveCourse}>
                   Lưu và tạo khóa học
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => navigateTo('my-courses')}>
+                <Button variant="outline" className="w-full border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5]/5 hover:text-[#1565C0] transition-colors" onClick={() => navigateTo('my-courses')}>
                   Hủy
                 </Button>
               </CardContent>

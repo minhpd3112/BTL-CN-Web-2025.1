@@ -161,7 +161,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                              className="text-red-600 hover:!text-white hover:!bg-red-600 h-8 px-2 transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <LogOut className="w-4 h-4 mr-2" />
@@ -169,7 +169,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader>
+                            <AlertDialogHeader className="space-y-3">
                               <AlertDialogTitle>Rời khỏi khóa học?</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Bạn có chắc chắn muốn rời khỏi khóa học <strong>"{course.title}"</strong>?
@@ -184,7 +184,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                                   e.stopPropagation();
                                   handleLeaveCourse(course.id, course.title);
                                 }}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="bg-red-600 hover:bg-red-700 text-white"
                               >
                                 Xác nhận rời
                               </AlertDialogAction>
@@ -205,8 +205,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                     <p className="text-gray-600 mb-6">Khám phá và đăng ký các khóa học thú vị</p>
                     <Button
                       onClick={() => navigateTo('explore')}
-                      variant="outline"
-                      className="scale-hover"
+                      className="bg-[#1E88E5] text-white hover:bg-[#1565C0] scale-hover"
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Khám phá khóa học

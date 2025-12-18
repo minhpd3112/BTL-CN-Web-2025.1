@@ -193,7 +193,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
                     <PaginationItem>
                       <PaginationPrevious
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:bg-[#1E88E5]/10'}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
                       />
                     </PaginationItem>
 
@@ -229,10 +229,9 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
                         <PaginationItem key={page}>
                           <PaginationLink
                             onClick={() => setCurrentPage(page)}
-                            isActive={currentPage === page}
                             className={currentPage === page
-                              ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0]'
-                              : 'cursor-pointer hover:bg-[#1E88E5]/10'
+                              ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0] rounded-md shadow-md border-transparent hover:text-white transition-all'
+                              : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md border-transparent text-gray-600 transition-all'
                             }
                           >
                             {page}
@@ -244,7 +243,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
                     <PaginationItem>
                       <PaginationNext
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:bg-[#1E88E5]/10'}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
                       />
                     </PaginationItem>
                   </PaginationContent>

@@ -26,6 +26,7 @@ export function CourseStudentsTab({
 }: CourseStudentsTabProps) {
     const [addStudentOpen, setAddStudentOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeStudentTab, setActiveStudentTab] = useState<'enrolled' | 'pending'>('enrolled');
 
     const courseEnrollments = enrollmentRequests.filter(r => r.courseId === course.id);
     const pendingRequests = courseEnrollments.filter(r => r.status === 'pending');
@@ -70,71 +71,110 @@ export function CourseStudentsTab({
     return (
         <div className="py-6">
             {/* Stats */}
+            {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-                    <CardContent className="p-6">
+                {/* Total Students Card */}
+                <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-[#1E88E5] overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Users className="w-24 h-24 text-[#1E88E5]" />
+                    </div>
+                    <CardContent className="p-6 relative z-10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500 mb-1">Tổng học viên</p>
-                                <p className="text-3xl">{approvedStudents.length}</p>
+                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Tổng học viên</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className="text-4xl font-bold text-gray-900">{approvedStudents.length}</p>
+                                </div>
                             </div>
-                            <div className="w-12 h-12 bg-[#1E88E5]/10 rounded-lg flex items-center justify-center">
-                                <Users className="w-6 h-6 text-[#1E88E5]" />
+                            <div className="w-12 h-12 bg-gradient-to-br from-[#1E88E5] to-[#1565C0] rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                                <Users className="w-6 h-6 text-white" />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className={`hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${pendingRequests.length > 0 ? 'border-[#1E88E5] border-2' : ''}`}>
-                    <CardContent className="p-6">
+
+                {/* Pending Requests Card */}
+                <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 overflow-hidden relative ${pendingRequests.length > 0 ? 'border-l-orange-500' : 'border-l-gray-300'}`}>
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Clock className={`w-24 h-24 ${pendingRequests.length > 0 ? 'text-orange-500' : 'text-gray-400'}`} />
+                    </div>
+                    <CardContent className="p-6 relative z-10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500 mb-1">Yêu cầu chờ duyệt</p>
-                                <p className="text-3xl text-[#1E88E5]">{pendingRequests.length}</p>
-                            </div>
-                            <div className="w-12 h-12 bg-[#1E88E5]/10 rounded-lg flex items-center justify-center relative">
-                                <Clock className="w-6 h-6 text-[#1E88E5]" />
-                                {pendingRequests.length > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-[#1E88E5] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Yêu cầu chờ duyệt</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className={`text-4xl font-bold ${pendingRequests.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
                                         {pendingRequests.length}
-                                    </span>
-                                )}
+                                    </p>
+                                    {pendingRequests.length > 0 && (
+                                        <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full animate-pulse">
+                                            Cần xử lý
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className={`w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${pendingRequests.length > 0 ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-200' : 'bg-gray-100'}`}>
+                                <Clock className={`w-6 h-6 ${pendingRequests.length > 0 ? 'text-white' : 'text-gray-400'}`} />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-                    <CardContent className="p-6">
+
+                {/* Average Progress Card */}
+                <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <CheckCircle className="w-24 h-24 text-green-500" />
+                    </div>
+                    <CardContent className="p-6 relative z-10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500 mb-1">Tiến độ trung bình</p>
-                                <p className="text-3xl">45%</p>
+                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Tiến độ trung bình</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className="text-4xl font-bold text-gray-900">45%</p>
+                                </div>
                             </div>
-                            <div className="w-12 h-12 bg-green-600/10 rounded-lg flex items-center justify-center">
-                                <CheckCircle className="w-6 h-6 text-green-600" />
+                            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-700 rounded-xl shadow-lg shadow-green-200 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                                <CheckCircle className="w-6 h-6 text-white" />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            <Tabs defaultValue="enrolled">
-                <TabsList className="mb-6">
-                    <TabsTrigger value="enrolled">
+            <Tabs defaultValue="enrolled" onValueChange={(v) => setActiveStudentTab(v as 'enrolled' | 'pending')}>
+                <TabsList className="mb-6 bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
+                    {/* Sliding indicator */}
+                    <div
+                        className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
+                        style={{
+                            left: activeStudentTab === 'enrolled' ? '0px' : '50%',
+                            width: '50%',
+                        }}
+                    />
+                    <TabsTrigger
+                        value="enrolled"
+                        className="relative z-10 flex-1 min-w-[140px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                        style={{ color: activeStudentTab === 'enrolled' ? '#FFFFFF' : '#1E88E5' }}
+                    >
                         Đã tham gia ({approvedStudents.length})
                     </TabsTrigger>
-                    <TabsTrigger value="pending">
+                    <TabsTrigger
+                        value="pending"
+                        className="relative z-10 flex-1 min-w-[140px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                        style={{ color: activeStudentTab === 'pending' ? '#FFFFFF' : '#1E88E5' }}
+                    >
                         Chờ duyệt ({pendingRequests.length})
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="enrolled">
-                    <Card>
-                        <CardHeader>
+                    <Card className="hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
                             <div className="flex items-center justify-between">
-                                <CardTitle>Học viên đã tham gia</CardTitle>
+                                <CardTitle className="text-lg font-bold text-[#1E88E5]">Học viên đã tham gia</CardTitle>
                                 <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
                                     <DialogTrigger asChild>
-                                        <Button className="bg-[#1E88E5] hover:bg-[#1565C0]">
+                                        <Button className="bg-[#1E88E5] hover:bg-[#1565C0] text-white">
                                             <UserPlus className="w-4 h-4 mr-2" />
                                             Thêm học viên
                                         </Button>
@@ -250,9 +290,9 @@ export function CourseStudentsTab({
                 </TabsContent>
 
                 <TabsContent value="pending">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Yêu cầu đăng ký chờ duyệt</CardTitle>
+                    <Card className="hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Yêu cầu đăng ký chờ duyệt</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {pendingRequests.length > 0 ? (

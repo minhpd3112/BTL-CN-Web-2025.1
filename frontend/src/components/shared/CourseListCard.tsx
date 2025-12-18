@@ -110,9 +110,6 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                                         <span className="text-[#1E88E5]">{course.progress}%</span>
                                     </div>
                                     <Progress value={course.progress} className="h-1.5 bg-gray-100" />
-                                    <p className="text-[10px] text-gray-500 mt-1">
-                                        Đã hoàn thành {course.completedLessons}/{course.lessons} bài học
-                                    </p>
                                 </div>
                             </div>
                         )}

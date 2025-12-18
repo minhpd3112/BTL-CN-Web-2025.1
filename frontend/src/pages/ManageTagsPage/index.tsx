@@ -31,7 +31,7 @@ export function ManageTagsPage({ navigateTo }: ManageTagsPageProps = {}) {
   const [selectedTag, setSelectedTag] = useState<TagData | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '', image: '' });
 
-  const filteredTags = tags.filter(tag => 
+  const filteredTags = tags.filter(tag =>
     tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tag.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -59,8 +59,8 @@ export function ManageTagsPage({ navigateTo }: ManageTagsPageProps = {}) {
       toast.error('Vui lòng nhập tên chủ đề');
       return;
     }
-    setTags(tags.map(tag => 
-      tag.id === selectedTag?.id 
+    setTags(tags.map(tag =>
+      tag.id === selectedTag?.id
         ? { ...tag, name: formData.name, description: formData.description, image: formData.image || undefined }
         : tag
     ));
@@ -82,8 +82,8 @@ export function ManageTagsPage({ navigateTo }: ManageTagsPageProps = {}) {
 
   const openEditDialog = (tag: TagData) => {
     setSelectedTag(tag);
-    setFormData({ 
-      name: tag.name, 
+    setFormData({
+      name: tag.name,
       description: tag.description,
       image: tag.image || ''
     });
@@ -98,9 +98,9 @@ export function ManageTagsPage({ navigateTo }: ManageTagsPageProps = {}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Back Button */}
-      <Button 
-        variant="ghost" 
-        onClick={() => navigateTo('admin-dashboard')}
+      <Button
+        variant="ghost"
+        onClick={() => navigateTo?.('admin-dashboard')}
         className="mb-6"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -110,7 +110,7 @@ export function ManageTagsPage({ navigateTo }: ManageTagsPageProps = {}) {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
           <Tag className="w-8 h-8 text-[#1E88E5]" />
-          <h1 
+          <h1
             style={{
               fontSize: '2rem',
               fontWeight: 700,
@@ -356,8 +356,8 @@ export function ManageTagsPage({ navigateTo }: ManageTagsPageProps = {}) {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Hủy</Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDeleteTag}
               disabled={selectedTag ? selectedTag.courseCount > 0 : false}
             >

@@ -136,7 +136,7 @@ export function AppShell({ state, actions }: AppShellProps) {
       <Toaster />
 
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <button className="lg:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -253,7 +253,6 @@ export function AppShell({ state, actions }: AppShellProps) {
           </div>
         </div>
       </header>
-
       {/* Mobile Sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -352,6 +351,7 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
+        {currentPage === 'course-dashboard' && <CourseDashboardPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser!} enrollmentRequests={enrollmentRequests} onApproveRequest={handleApproveRequest} onRejectRequest={handleRejectRequest} />}
         {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
         {currentPage === 'account-settings' && currentUser && (
           <AccountSettingsPage
@@ -362,23 +362,25 @@ export function AppShell({ state, actions }: AppShellProps) {
         )}
       </main>
 
-      <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
-        <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
-          <div className="flex items-center justify-center gap-4 group">
-            <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
-            <div className="text-left">
-              <h2 className="text-4xl font-extrabold text-white">EduLearn</h2>
-              <p className="text-white/80 tracking-widest text-sm">Học tập không giới hạn</p>
+      {currentPage !== 'learning' && (
+        <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
+            <div className="flex items-center justify-center gap-4 group">
+              <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
+              <div className="text-left">
+                <h2 className="text-4xl font-extrabold text-white">EduLearn</h2>
+                <p className="text-white/80 tracking-widest text-sm">Học tập không giới hạn</p>
+              </div>
             </div>
+            <p className="text-white/70 text-sm">© 2025 EduLearn Platform. All rights reserved.</p>
           </div>
-          <p className="text-white/70 text-sm">© 2025 EduLearn Platform. All rights reserved.</p>
-        </div>
-        {/* Particles */}
-        {particles.map((p) => (
-          <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
-            style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
-        ))}
-      </footer>
+          {/* Particles */}
+          {particles.map((p) => (
+            <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
+              style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
+          ))}
+        </footer>
+      )}
     </div>
   );
 }
