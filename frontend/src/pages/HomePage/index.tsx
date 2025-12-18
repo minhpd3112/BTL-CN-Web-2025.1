@@ -167,19 +167,19 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
         </AnimatedSection>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
           {publicCourses.slice(0, 6).map((course, index) => (
-            <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
+            <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
 
               <ChristmasCardWrapper>
 
 
-              <CourseCard
-                course={course}
-                onClick={() => {
-                  setSelectedCourse(course);
-                  navigateTo('course-detail');
-                }}
-              />
-             </ChristmasCardWrapper>
+                <CourseCard
+                  course={course}
+                  onClick={() => {
+                    setSelectedCourse(course);
+                    navigateTo('course-detail');
+                  }}
+                />
+              </ChristmasCardWrapper>
             </AnimatedSection>
           ))}
         </div>

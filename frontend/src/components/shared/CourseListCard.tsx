@@ -3,8 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Course } from '@/types';
 import { Eye, Globe, Lock, ArrowUpRight } from 'lucide-react';
-import { ReactNode, useState } from 'react';
-import { Button } from '../ui/button';
+import { ReactNode } from 'react';
 
 interface CourseListCardProps {
     course: Course & { progress?: number; completedLessons?: number };
@@ -14,14 +13,10 @@ interface CourseListCardProps {
 }
 
 export function CourseListCard({ course, onClick, action, showProgress = false }: CourseListCardProps) {
-    const [isHovered, setIsHovered] = useState(false);
-
     return (
         <Card
             className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white"
             onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
             <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row gap-0 md:gap-4">

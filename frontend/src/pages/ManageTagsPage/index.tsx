@@ -1,25 +1,17 @@
 import { useState, useRef } from 'react';
-import { Plus, Edit, Trash2, Tag, Search, ArrowLeft, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Edit, Trash2, Tag, Search, Upload, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { TagCard } from '@/components/shared/TagCard';
 import { mockTags } from '@/services/mocks';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
+import { SearchFilterCard } from '@/components/shared/SearchFilterCard';
 
 interface TagData {
   id: number;
@@ -174,57 +166,31 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => navigateTo?.('admin-dashboard')}
-        className="mb-6"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Quay về Dashboard
-      </Button>
-
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <Tag className="w-8 h-8 text-[#1E88E5]" />
-          <h1
-            style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}
-          >
-            Quản lý chủ đề
-          </h1>
-        </div>
-        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-      </div>
+      <PageHeader
+        icon={<Tag className="w-8 h-8" />}
+        title="Quản lý chủ đề"
+        backButton={{
+          label: 'Quay về Dashboard',
+          onClick: () => navigateTo?.('admin-dashboard'),
+        }}
+      />
 
       {/* Search and Actions */}
-      <Card className="mb-8">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Tìm kiếm chủ đề..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button
-              className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
-              onClick={handleOpenAddDialog}
-            >
-              Thêm chủ đề
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SearchFilterCard
+        placeholder="Tìm kiếm chủ đề..."
+        value={searchQuery}
+        onChange={setSearchQuery}
+        className="mb-8"
+      >
+        <div className="md:col-span-6 flex justify-end">
+          <Button
+            className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
+            onClick={handleOpenAddDialog}
+          >
+            Thêm chủ đề
+          </Button>
+        </div>
+      </SearchFilterCard>
 
       {/* Tags Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -337,52 +303,41 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       </Dialog>
 
       {/* Delete Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa chủ đề</AlertDialogTitle>
-          </AlertDialogHeader>
-
-          {selectedTagState && (
-            <div className="flex gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100 items-start">
-              {/* Cover Image */}
-              <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-200 flex-shrink-0 border border-gray-200">
-                {selectedTagState.image ? (
-                  <img
-                    src={selectedTagState.image}
-                    alt={selectedTagState.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    <ImageIcon className="w-8 h-8 opacity-50" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 text-base mb-1">{selectedTagState.name}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                    {selectedTagState.courseCount} khóa học
-                  </span>
+      <DeleteConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Xác nhận xóa chủ đề"
+        onConfirm={handleDeleteTag}
+      >
+        {selectedTagState && (
+          <div className="flex gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100 items-start">
+            {/* Cover Image */}
+            <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-200 flex-shrink-0 border border-gray-200">
+              {selectedTagState.image ? (
+                <img
+                  src={selectedTagState.image}
+                  alt={selectedTagState.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <ImageIcon className="w-8 h-8 opacity-50" />
                 </div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-gray-900 text-base mb-1">{selectedTagState.name}</p>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                  {selectedTagState.courseCount} khóa học
+                </span>
               </div>
             </div>
-          )}
-
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteTag}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              Xác nhận xóa
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </div>
+        )}
+      </DeleteConfirmDialog>
     </div>
   );
 }
