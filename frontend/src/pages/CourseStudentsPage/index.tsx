@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Course, Page } from '@/types';
 import { mockUsers } from '@/services/mocks';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CourseStudentsPageProps {
   course: Course;
@@ -19,8 +20,8 @@ interface CourseStudentsPageProps {
   onRejectRequest?: (id: number) => void;
 }
 
-export function CourseStudentsPage({ 
-  course, 
+export function CourseStudentsPage({
+  course,
   navigateTo,
   enrollmentRequests = [],
   onApproveRequest,
@@ -37,8 +38,8 @@ export function CourseStudentsPage({
   const enrolledUserIds = courseEnrollments.map(r => r.userId);
 
   // Filter available users (exclude owner and already enrolled)
-  const availableUsers = mockUsers.filter(user => 
-    user.id !== course.ownerId && 
+  const availableUsers = mockUsers.filter(user =>
+    user.id !== course.ownerId &&
     !enrolledUserIds.includes(user.id) &&
     user.role !== 'admin' // Exclude admin from student list
   );
@@ -71,37 +72,15 @@ export function CourseStudentsPage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header Section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <Users className="w-8 h-8 text-[#1E88E5]" />
-          <h1 
-            style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}
-          >
-            Quản lý học viên
-          </h1>
-        </div>
-        <p className="text-gray-600 ml-11">{course.title}</p>
-        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        
-        {/* Back Button */}
-        <div className="ml-11 mt-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigateTo('course-dashboard')}
-            className="text-[#1E88E5] hover:bg-[#1E88E5]/10 -ml-2"
-          >
-            ← Quay lại Dashboard
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Users className="w-8 h-8" />}
+        title="Quản lý học viên"
+        description={course.title}
+        backButton={{
+          label: 'Quay lại Dashboard',
+          onClick: () => navigateTo('course-dashboard'),
+        }}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -180,7 +159,7 @@ export function CourseStudentsPage({
                         Tìm kiếm và mời người dùng tham gia khóa học của bạn
                       </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="space-y-4">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { mockTags } from '@/services/mocks';
 import { Page, User } from '@/types';
 import { QuizEditor } from '@/components/shared/QuizEditor';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { AnimatedSection } from '@/utils/animations';
 import { QuizQuestion, QuizSettings } from '@/types';
 
@@ -258,25 +259,11 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <AnimatedSection animation="fade-up">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <Plus className="w-8 h-8 text-[#1E88E5]" />
-            <h1
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              Tạo khóa học mới
-            </h1>
-          </div>
-          <p className="text-gray-600 ml-11">Điền thông tin để tạo khóa học của bạn</p>
-          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        </div>
+        <PageHeader
+          icon={<Plus className="w-8 h-8" />}
+          title="Tạo khóa học mới"
+          description="Điền thông tin để tạo khóa học của bạn"
+        />
       </AnimatedSection>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

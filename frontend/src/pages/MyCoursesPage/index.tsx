@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Eye, BookOpen, Search, Lock, Globe, LogOut } from 'lucide-react';
+import { Plus, BookOpen, Search, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { mockCourses, mockEnrollments } from '@/services/mocks';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { CourseListCard } from '@/components/shared/CourseListCard';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 const ITEMS_PER_PAGE = 6;
@@ -63,25 +64,11 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <AnimatedSection animation="fade-up">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <BookOpen className="w-8 h-8 text-[#1E88E5]" />
-            <h1
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              Khóa học của tôi
-            </h1>
-          </div>
-          <p className="text-gray-600 ml-11">Quản lý và theo dõi khóa học</p>
-          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        </div>
+        <PageHeader
+          icon={<BookOpen className="w-8 h-8" />}
+          title="Khóa học của tôi"
+          description="Quản lý và theo dõi khóa học"
+        />
       </AnimatedSection>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'created' | 'enrolled')}>

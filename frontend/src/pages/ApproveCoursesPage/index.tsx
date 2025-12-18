@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, CheckCircle, XCircle, Users, BookOpen, FileCheck, ArrowLeft } from 'lucide-react';
+import { Eye, CheckCircle, Users, BookOpen, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface ApproveCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -152,35 +153,15 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => navigateTo('admin-dashboard')}
-        className="mb-6"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Quay về Dashboard
-      </Button>
-
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <FileCheck className="w-8 h-8 text-[#1E88E5]" />
-          <h1
-            style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}
-          >
-            Duyệt khóa học
-          </h1>
-        </div>
-        <p className="text-gray-600 ml-11">Xem xét và phê duyệt các khóa học chờ duyệt</p>
-        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-      </div>
+      <PageHeader
+        icon={<FileCheck className="w-8 h-8" />}
+        title="Duyệt khóa học"
+        description="Xem xét và phê duyệt các khóa học chờ duyệt"
+        backButton={{
+          label: 'Quay về Dashboard',
+          onClick: () => navigateTo('admin-dashboard'),
+        }}
+      />
 
       {/* Pending Courses Grid */}
       {pendingCourses.length > 0 ? (

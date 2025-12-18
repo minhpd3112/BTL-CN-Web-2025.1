@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { User, Page } from '@/types';
-import { createClient } from '@supabase/supabase-js';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 
 
@@ -167,25 +167,11 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-3">
-          <Settings className="w-8 h-8 text-[#1E88E5]" />
-          <h1
-            style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}
-          >
-            Cài đặt tài khoản
-          </h1>
-        </div>
-        <p className="text-gray-600 ml-11">Quản lý thông tin và hình ảnh cá nhân của bạn</p>
-        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-      </div>
+      <PageHeader
+        icon={<Settings className="w-8 h-8" />}
+        title="Cài đặt tài khoản"
+        description="Quản lý thông tin và hình ảnh cá nhân của bạn"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Profile Card */}

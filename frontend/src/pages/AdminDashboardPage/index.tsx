@@ -1,9 +1,10 @@
-import { BarChart3, BookOpen, Users, FileCheck, Clock, Tag, Activity, Zap } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart3, BookOpen, Users, FileCheck, Clock, Tag } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { StatsCounter } from '@/components/shared/StatsCounter';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { mockCourses, mockUsers } from '@/services/mocks';
 import './styles.css';
 
@@ -31,25 +32,11 @@ export function AdminDashboardPage({ navigateTo }: AdminDashboardPageProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 pt-8 pb-6">
       <AnimatedSection animation="fade-up">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <BarChart3 className="w-8 h-8 text-[#1E88E5]" />
-            <h1
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              Admin Dashboard
-            </h1>
-          </div>
-          <p className="text-gray-600 ml-11">Quản lý và giám sát hệ thống EduLearn</p>
-          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        </div>
+        <PageHeader
+          icon={<BarChart3 className="w-8 h-8" />}
+          title="Admin Dashboard"
+          description="Quản lý và giám sát hệ thống EduLearn"
+        />
       </AnimatedSection>
 
       {/* Stats Cards */}
