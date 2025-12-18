@@ -41,6 +41,13 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
 
+            {/* Christmas Ribbon */}
+            <div className="absolute top-0 right-0 w-32 h-32 overflow-hidden z-20 pointer-events-none">
+              <div className="absolute top-[28px] -right-[30px] w-[150px] bg-gradient-to-r from-[#D32F2F] to-[#C62828] text-white text-[10px] font-bold py-1.5 pl-4 text-center transform rotate-45 shadow-lg border-b border-[#B71C1C]">
+                <span className="drop-shadow-md tracking-wider">XMAS 2025</span>
+              </div>
+            </div>
+
 
             {/* Play Icon Overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">

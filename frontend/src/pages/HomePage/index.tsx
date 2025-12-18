@@ -10,6 +10,8 @@ import { Snowfall } from '@/components/christmas/Snowfall';
 import { ChristmasCardWrapper } from '@/components/christmas/ChristmasCardWrapper';
 import { ChristmasHeroSection } from '@/components/christmas/ChristmasHeroSection';
 import './styles.css';
+import Lottie from 'lottie-react';
+import hatAnimation from '@/components/christmas/Christmas hat.json';
 
 interface HomePageProps {
   navigateTo: (page: Page) => void;
@@ -43,7 +45,13 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
           <div className="max-w-4xl">
             {/* Main Heading with Gradient Effect */}
             <h1 className="home-hero-title mb-6 leading-tight">
-              Học tập không giới hạn
+              Học tập không giới hạ
+              <span className="relative inline-block">
+                n
+                <div className="absolute w-24 h-24 pointer-events-none z-10" style={{ top: '5px', left: '-22px', transform: 'rotate(-15deg)' }}>
+                  <Lottie animationData={hatAnimation} loop={true} />
+                </div>
+              </span>
               <br />
               <span className="home-hero-title-accent">
                 cùng EduLearn
@@ -75,19 +83,19 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                 Tạo khóa học
               </Button>
             </div>
-          </div>
-        </div>
+          </div >
+        </div >
 
         {/* Decorative gradient overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
-      </div>
+        < div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent" ></div >
+      </div >
 
 
       {/* Christmas Countdown Section */}
-      <ChristmasHeroSection />
+      < ChristmasHeroSection />
 
       {/* Featured Courses */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      < div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16" >
         <AnimatedSection animation="fade-up">
           <div className="flex items-center justify-between mb-12">
             <div className="relative">
@@ -123,10 +131,10 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             </AnimatedSection>
           ))}
         </div>
-      </div>
+      </div >
 
       {/* Categories */}
-      <div className="bg-white">
+      < div className="bg-white" >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <AnimatedSection animation="fade-up">
             <div className="mb-12">
@@ -163,7 +171,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             })}
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

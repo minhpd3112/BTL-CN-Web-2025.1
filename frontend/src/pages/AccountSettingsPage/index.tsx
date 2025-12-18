@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from 'sonner';
 import { User, Page } from '@/types';
 import { PageHeader } from '@/components/shared/PageHeader';
+import Lottie from 'lottie-react';
+import avatarFrameAnimation from '@/components/christmas/Entri Christmas.json';
 
 
 
@@ -180,17 +182,19 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
             <div className="h-24 bg-gradient-to-r from-[#1E88E5] to-[#1565C0]"></div>
             <CardContent className="relative pt-0 text-center">
               <div className="flex justify-center relative">
-                <div
-                  className="relative group cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Avatar className="w-28 h-28 -mt-14 border-4 border-white shadow-lg transition-all group-hover:brightness-75">
+                <div className="relative group cursor-pointer -mt-14" onClick={() => fileInputRef.current?.click()}>
+                  {/* Lottie Frame */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-[51%] -translate-y-[45%] w-[170%] h-[170%] pointer-events-none z-10">
+                    <Lottie animationData={avatarFrameAnimation} loop={true} />
+                  </div>
+
+                  <Avatar className="w-28 h-28 shadow-lg transition-all group-hover:brightness-75 relative z-20 bg-white">
                     <AvatarImage src={previewUrl} className="object-cover" />
                     <AvatarFallback className="text-2xl bg-gray-200 text-[#1E88E5] font-bold">
                       {name?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute inset-0 -mt-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none">
                     <Camera className="text-white w-8 h-8" />
                   </div>
                   <input

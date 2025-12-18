@@ -19,6 +19,8 @@ import { CourseDashboardPage } from '@/pages/CourseDashboardPage';
 import { LearningPage } from '@/pages/LearningPage';
 import { QuizPage } from '@/pages/QuizPage';
 import { ManageTagsPage } from '@/pages/ManageTagsPage';
+import Lottie from 'lottie-react';
+import avatarFrameAnimation from '@/components/christmas/Entri Christmas.json';
 import { ManageUsersPage } from '@/pages/ManageUsersPage';
 import { ManageCoursesPage } from '@/pages/ManageCoursesPage';
 import { UserDetailPage } from '@/pages/UserDetailPage';
@@ -226,36 +228,17 @@ export function AppShell({ state, actions }: AppShellProps) {
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-3 px-2 py-2 hover:bg-[#1E88E5]/5 rounded-lg transition-all group outline-none focus:outline-none" onClick={() => setIsAvatarPinned(!isAvatarPinned)}>
                       <div className="relative">
-                        {/* Christmas Wreath with Leaves */}
-                        {/* Leaf petals around avatar - 8 leaves */}
-                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[12px] z-5 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
-                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[12px] z-5 rotate-180 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
-                        <span className="absolute top-1/2 -left-2 -translate-y-1/2 text-[12px] z-5 -rotate-90 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
-                        <span className="absolute top-1/2 -right-2 -translate-y-1/2 text-[12px] z-5 rotate-90 animate-pulse" style={{ color: '#228B22' }}>🌿</span>
-                        {/* Diagonal leaves */}
-                        <span className="absolute -top-1 -left-1 text-[10px] z-5 -rotate-45 animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.2s' }}>🌿</span>
-                        <span className="absolute -top-1 -right-1 text-[10px] z-5 rotate-45 animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.4s' }}>🌿</span>
-                        <span className="absolute -bottom-1 -left-1 text-[10px] z-5 rotate-[225deg] animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.6s' }}>🌿</span>
-                        <span className="absolute -bottom-1 -right-1 text-[10px] z-5 rotate-[135deg] animate-pulse" style={{ color: '#2E8B57', animationDelay: '0.8s' }}>🌿</span>
+                        {/* Lottie Avatar Frame */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-[51%] -translate-y-[47%] w-[175%] h-[175%] pointer-events-none z-10">
+                          <Lottie animationData={avatarFrameAnimation} loop={true} />
+                        </div>
 
-                        {/* Berries scattered on wreath */}
-                        <span className="absolute -top-0.5 left-1/4 text-[6px] text-red-500 z-20">●</span>
-                        <span className="absolute -top-0.5 right-1/4 text-[6px] text-red-500 z-20">●</span>
-                        <span className="absolute top-1/4 -left-0.5 text-[6px] text-red-500 z-20">●</span>
-                        <span className="absolute top-1/4 -right-0.5 text-[6px] text-red-500 z-20">●</span>
-                        <span className="absolute bottom-1/4 -left-0.5 text-[6px] text-red-500 z-20">●</span>
-                        <span className="absolute bottom-1/4 -right-0.5 text-[6px] text-red-500 z-20">●</span>
-
-                        {/* Bow at bottom */}
-                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-[14px] z-30">🎀</span>
-
-                        <Avatar className="w-10 h-10 ring-2 ring-green-600/60 transition-all group-hover:ring-green-500 group-hover:ring-4 group-hover:scale-110 relative z-10">
+                        <Avatar className="w-10 h-10 transition-all group-hover:scale-110 relative z-20 bg-white">
                           <AvatarImage src={currentUser?.avatar} alt={currentUser?.name} className="object-cover" />
                           <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
                             {currentUser?.name?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="absolute -inset-3 bg-green-500/15 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
                       </div>
                       <span className="hidden md:inline-block font-semibold bg-gradient-to-r from-[#1E88E5] to-[#0D47A1] bg-clip-text text-transparent">
                         {currentUser?.name}
@@ -274,97 +257,99 @@ export function AppShell({ state, actions }: AppShellProps) {
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </div >
+      </header >
       {/* Mobile Sidebar */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => setSidebarOpen(false)}
-          />
+      {
+        sidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/50"
+              onClick={() => setSidebarOpen(false)}
+            />
 
-          {/* Sidebar Panel */}
-          <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-8 h-8 text-[#1E88E5]" />
-                <span className="text-xl font-bold text-[#1E88E5]">Menu</span>
+            {/* Sidebar Panel */}
+            <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-8 h-8 text-[#1E88E5]" />
+                  <span className="text-xl font-bold text-[#1E88E5]">Menu</span>
+                </div>
+                <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <XIcon className="w-5 h-5" />
+                </button>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <XIcon className="w-5 h-5" />
-              </button>
+
+              {/* Menu Items */}
+              <nav className="p-4 space-y-2">
+                <button
+                  onClick={() => { navigateTo('home'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <GraduationCap className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Trang chủ</span>
+                </button>
+
+                {currentRole !== 'admin' && (
+                  <button
+                    onClick={() => { navigateTo('explore'); setSidebarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                  >
+                    <Search className="w-5 h-5 text-[#1E88E5]" />
+                    <span>Khám phá</span>
+                  </button>
+                )}
+
+                {currentRole === 'admin' && (
+                  <button
+                    onClick={() => { navigateTo('admin-dashboard'); setSidebarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                  >
+                    <BarChart3 className="w-5 h-5 text-[#1E88E5]" />
+                    <span>Dashboard</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <BookOpen className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Khóa học của tôi</span>
+                </button>
+
+                <button
+                  onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <Plus className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Tạo khóa học</span>
+                </button>
+
+                <Separator className="my-4" />
+
+                <button
+                  onClick={() => { navigateTo('account-settings'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <User className="w-5 h-5 text-gray-600" />
+                  <span>Cài đặt tài khoản</span>
+                </button>
+
+                <button
+                  onClick={() => { handleLogout(); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Đăng xuất</span>
+                </button>
+              </nav>
             </div>
-
-            {/* Menu Items */}
-            <nav className="p-4 space-y-2">
-              <button
-                onClick={() => { navigateTo('home'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-              >
-                <GraduationCap className="w-5 h-5 text-[#1E88E5]" />
-                <span>Trang chủ</span>
-              </button>
-
-              {currentRole !== 'admin' && (
-                <button
-                  onClick={() => { navigateTo('explore'); setSidebarOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-                >
-                  <Search className="w-5 h-5 text-[#1E88E5]" />
-                  <span>Khám phá</span>
-                </button>
-              )}
-
-              {currentRole === 'admin' && (
-                <button
-                  onClick={() => { navigateTo('admin-dashboard'); setSidebarOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-                >
-                  <BarChart3 className="w-5 h-5 text-[#1E88E5]" />
-                  <span>Dashboard</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-              >
-                <BookOpen className="w-5 h-5 text-[#1E88E5]" />
-                <span>Khóa học của tôi</span>
-              </button>
-
-              <button
-                onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-              >
-                <Plus className="w-5 h-5 text-[#1E88E5]" />
-                <span>Tạo khóa học</span>
-              </button>
-
-              <Separator className="my-4" />
-
-              <button
-                onClick={() => { navigateTo('account-settings'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <User className="w-5 h-5 text-gray-600" />
-                <span>Cài đặt tài khoản</span>
-              </button>
-
-              <button
-                onClick={() => { handleLogout(); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Đăng xuất</span>
-              </button>
-            </nav>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <main className="page-transition flex-1">
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} setSelectedTag={setSelectedTag} currentUser={currentUser} />}
@@ -397,26 +382,28 @@ export function AppShell({ state, actions }: AppShellProps) {
         )}
       </main>
 
-      {currentPage !== 'learning' && (
-        <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
-          <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
-            <div className="flex items-center justify-center gap-4 group">
-              <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
-              <div className="text-left">
-                <h2 className="text-4xl font-extrabold text-white">EduLearn</h2>
-                <p className="text-white/80 tracking-widest text-sm">Học tập không giới hạn</p>
+      {
+        currentPage !== 'learning' && (
+          <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
+              <div className="flex items-center justify-center gap-4 group">
+                <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
+                <div className="text-left">
+                  <h2 className="text-4xl font-extrabold text-white">EduLearn</h2>
+                  <p className="text-white/80 tracking-widest text-sm">Học tập không giới hạn</p>
+                </div>
               </div>
+              <p className="text-white/70 text-sm">© 2025 EduLearn Platform. All rights reserved.</p>
             </div>
-            <p className="text-white/70 text-sm">© 2025 EduLearn Platform. All rights reserved.</p>
-          </div>
-          {/* Particles */}
-          {particles.map((p) => (
-            <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
-              style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
-          ))}
-        </footer>
-      )}
-    </div>
+            {/* Particles */}
+            {particles.map((p) => (
+              <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
+                style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
+            ))}
+          </footer>
+        )
+      }
+    </div >
   );
 }
 
