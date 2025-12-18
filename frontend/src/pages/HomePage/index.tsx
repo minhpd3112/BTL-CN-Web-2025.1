@@ -7,6 +7,7 @@ import { Course, User, Page, Tag as TagType } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { StatsCounter } from '@/components/shared/StatsCounter';
 import { Snowfall } from '@/components/christmas/Snowfall';
+import { ChristmasCardWrapper } from '@/components/christmas/ChristmasCardWrapper';
 import './styles.css';
 
 interface HomePageProps {
@@ -167,6 +168,10 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
           {publicCourses.slice(0, 6).map((course, index) => (
             <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
+
+              <ChristmasCardWrapper>
+
+
               <CourseCard
                 course={course}
                 onClick={() => {
@@ -174,6 +179,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                   navigateTo('course-detail');
                 }}
               />
+             </ChristmasCardWrapper>
             </AnimatedSection>
           ))}
         </div>
