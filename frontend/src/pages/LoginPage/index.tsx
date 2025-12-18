@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GraduationCap, Users, BookOpen, TrendingUp, Award, Video, Sparkles } from 'lucide-react';
+import { GraduationCap, Users, BookOpen, TrendingUp, Award, Video, Sparkles, Mail, Lock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,57 +32,66 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-const handleEmailLogin = async (e: React.FormEvent) => {
-  e.preventDefault(); // Rất quan trọng để tránh load lại trang
-  setIsLoading(true);
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); // Rất quan trọng để tránh load lại trang
+    setIsLoading(true);
 
-  try {
-    if (isSignUp) {
-      // Nếu đang ở trạng thái Đăng ký
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: 'Người dùng mới' }
+    try {
+      if (isSignUp) {
+        // Nếu đang ở trạng thái Đăng ký
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: 'Người dùng mới' }
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+          toast.success("Đăng ký thành công! Giờ bạn có thể đăng nhập.");
+          setIsSignUp(false); // Chuyển giao diện về Đăng nhập
         }
-      });
+      } else {
+        // Nếu đang ở trạng thái Đăng nhập
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) throw error;
-      
-      if (data.user) {
-        toast.success("Đăng ký thành công! Giờ bạn có thể đăng nhập.");
-        setIsSignUp(false); // Chuyển giao diện về Đăng nhập
+        if (error) throw error;
+
+        if (data?.user) {
+          const realUser: User = {
+            id: parseInt(data.user.id) || Date.now(),
+            username: data.user.email?.split('@')[0] || 'user',
+            password: '',
+            email: data.user.email || '',
+            name: data.user.user_metadata?.full_name || 'Người dùng mới',
+            avatar: data.user.user_metadata?.avatar_url || '',
+            role: 'user',
+            joinedDate: new Date().toISOString(),
+            coursesCreated: 0,
+            coursesEnrolled: 0,
+            totalStudents: 0,
+            status: 'active',
+            lastLogin: new Date().toISOString(),
+            googleId: data.user.id,
+          };
+          localStorage.setItem('user_data', JSON.stringify(realUser));
+          onLogin(realUser);
+          toast.success("Đăng nhập thành công!");
+        }
       }
-    } else {
-      // Nếu đang ở trạng thái Đăng nhập
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      if (data?.user) {
-        const realUser = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.user_metadata.full_name || 'Người dùng mới',
-          avatar: data.user.user_metadata.avatar_url || '',
-          role: 'user',
-        };
-        localStorage.setItem('user_data', JSON.stringify(realUser));
-        onLogin(realUser);
-        toast.success("Đăng nhập thành công!");
-      }
+    } catch (error: any) {
+      // Xử lý lỗi từ Supabase (ví dụ: sai mật khẩu, email đã tồn tại...)
+      toast.error(error.message || "Đã có lỗi xảy ra");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error: any) {
-    // Xử lý lỗi từ Supabase (ví dụ: sai mật khẩu, email đã tồn tại...)
-    toast.error(error.message || "Đã có lỗi xảy ra");
-  } finally {
-    setIsLoading(false);
-  }
-};
- 
+  };
+
 
 
   const handleQuickLogin = (user: User) => {
@@ -96,7 +105,7 @@ const handleEmailLogin = async (e: React.FormEvent) => {
       provider: 'google',
       options: {
         // Đảm bảo URL này là chính xác
-        redirectTo: window.location.origin + '/', 
+        redirectTo: window.location.origin + '/',
       },
     });
 
@@ -105,7 +114,7 @@ const handleEmailLogin = async (e: React.FormEvent) => {
     } else {
       // Supabase sẽ tự chuyển hướng người dùng đến trang đăng nhập Google
       // và sau đó quay lại trang đã chỉ định trong redirectTo
-      toast.success('Đang chuyển hướng đến Google...'); 
+      toast.success('Đang chuyển hướng đến Google...');
     }
   };
 
@@ -181,38 +190,60 @@ const handleEmailLogin = async (e: React.FormEvent) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 px-8">
-                  <form onSubmit={handleEmailLogin} className="space-y-4">
+                  <form onSubmit={handleEmailLogin} className="space-y-5">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={isLoading}
-                        required
-                      />
+                      <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
+                      <div className="relative group">
+                        <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400 group-focus-within:text-[#1E88E5] transition-colors" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1E88E5]/20 focus:border-[#1E88E5] transition-all duration-200 rounded-lg"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="password">Mật khẩu</Label>
+                        <Label htmlFor="password" className="text-gray-700 font-medium">Mật khẩu</Label>
                         {!isSignUp && (
-                          <a href="#" className="text-xs text-[#1E88E5] hover:underline">Quên mật khẩu?</a>
+                          <a href="#" className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors">Quên mật khẩu?</a>
                         )}
                       </div>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoading}
-                        required
-                      />
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400 group-focus-within:text-[#1E88E5] transition-colors" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1E88E5]/20 focus:border-[#1E88E5] transition-all duration-200 rounded-lg"
+                        />
+                      </div>
                     </div>
-                    <Button type="submit" className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white" disabled={isLoading}>
-                      {isLoading ? 'Đang xử lý...' : (isSignUp ? 'Đăng ký' : 'Đăng nhập')}
+                    <Button
+                      type="submit"
+                      className="w-full h-11 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] hover:from-[#1976D2] hover:to-[#0D47A1] text-white shadow-lg shadow-blue-500/30 rounded-lg font-semibold text-base transition-all duration-300 hover:scale-[1.01] active:scale-[0.98]"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Đang xử lý...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          {isSignUp ? 'Đăng ký miễn phí' : 'Đăng nhập'}
+                          {!isSignUp && <ArrowRight className="w-4 h-4" />}
+                        </div>
+                      )}
                     </Button>
 
                     <div className="text-center text-sm">
@@ -321,7 +352,7 @@ const handleEmailLogin = async (e: React.FormEvent) => {
       </div>
 
       {/* ĐÃ XÓA GOOGLE LOGIN MODAL (Dialog component) Ở ĐÂY */}
-      <Toaster position="top-right" richColors closeButton />               
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 }

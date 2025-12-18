@@ -1,6 +1,17 @@
 import { useState } from 'react';
-import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -82,6 +93,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     const [lessonTitle, setLessonTitle] = useState('');
     const [youtubeUrl, setYoutubeUrl] = useState('');
     const [lessonContent, setLessonContent] = useState('');
+    const [pdfUrl, setPdfUrl] = useState('');
     const [showQuizEditor, setShowQuizEditor] = useState(false);
     const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
@@ -127,6 +139,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         setLessonTitle(lesson.title);
         setYoutubeUrl(lesson.youtubeUrl || '');
         setLessonContent(lesson.content || '');
+        setPdfUrl(lesson.pdfUrl || '');
         setQuizQuestions(lesson.quizQuestions || []);
         setShowAddLesson(true);
     };
@@ -152,6 +165,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     type: lessonType,
                     ...(lessonType === 'video' && { youtubeUrl }),
                     ...(lessonType === 'text' && { content: lessonContent }),
+                    ...(lessonType === 'pdf' && { pdfUrl }),
                     ...(lessonType === 'quiz' && { quizQuestions })
                 };
 
@@ -171,7 +185,8 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     type: lessonType,
                     duration: '15:00',
                     ...(lessonType === 'video' && { youtubeUrl }),
-                    ...(lessonType === 'text' && { content: lessonContent })
+                    ...(lessonType === 'text' && { content: lessonContent }),
+                    ...(lessonType === 'pdf' && { pdfUrl })
                 };
 
                 setSections(sections.map(section =>
@@ -186,6 +201,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             setLessonTitle('');
             setYoutubeUrl('');
             setLessonContent('');
+            setPdfUrl('');
             setEditingLesson(null);
             setShowAddLesson(false);
         }
@@ -265,9 +281,9 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         <div className="max-w-5xl mx-auto py-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle>Thông tin cơ bản</CardTitle>
+                    <Card className="mb-6 hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Thông tin cơ bản</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
@@ -415,14 +431,16 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
+                    <Card className="hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
                             <div className="flex items-center justify-between">
-                                <CardTitle>Nội dung khóa học</CardTitle>
+                                <CardTitle className="text-lg font-bold text-[#1E88E5]">
+                                    Nội dung khóa học
+                                </CardTitle>
                                 <div className="flex gap-2">
                                     <Dialog open={showAddSection} onOpenChange={setShowAddSection}>
                                         <DialogTrigger asChild>
-                                            <Button size="sm" variant="outline">
+                                            <Button size="sm" className="bg-[#1E88E5] text-white hover:bg-[#1565C0]">
                                                 <Plus className="w-4 h-4 mr-2" />
                                                 Thêm mục
                                             </Button>
@@ -462,11 +480,12 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                             setLessonTitle('');
                                             setYoutubeUrl('');
                                             setLessonContent('');
+                                            setPdfUrl('');
                                             setQuizQuestions([]);
                                         }
                                     }}>
                                         <DialogTrigger asChild>
-                                            <Button size="sm" disabled={sections.length === 0}>
+                                            <Button size="sm" disabled={sections.length === 0} className="bg-[#1E88E5] text-white hover:bg-[#1565C0]">
                                                 <Plus className="w-4 h-4 mr-2" />
                                                 Thêm mục nhỏ
                                             </Button>
@@ -561,18 +580,19 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
                                                 {lessonType === 'pdf' && (
                                                     <div>
-                                                        <Label htmlFor="pdf-file">Tải lên file PDF</Label>
-                                                        <div className="mt-2">
-                                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
-                                                                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                                                <p className="text-sm text-gray-600 mb-1">
-                                                                    Kéo thả file PDF vào đây hoặc click để chọn
-                                                                </p>
-                                                                <p className="text-xs text-gray-500">
-                                                                    Tối đa 50MB
-                                                                </p>
-                                                            </div>
+                                                        <Label htmlFor="pdf-url">Link Google Drive PDF *</Label>
+                                                        <div className="flex gap-2 mt-2">
+                                                            <LinkIcon className="w-5 h-5 text-gray-400 mt-2" />
+                                                            <Input
+                                                                id="pdf-url"
+                                                                placeholder="https://drive.google.com/file/d/.../view"
+                                                                value={pdfUrl}
+                                                                onChange={(e) => setPdfUrl(e.target.value)}
+                                                            />
                                                         </div>
+                                                        <p className="text-sm text-gray-600 mt-2">
+                                                            💡 Paste link chia sẻ từ Google Drive (đảm bảo quyền xem công khai)
+                                                        </p>
                                                     </div>
                                                 )}
 
@@ -585,6 +605,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                     setLessonTitle('');
                                                     setYoutubeUrl('');
                                                     setLessonContent('');
+                                                    setPdfUrl('');
                                                 }}>
                                                     Hủy
                                                 </Button>
@@ -680,29 +701,69 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-12">
-                                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                                    <h4 className="mb-2">Chưa có mục nào</h4>
-                                    <p className="text-gray-600 mb-6 text-sm">
+                                <div className="text-center py-16">
+                                    <div className="w-20 h-20 rounded-full bg-[#1E88E5]/10 flex items-center justify-center mx-auto mb-4">
+                                        <BookOpen className="w-10 h-10 text-[#1E88E5]" />
+                                    </div>
+                                    <h4 className="font-semibold text-gray-900 mb-2">Chưa có mục nào</h4>
+                                    <p className="text-gray-500 mb-6 text-sm max-w-xs mx-auto">
                                         Hãy tạo mục đầu tiên để bắt đầu xây dựng khóa học
                                     </p>
-                                    <Button variant="outline" onClick={() => setShowAddSection(true)}>
-                                        <Plus className="w-4 h-4 mr-2" />
+                                    <button
+                                        onClick={() => setShowAddSection(true)}
+                                        className="inline-flex items-center justify-center gap-2 h-9 px-4 py-2 rounded-md text-sm font-medium border-2 border-[#1E88E5] text-[#1E88E5] bg-white hover:bg-[#1E88E5] hover:text-white transition-all duration-200"
+                                    >
+                                        <Plus className="w-4 h-4" />
                                         Tạo mục đầu tiên
-                                    </Button>
+                                    </button>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-lg transition-shadow duration-300 border-red-200 bg-red-50/30 mt-8">
+                        <CardHeader className="border-b border-red-100 bg-red-50/50">
+                            <CardTitle className="text-lg font-bold text-red-600">
+                                Vùng nguy hiểm
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3">
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <button className="w-full inline-flex items-center justify-center gap-2 h-9 px-4 py-2 rounded-md text-sm font-medium text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200">
+                                        <Trash2 className="w-4 h-4" />
+                                        Xóa khóa học
+                                    </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-white z-[9999] border-2">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Bạn có chắc chắn không?</AlertDialogTitle>
+                                        <AlertDialogDescription>Hành động này không thể hoàn tác. Khóa học sẽ bị xóa vĩnh viễn.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => {
+                                                toast.success('Đã xóa khóa học thành công');
+                                                navigateTo('my-courses');
+                                            }}
+                                            className="bg-red-600 text-white hover:bg-red-700"
+                                        >
+                                            Xác nhận xóa
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </CardContent>
                     </Card>
                 </div>
 
                 <div className="lg:col-span-1">
-                    <Card className="sticky top-20">
-                        <CardHeader>
-                            <CardTitle>Hành động</CardTitle>
+                    <Card className="sticky top-20 hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Hành động</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
-                            <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0]" onClick={handleSaveChanges}>
+                        <CardContent className="space-y-3 pt-6">
+                            <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md hover:shadow-lg transition-all" onClick={handleSaveChanges}>
                                 Lưu thay đổi
                             </Button>
                         </CardContent>
@@ -725,6 +786,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     />
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }
