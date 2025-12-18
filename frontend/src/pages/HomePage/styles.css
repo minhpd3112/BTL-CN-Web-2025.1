@@ -106,9 +106,12 @@
 
 /* Floating Animation for Stats Background */
 @keyframes home-float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-1rem);
   }
@@ -126,7 +129,7 @@
 /* Course Cards Grid */
 .home-course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   align-items: stretch;
 }
@@ -135,4 +138,5 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  max-width: 420px;
 }

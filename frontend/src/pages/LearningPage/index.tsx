@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, Play, FileText, Award } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award } from 'lucide-react';
+import { LearningHeader } from './components/LearningHeader';
+import { CourseSidebar } from './components/CourseSidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -77,16 +79,16 @@ const mockSections = [
     id: 1,
     title: 'Giới thiệu',
     lessons: [
-      { id: 1, title: 'Giới thiệu khóa học', type: 'video', duration: '10:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: true },
-      { id: 2, title: 'Cài đặt môi trường', type: 'video', duration: '15:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: true },
+      { id: 1, title: 'Giới thiệu khóa học', type: 'video', duration: '10:00', youtubeUrl: 'https://www.youtube.com/watch?v=kcdMj9IImEs', completed: true },
+      { id: 2, title: 'Cài đặt môi trường', type: 'video', duration: '15:00', youtubeUrl: 'https://www.youtube.com/watch?v=kcdMj9IImEs', completed: true },
     ]
   },
   {
     id: 2,
     title: 'Nội dung chính',
     lessons: [
-      { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', completed: false },
-      { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', completed: false },
+      { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', youtubeUrl: 'https://www.youtube.com/watch?v=kcdMj9IImEs', completed: false },
+      { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', pdfUrl: 'https://drive.google.com/file/d/1403bMpvCH1IxV-B7ZU50YU64C2M4OfmF/preview', completed: false },
       { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false },
     ]
   }
@@ -100,7 +102,8 @@ interface LearningPageProps {
 export function LearningPage({ course, navigateTo }: LearningPageProps) {
   const [selectedLesson, setSelectedLesson] = useState(mockSections[0].lessons[0]);
   const [expandedSections, setExpandedSections] = useState<number[]>([1, 2]);
-  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
@@ -155,10 +158,10 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       return;
     }
     setShowResults(true);
-    
+
     const correctCount = mockQuizQuestions.filter(q => quizAnswers[q.id] === q.correctAnswer).length;
     const percentage = (correctCount / mockQuizQuestions.length) * 100;
-    
+
     if (percentage >= 80) {
       toast.success(`Xuất sắc! Bạn đạt ${correctCount}/${mockQuizQuestions.length} câu đúng (${percentage.toFixed(0)}%)`);
     } else if (percentage >= 50) {
@@ -174,266 +177,232 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     toast.success('Đã làm mới quiz!');
   };
 
-  return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 p-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex-1">
-              <h2 className="mb-1">{course.title}</h2>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span>{completedLessons}/{allLessons.length} mục đã hoàn thành</span>
-                <Progress value={progress} className="w-48 h-2" />
-                <span>{progress.toFixed(0)}%</span>
-              </div>
-            </div>
-            <Button variant="outline" onClick={() => navigateTo('my-courses')}>
-              Thoát khóa học
-            </Button>
-          </div>
-        </div>
+  // Transform data for Sidebar
+  const sidebarSections = mockSections.map(s => ({
+    ...s,
+    lessons: s.lessons.map(l => ({
+      ...l,
+      type: l.type as 'video' | 'pdf' | 'quiz',
+      isCompleted: l.completed,
+      isLocked: false // Default unlock for demo
+    }))
+  }));
 
-        {/* Video/Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="h-full flex flex-col">
-            {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
-              <div className="flex-1 bg-black flex items-center justify-center p-6">
-                <div className="w-full max-w-6xl">
-                  <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
-                    <iframe
-                      src={getYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
-                      className="w-full h-full"
-                      title={selectedLesson.title}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                  <div className="mt-6 text-center">
-                    <h3 className="text-white mb-2">{selectedLesson.title}</h3>
-                    <p className="text-gray-400 text-sm">{selectedLesson.duration}</p>
-                  </div>
+  return (
+    <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
+      {/* 1. Header */}
+      <LearningHeader
+        courseTitle={course.title}
+        progress={progress}
+        completedLessons={completedLessons}
+        totalLessons={allLessons.length}
+        onBack={() => navigateTo('my-courses')}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* 2. Main Content Area */}
+        <div className="flex-1 flex flex-col relative overflow-y-auto custom-scrollbar">
+          {/* Video Stage - Height-first approach */}
+          {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
+            <div className="flex flex-col transition-all duration-300 overflow-hidden">
+              <div className="w-full flex items-center justify-center bg-gray-100 p-2 md:p-4">
+                <div className="h-[calc(100vh-380px)] w-auto aspect-video max-w-[95%] xl:max-w-[90%] mx-auto shadow-xl rounded-lg overflow-hidden relative group">
+                  <iframe
+                    src={getYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
+                    className="w-full h-full"
+                    title={selectedLesson.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
                 </div>
               </div>
-            )}
-            
-            {selectedLesson.type === 'pdf' && (
-              <div className="flex-1 bg-gray-900 flex items-center justify-center p-6">
-                <div className="w-full h-full max-w-6xl flex flex-col">
-                  <div className="flex-1 bg-white rounded-lg overflow-hidden shadow-2xl">
+            </div>
+          )}
+
+          {/* PDF/Quiz Stage - Original flex-1 approach */}
+          {(selectedLesson.type === 'pdf' || selectedLesson.type === 'quiz') && (
+            <div className="flex-1 flex flex-col min-h-[50vh] transition-all duration-300">
+              {selectedLesson.type === 'pdf' && (
+                <div className="flex-1 bg-gray-100 flex items-center justify-center p-2 md:p-4 h-full">
+                  <div className="w-full h-full max-w-[95%] xl:max-w-[90%] bg-white rounded-lg shadow-lg overflow-hidden relative">
                     {selectedLesson.pdfUrl && selectedLesson.pdfUrl !== '#' ? (
-                      <iframe
-                        src={selectedLesson.pdfUrl}
-                        className="w-full h-full"
-                        title={selectedLesson.title}
-                        frameBorder="0"
-                      />
+                      <>
+                        <iframe
+                          src={selectedLesson.pdfUrl}
+                          className="w-full h-full"
+                          title={selectedLesson.title}
+                          allow="autoplay"
+                        />
+                        {/* Overlay trong suốt để chặn click nút "Open in new window" */}
+                        <div className="absolute top-0 right-0 w-20 h-14 z-10 cursor-default" />
+                      </>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                        <div className="text-center p-8">
-                          <FileText className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                          <h3 className="mb-2">{selectedLesson.title}</h3>
-                          <p className="text-gray-600">Tài liệu PDF chưa được tải lên</p>
-                        </div>
+                      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <FileText className="w-16 h-16 mb-4 opacity-50" />
+                        <p>Tài liệu đang được cập nhật</p>
                       </div>
                     )}
                   </div>
-                  <div className="mt-6 text-center">
-                    <h3 className="text-white mb-2">{selectedLesson.title}</h3>
-                    <p className="text-gray-400 text-sm">{selectedLesson.duration}</p>
-                  </div>
                 </div>
-              </div>
-            )}
-            
-            {selectedLesson.type === 'quiz' && (
-              <div className="flex-1 overflow-y-auto p-8">
-                <div className="max-w-4xl mx-auto">
-                  <Card>
-                    <CardContent className="p-8">
-                      <div className="text-center mb-8">
-                        <Award className="w-16 h-16 text-[#1E88E5] mx-auto mb-4" />
-                        <h2 className="mb-2">{selectedLesson.title}</h2>
-                        <p className="text-gray-600">
-                          {showResults ? 'Kết quả bài kiểm tra' : 'Trả lời tất cả các câu hỏi bên dưới'}
-                        </p>
-                      </div>
+              )}
 
-                      <div className="space-y-8">
-                        {mockQuizQuestions.map((question, qIndex) => {
-                          const userAnswer = quizAnswers[question.id];
-                          const isCorrect = userAnswer === question.correctAnswer;
-                          
-                          return (
-                            <Card key={question.id} className={showResults ? (isCorrect ? 'border-green-500' : 'border-red-500') : ''}>
-                              <CardContent className="p-6">
-                                <div className="flex items-start gap-3 mb-4">
-                                  <Badge variant="secondary" className="mt-1">
+              {selectedLesson.type === 'quiz' && (
+                <div className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-8 flex justify-center">
+                  <div className="w-full max-w-3xl">
+                    <Card className="border-0 shadow-xl bg-white/95 backdrop-blur">
+                      <CardContent className="p-8">
+                        {/* Quiz Header */}
+                        <div className="text-center mb-8">
+                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Award className="w-8 h-8 text-[#1E88E5]" />
+                          </div>
+                          <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedLesson.title}</h1>
+                          <p className="text-gray-500">
+                            {showResults ? 'Kết quả bài kiểm tra' : 'Trả lời các câu hỏi sau để hoàn thành bài học'}
+                          </p>
+                        </div>
+
+                        {/* Quiz Questions */}
+                        <div className="space-y-6">
+                          {mockQuizQuestions.map((question, qIndex) => {
+                            const userAnswer = quizAnswers[question.id];
+                            const isCorrect = userAnswer === question.correctAnswer;
+
+                            return (
+                              <div key={question.id} className={`p-6 rounded-xl border-2 transition-all ${showResults
+                                ? (isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50')
+                                : 'border-gray-100 bg-white hover:border-blue-100'
+                                }`}>
+                                <div className="flex gap-3 mb-4">
+                                  <Badge variant={showResults && isCorrect ? "default" : "secondary"} className={showResults && isCorrect ? "bg-green-500 hover:bg-green-600 h-6" : "h-6"}>
                                     Câu {qIndex + 1}
                                   </Badge>
-                                  <h4 className="flex-1">{question.question}</h4>
-                                  {showResults && (
-                                    <Badge className={isCorrect ? 'bg-green-500' : 'bg-red-500'}>
-                                      {isCorrect ? '✓ Đúng' : '✗ Sai'}
-                                    </Badge>
-                                  )}
+                                  <h3 className="font-semibold text-gray-800 text-lg">{question.question}</h3>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-3 pl-2">
                                   {question.options.map((option, optIndex) => {
                                     const isThisCorrect = optIndex === question.correctAnswer;
                                     const isUserSelection = userAnswer === optIndex;
-                                    
+
+                                    let btnColor = "border-gray-200 hover:bg-gray-50 hover:border-gray-300";
+                                    if (showResults) {
+                                      if (isThisCorrect) btnColor = "bg-green-600 border-green-600 text-white";
+                                      else if (isUserSelection) btnColor = "bg-red-500 border-red-500 text-white";
+                                    } else {
+                                      if (isUserSelection) btnColor = "bg-[#1E88E5] border-[#1E88E5] text-white shadow-md";
+                                    }
+
                                     return (
                                       <button
                                         key={optIndex}
-                                        type="button"
                                         disabled={showResults}
                                         onClick={() => !showResults && handleQuizAnswerChange(question.id, optIndex)}
-                                        className={`w-full flex items-center space-x-3 p-4 rounded-lg border-2 transition-all text-left ${
-                                          showResults
-                                            ? isThisCorrect
-                                              ? 'border-green-500 bg-green-500 text-white'
-                                              : isUserSelection
-                                              ? 'border-red-500 bg-red-500 text-white'
-                                              : 'border-gray-200 bg-white'
-                                            : isUserSelection
-                                            ? 'border-[#1E88E5] bg-[#1E88E5] text-white'
-                                            : 'border-gray-200 hover:border-[#1E88E5] hover:bg-blue-50 cursor-pointer'
-                                        } ${showResults ? 'cursor-not-allowed' : ''}`}
+                                        className={`w-full text-left p-3.5 rounded-lg border transition-all flex items-center justify-between group ${btnColor}`}
                                       >
-                                        <span className="flex-1">
+                                        <span className={isUserSelection || (showResults && isThisCorrect) ? "font-medium" : "text-gray-600"}>
                                           {option}
                                         </span>
-                                        {showResults && isThisCorrect && (
-                                          <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                                        )}
+                                        {showResults && isThisCorrect && <CheckCircle className="w-5 h-5 text-white" />}
                                       </button>
-                                    );
+                                    )
                                   })}
                                 </div>
 
-                                {showResults && (
-                                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <p className="text-sm text-blue-900">
-                                      <strong>Giải thích:</strong> {question.explanation}
-                                    </p>
+                                {showResults && !isCorrect && userAnswer !== undefined && (
+                                  <div className="mt-4 text-sm text-red-600 bg-red-100/50 p-3 rounded">
+                                    <p>Đáp án đúng là: <strong>{question.options[question.correctAnswer]}</strong></p>
                                   </div>
                                 )}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
+                                {showResults && (
+                                  <div className="mt-3 text-sm text-gray-600 italic border-l-2 border-gray-300 pl-3">
+                                    Giải thích: {question.explanation}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
 
-                      <div className="mt-8 flex gap-4 justify-center">
-                        {!showResults ? (
-                          <Button
-                            size="lg"
-                            className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
-                            onClick={handleSubmitQuiz}
-                          >
-                            Nộp bài
-                          </Button>
-                        ) : (
-                          <Button
-                            size="lg"
-                            variant="outline"
-                            onClick={handleResetQuiz}
-                          >
-                            Làm lại
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom Navigation */}
-        <div className="bg-white border-t border-gray-200 p-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Button 
-              variant="outline" 
-              onClick={handlePrevious}
-              disabled={!canGoPrevious}
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Trước
-            </Button>
-            <div className="text-center">
-              <div className="text-sm text-gray-600">Mục {currentIndex + 1} / {allLessons.length}</div>
-            </div>
-            <Button 
-              className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
-              onClick={handleNext}
-              disabled={!canGoNext}
-            >
-              Tiếp
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Sidebar */}
-      <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
-        <div className="p-4">
-          <h3 className="mb-4">Nội dung khóa học</h3>
-          <div className="space-y-2">
-            {mockSections.map((section) => (
-              <div key={section.id} className="border rounded-lg overflow-hidden">
-                <button
-                  className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
-                  onClick={() => toggleSection(section.id)}
-                >
-                  <span className="font-medium">{section.title}</span>
-                  <Badge variant="secondary">{section.lessons.length}</Badge>
-                </button>
-                {expandedSections.includes(section.id) && (
-                  <div className="p-2 space-y-1">
-                    {section.lessons.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        onClick={() => {
-                          setSelectedLesson(lesson);
-                          setShowResults(false);
-                          setQuizAnswers({});
-                        }}
-                        className={`w-full p-3 text-left rounded-lg transition-all flex items-start gap-3 ${
-                          selectedLesson.id === lesson.id
-                            ? 'bg-[#1E88E5]/10 border-2 border-[#1E88E5]'
-                            : 'hover:bg-gray-50 border-2 border-transparent'
-                        }`}
-                      >
-                        <div className="mt-0.5">
-                          {lesson.completed ? (
-                            <CheckCircle className="w-5 h-5 text-green-500" />
+                        {/* Quiz Actions */}
+                        <div className="mt-10 flex justify-center pb-4">
+                          {!showResults ? (
+                            <Button size="lg" onClick={handleSubmitQuiz} className="bg-[#1E88E5] hover:bg-[#1565C0] text-white px-8 h-12 text-lg shadow-blue-200 shadow-lg">
+                              Nộp bài
+                            </Button>
                           ) : (
-                            <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                            <Button size="lg" variant="outline" onClick={handleResetQuiz} className="px-8 h-12">
+                              Làm lại
+                            </Button>
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm mb-1">{lesson.title}</div>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            {lesson.type === 'video' && <Play className="w-3 h-3" />}
-                            {lesson.type === 'pdf' && <FileText className="w-3 h-3" />}
-                            {lesson.type === 'quiz' && <Award className="w-3 h-3" />}
-                            <span>{lesson.duration}</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                      </CardContent>
+                    </Card>
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Lesson Info & Navigation (Below Player) */}
+          <div className="bg-white text-gray-700 p-2 md:p-4 min-h-[300px] border-t border-gray-200">
+            <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto">
+              <div className="flex items-start justify-between mb-8 pb-8 border-b border-gray-200">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">{selectedLesson.title}</h2>
+                  <p className="text-gray-500">Đã cập nhật tháng 12/2024</p>
+                </div>
+                {/* Navigation Buttons */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handlePrevious}
+                    disabled={!canGoPrevious}
+                    className="bg-[#1E88E5] hover:bg-[#1565C0] text-white border-0"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-2" /> Bài trước
+                  </Button>
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canGoNext}
+                    className="bg-[#1E88E5] hover:bg-[#1565C0] text-white border-0"
+                  >
+                    Bài tiếp <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               </div>
-            ))}
+
+              {/* Description / Content placeholder */}
+              <div className="prose max-w-none">
+                <h3 className="text-gray-800">Giới thiệu bài học</h3>
+                <p className="text-gray-600">
+                  Chào mừng bạn đến với bài học <strong>"{selectedLesson.title}"</strong>.
+                  Trong phần này, chúng ta sẽ đi sâu vào các kiến thức quan trọng, đảm bảo bạn nắm vững nền tảng trước khi bước sang các module nâng cao.
+                </p>
+                <p className="text-gray-600">Hãy chú ý theo dõi video và ghi chú lại những điểm chính nhé!</p>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* 3. Right Sidebar */}
+        <div
+          className={`hidden md:block flex-shrink-0 h-full transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[350px] opacity-100' : 'w-0 opacity-0 overflow-hidden'
+            }`}
+        >
+          <CourseSidebar
+            sections={sidebarSections}
+            currentLessonId={selectedLesson.id}
+            onSelectLesson={(id: number) => {
+              const lesson = allLessons.find(l => l.id === id);
+              if (lesson) {
+                setSelectedLesson(lesson);
+                setShowResults(false);
+                setQuizAnswers({});
+              }
+            }}
+          />
         </div>
       </div>
     </div>
