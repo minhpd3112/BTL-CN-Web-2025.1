@@ -3,8 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Course } from '@/types';
 import { Eye, Globe, Lock, ArrowUpRight } from 'lucide-react';
-import { ReactNode, useState } from 'react';
-import { Button } from '../ui/button';
+import { ReactNode } from 'react';
 
 interface CourseListCardProps {
     course: Course & { progress?: number; completedLessons?: number };
@@ -14,14 +13,10 @@ interface CourseListCardProps {
 }
 
 export function CourseListCard({ course, onClick, action, showProgress = false }: CourseListCardProps) {
-    const [isHovered, setIsHovered] = useState(false);
-
     return (
         <Card
             className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white"
             onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
             <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row gap-0 md:gap-4">
@@ -64,17 +59,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
 
                                 {/* Top Right Actions - Moved View Details Here */}
                                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                    {!showProgress && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-gray-400 hover:text-[#1E88E5] hover:bg-[#1E88E5]/10"
-                                            onClick={onClick}
-                                            title="Xem chi tiết"
-                                        >
-                                            <ArrowUpRight className="w-5 h-5" />
-                                        </Button>
-                                    )}
+
                                     {action}
                                 </div>
                             </div>

@@ -198,8 +198,8 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
         {tagCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tagCourses.map((course, index) => (
-              <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>
-                <div className="max-w-[420px]">
+              <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
+                <div className="max-w-[420px] h-full">
                   <CourseCard
                     course={course}
                     onClick={() => {

@@ -19,6 +19,8 @@ import { CourseDashboardPage } from '@/pages/CourseDashboardPage';
 import { LearningPage } from '@/pages/LearningPage';
 import { QuizPage } from '@/pages/QuizPage';
 import { ManageTagsPage } from '@/pages/ManageTagsPage';
+import Lottie from 'lottie-react';
+import avatarFrameAnimation from '@/components/christmas/Entri Christmas.json';
 import { ManageUsersPage } from '@/pages/ManageUsersPage';
 import { ManageCoursesPage } from '@/pages/ManageCoursesPage';
 import { UserDetailPage } from '@/pages/UserDetailPage';
@@ -226,13 +228,17 @@ export function AppShell({ state, actions }: AppShellProps) {
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-3 px-2 py-2 hover:bg-[#1E88E5]/5 rounded-lg transition-all group outline-none focus:outline-none" onClick={() => setIsAvatarPinned(!isAvatarPinned)}>
                       <div className="relative">
-                        <Avatar className="w-10 h-10 ring-2 ring-[#1E88E5]/30 transition-all group-hover:ring-[#1E88E5] group-hover:ring-4 group-hover:scale-110">
+                        {/* Lottie Avatar Frame */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-[51%] -translate-y-[47%] w-[175%] h-[175%] pointer-events-none z-10">
+                          <Lottie animationData={avatarFrameAnimation} loop={true} />
+                        </div>
+
+                        <Avatar className="w-10 h-10 transition-all group-hover:scale-110 relative z-20 bg-white">
                           <AvatarImage src={currentUser?.avatar} alt={currentUser?.name} className="object-cover" />
                           <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
                             {currentUser?.name?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="absolute -inset-2 bg-[#1E88E5]/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
                       </div>
                       <span className="hidden md:inline-block font-semibold bg-gradient-to-r from-[#1E88E5] to-[#0D47A1] bg-clip-text text-transparent">
                         {currentUser?.name}
@@ -251,108 +257,122 @@ export function AppShell({ state, actions }: AppShellProps) {
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </div >
+      </header >
       {/* Mobile Sidebar */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => setSidebarOpen(false)}
-          />
+      {
+        sidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/50"
+              onClick={() => setSidebarOpen(false)}
+            />
 
-          {/* Sidebar Panel */}
-          <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-8 h-8 text-[#1E88E5]" />
-                <span className="text-xl font-bold text-[#1E88E5]">Menu</span>
+            {/* Sidebar Panel */}
+            <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-8 h-8 text-[#1E88E5]" />
+                  <span className="text-xl font-bold text-[#1E88E5]">Menu</span>
+                </div>
+                <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <XIcon className="w-5 h-5" />
+                </button>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <XIcon className="w-5 h-5" />
-              </button>
+
+              {/* Menu Items */}
+              <nav className="p-4 space-y-2">
+                <button
+                  onClick={() => { navigateTo('home'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <GraduationCap className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Trang chủ</span>
+                </button>
+
+                {currentRole !== 'admin' && (
+                  <button
+                    onClick={() => { navigateTo('explore'); setSidebarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                  >
+                    <Search className="w-5 h-5 text-[#1E88E5]" />
+                    <span>Khám phá</span>
+                  </button>
+                )}
+
+                {currentRole === 'admin' && (
+                  <button
+                    onClick={() => { navigateTo('admin-dashboard'); setSidebarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                  >
+                    <BarChart3 className="w-5 h-5 text-[#1E88E5]" />
+                    <span>Dashboard</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <BookOpen className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Khóa học của tôi</span>
+                </button>
+
+                <button
+                  onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                >
+                  <Plus className="w-5 h-5 text-[#1E88E5]" />
+                  <span>Tạo khóa học</span>
+                </button>
+
+                <Separator className="my-4" />
+
+                <button
+                  onClick={() => { navigateTo('account-settings'); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <User className="w-5 h-5 text-gray-600" />
+                  <span>Cài đặt tài khoản</span>
+                </button>
+
+                <button
+                  onClick={() => { handleLogout(); setSidebarOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Đăng xuất</span>
+                </button>
+              </nav>
             </div>
-
-            {/* Menu Items */}
-            <nav className="p-4 space-y-2">
-              <button
-                onClick={() => { navigateTo('home'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-              >
-                <GraduationCap className="w-5 h-5 text-[#1E88E5]" />
-                <span>Trang chủ</span>
-              </button>
-
-              {currentRole !== 'admin' && (
-                <button
-                  onClick={() => { navigateTo('explore'); setSidebarOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-                >
-                  <Search className="w-5 h-5 text-[#1E88E5]" />
-                  <span>Khám phá</span>
-                </button>
-              )}
-
-              {currentRole === 'admin' && (
-                <button
-                  onClick={() => { navigateTo('admin-dashboard'); setSidebarOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-                >
-                  <BarChart3 className="w-5 h-5 text-[#1E88E5]" />
-                  <span>Dashboard</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-              >
-                <BookOpen className="w-5 h-5 text-[#1E88E5]" />
-                <span>Khóa học của tôi</span>
-              </button>
-
-              <button
-                onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-              >
-                <Plus className="w-5 h-5 text-[#1E88E5]" />
-                <span>Tạo khóa học</span>
-              </button>
-
-              <Separator className="my-4" />
-
-              <button
-                onClick={() => { navigateTo('account-settings'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <User className="w-5 h-5 text-gray-600" />
-                <span>Cài đặt tài khoản</span>
-              </button>
-
-              <button
-                onClick={() => { handleLogout(); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Đăng xuất</span>
-              </button>
-            </nav>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <main className="page-transition flex-1">
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} setSelectedTag={setSelectedTag} currentUser={currentUser} />}
         {currentPage === 'my-courses' && <MyCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser!} />}
         {currentPage === 'explore' && <ExplorePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} />}
-        {currentPage === 'course-detail' && <CourseDetailPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser} isOwner={isOwner(selectedCourse)} canAccess={canAccessCourse(selectedCourse)} enrollmentRequests={enrollmentRequests} onEnrollRequest={handleEnrollRequest} />}
+        {currentPage === 'course-detail' && <CourseDetailPage course={selectedCourse} navigateTo={navigateTo} setSelectedUser={setSelectedUser} currentUser={currentUser} isOwner={isOwner(selectedCourse)} canAccess={canAccessCourse(selectedCourse)} enrollmentRequests={enrollmentRequests} onEnrollRequest={handleEnrollRequest} />}
         {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
         {currentPage === 'course-dashboard' && <CourseDashboardPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser!} enrollmentRequests={enrollmentRequests} onApproveRequest={handleApproveRequest} onRejectRequest={handleRejectRequest} />}
-        {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
+        {/* Admin Pages - Protected */}
+        {currentUser?.role === 'admin' && (
+          <>
+            {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
+            {currentPage === 'approve-courses' && <ApproveCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
+            {currentPage === 'manage-courses' && <ManageCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
+            {currentPage === 'manage-users' && <ManageUsersPage navigateTo={navigateTo} setSelectedUser={setSelectedUser} />}
+            {currentPage === 'manage-tags' && <ManageTagsPage navigateTo={navigateTo} setSelectedTag={setSelectedTag} />}
+          </>
+        )}
+
+        {/* Public/Shared Pages */}
+        {currentPage === 'user-detail' && <UserDetailPage user={selectedUser} navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
         {currentPage === 'account-settings' && currentUser && (
           <AccountSettingsPage
             user={currentUser}
@@ -362,26 +382,28 @@ export function AppShell({ state, actions }: AppShellProps) {
         )}
       </main>
 
-      {currentPage !== 'learning' && (
-        <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
-          <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
-            <div className="flex items-center justify-center gap-4 group">
-              <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
-              <div className="text-left">
-                <h2 className="text-4xl font-extrabold text-white">EduLearn</h2>
-                <p className="text-white/80 tracking-widest text-sm">Học tập không giới hạn</p>
+      {
+        currentPage !== 'learning' && (
+          <footer className="relative overflow-hidden mt-auto bg-gradient-to-br from-[#1E88E5] via-[#1565C0] to-[#0D47A1] py-16">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 text-center space-y-8">
+              <div className="flex items-center justify-center gap-4 group">
+                <GraduationCap className="w-16 h-16 text-white group-hover:rotate-12 transition-transform" />
+                <div className="text-left">
+                  <h2 className="text-4xl font-extrabold text-white">EduLearn</h2>
+                  <p className="text-white/80 tracking-widest text-sm">Học tập không giới hạn</p>
+                </div>
               </div>
+              <p className="text-white/70 text-sm">© 2025 EduLearn Platform. All rights reserved.</p>
             </div>
-            <p className="text-white/70 text-sm">© 2025 EduLearn Platform. All rights reserved.</p>
-          </div>
-          {/* Particles */}
-          {particles.map((p) => (
-            <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
-              style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
-          ))}
-        </footer>
-      )}
-    </div>
+            {/* Particles */}
+            {particles.map((p) => (
+              <div key={p.id} className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
+                style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }} />
+            ))}
+          </footer>
+        )
+      }
+    </div >
   );
 }
 

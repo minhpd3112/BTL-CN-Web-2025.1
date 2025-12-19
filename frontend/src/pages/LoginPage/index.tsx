@@ -15,7 +15,6 @@ import { User } from '@/types';
 // Không cần mockGoogleAccounts nữa
 import { AnimatedSection } from '@/utils/animations';
 // Không cần StatsCounter
-import { createClient } from '@supabase/supabase-js';
 import { authAPI } from '@/services/api'; // Giả sử api.ts nằm ở đường dẫn này
 
 

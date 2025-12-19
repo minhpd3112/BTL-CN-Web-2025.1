@@ -7,7 +7,7 @@ export type UserRole = 'admin' | 'user';
 export interface User {
   id: number;
   username: string;
-  password: string;
+  // NOTE: password đã bị xóa - frontend KHÔNG BAO GIỜ nên biết password của user
   role: UserRole;
   name: string;
   avatar: string;
@@ -161,24 +161,24 @@ export interface Activity {
   color: string;
 }
 
-export type Page = 
-  | 'login' 
-  | 'home' 
-  | 'my-courses' 
-  | 'explore' 
-  | 'course-detail' 
-  | 'learning' 
-  | 'quiz' 
-  | 'create-course' 
-  | 'edit-course' 
-  | 'course-dashboard' 
-  | 'create-quiz' 
-  | 'admin-dashboard' 
-  | 'approve-courses' 
-  | 'manage-courses' 
-  | 'manage-users' 
-  | 'user-detail' 
-  | 'manage-tags' 
-  | 'course-students' 
+export type Page =
+  | 'login'
+  | 'home'
+  | 'my-courses'
+  | 'explore'
+  | 'course-detail'
+  | 'learning'
+  | 'quiz'
+  | 'create-course'
+  | 'edit-course'
+  | 'course-dashboard'
+  | 'create-quiz'
+  | 'admin-dashboard'
+  | 'approve-courses'
+  | 'manage-courses'
+  | 'manage-users'
+  | 'user-detail'
+  | 'manage-tags'
+  | 'course-students'
   | 'account-settings'
   | 'tag-detail';

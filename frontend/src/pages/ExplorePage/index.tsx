@@ -1,10 +1,15 @@
-import { useState, useMemo } from 'react';
+
+import { useState, useMemo, useEffect } from 'react';
+
 import { Search, TrendingUp, Star, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { CourseCard } from '@/components/shared/CourseCard';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { DataPagination } from '@/components/shared/DataPagination';
+import { usePagination } from '@/hooks/usePagination';
+import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { useCoursesQuery } from '@/hooks/useCoursesQuery';
@@ -17,7 +22,7 @@ interface ExplorePageProps {
   currentUser: any;
 }
 
-export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: ExplorePageProps) {
+export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
@@ -58,33 +63,19 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
     setCurrentPage(1);
   };
 
-  const handleSortChange = (value: string) => {
-    setSortBy(value);
-    setCurrentPage(1);
-  };
+  // Reset page when filters change
+  useEffect(() => {
+    resetPage();
+  }, [searchQuery, selectedTag, sortBy, resetPage]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <AnimatedSection animation="fade-up">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <Search className="w-8 h-8 text-[#1E88E5]" />
-            <h1
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              Khám phá khóa học
-            </h1>
-          </div>
-          <p className="text-gray-600 ml-11">Tìm kiếm và khám phá khóa học phù hợp với bạn</p>
-          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        </div>
+        <PageHeader
+          icon={<Search className="w-8 h-8" />}
+          title="Khám phá khóa học"
+          description="Tìm kiếm và khám phá khóa học phù hợp với bạn"
+        />
       </AnimatedSection>
 
       {/* Search and Filter */}
@@ -97,17 +88,17 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
               <Input
                 placeholder="Tìm kiếm khóa học..."
                 value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-[#1E88E5]/20"
               />
             </div>
 
             {/* Tag Filter */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <Combobox
                 items={allTags.map(tag => ({ value: tag, label: tag === 'all' ? 'Tất cả chủ đề' : tag }))}
                 value={selectedTag}
-                onValueChange={(val) => handleTagChange(val || 'all')}
+                onValueChange={(val) => setSelectedTag(val || 'all')}
                 placeholder="Chọn chủ đề"
                 searchPlaceholder="Tìm chủ đề..."
                 emptyText="Không tìm thấy chủ đề."
@@ -116,9 +107,8 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
             </div>
 
             {/* Sort Dropdown */}
-            <div className="md:col-span-3 flex items-center gap-3">
-              <span className="text-sm text-gray-600 whitespace-nowrap">Sắp xếp:</span>
-              <Select value={sortBy} onValueChange={handleSortChange}>
+            <div className="md:col-span-2">
+              <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full transition-all duration-300 hover:border-[#1E88E5]/50">
                   <SelectValue />
                 </SelectTrigger>
@@ -175,72 +165,11 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <AnimatedSection animation="fade-up">
-              <div className="flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
-                      />
-                    </PaginationItem>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                      // Show first page, last page, current page, and pages around current
-                      const showPage =
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= currentPage - 1 && page <= currentPage + 1);
-
-                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
-                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
-
-                      if (showEllipsisBefore) {
-                        return (
-                          <PaginationItem key={`ellipsis-before-${page}`}>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        );
-                      }
-
-                      if (showEllipsisAfter) {
-                        return (
-                          <PaginationItem key={`ellipsis-after-${page}`}>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        );
-                      }
-
-                      if (!showPage) return null;
-
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(page)}
-                            className={currentPage === page
-                              ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0] rounded-md shadow-md border-transparent hover:text-white transition-all'
-                              : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md border-transparent text-gray-600 transition-all'
-                            }
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </AnimatedSection>
-          )}
+          <DataPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       ) : (
         <AnimatedSection animation="fade-up">

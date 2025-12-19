@@ -96,11 +96,6 @@ export function OverviewTab({ course, enrollmentRequests = [] }: OverviewTabProp
                                     <p className={`text-4xl font-bold ${coursePendingRequests.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
                                         {coursePendingRequests.length}
                                     </p>
-                                    {coursePendingRequests.length > 0 && (
-                                        <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full animate-pulse">
-                                            Cần xử lý
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                             <div className={`w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${coursePendingRequests.length > 0 ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-200' : 'bg-gray-100'}`}>

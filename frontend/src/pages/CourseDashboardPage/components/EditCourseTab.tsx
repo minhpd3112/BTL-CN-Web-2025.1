@@ -1,17 +1,7 @@
 import { useState } from 'react';
 import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger
-} from '@/components/ui/alert-dialog';
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -97,6 +87,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     const [showQuizEditor, setShowQuizEditor] = useState(false);
     const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+    const [showDeleteCourseDialog, setShowDeleteCourseDialog] = useState(false);
 
     const handleEditSection = (section: Section) => {
         setEditingSection(section);
@@ -721,38 +712,14 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                         </CardContent>
                     </Card>
                     <Card className="hover:shadow-lg transition-shadow duration-300 border-red-200 bg-red-50/30 mt-8">
-                        <CardHeader className="border-b border-red-100 bg-red-50/50">
-                            <CardTitle className="text-lg font-bold text-red-600">
-                                Vùng nguy hiểm
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <button className="w-full inline-flex items-center justify-center gap-2 h-9 px-4 py-2 rounded-md text-sm font-medium text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200">
-                                        <Trash2 className="w-4 h-4" />
-                                        Xóa khóa học
-                                    </button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-white z-[9999] border-2">
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Bạn có chắc chắn không?</AlertDialogTitle>
-                                        <AlertDialogDescription>Hành động này không thể hoàn tác. Khóa học sẽ bị xóa vĩnh viễn.</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={() => {
-                                                toast.success('Đã xóa khóa học thành công');
-                                                navigateTo('my-courses');
-                                            }}
-                                            className="bg-red-600 text-white hover:bg-red-700"
-                                        >
-                                            Xác nhận xóa
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                        <CardContent className="!p-3">
+                            <button
+                                className="w-full inline-flex items-center justify-center gap-2 h-9 px-4 py-2 rounded-md text-sm font-medium text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200"
+                                onClick={() => setShowDeleteCourseDialog(true)}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Xóa khóa học
+                            </button>
                         </CardContent>
                     </Card>
                 </div>
@@ -786,6 +753,30 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     />
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Course Confirmation Dialog */}
+            <DeleteConfirmDialog
+                open={showDeleteCourseDialog}
+                onOpenChange={setShowDeleteCourseDialog}
+                title="Xác nhận xóa khóa học"
+                onConfirm={() => {
+                    toast.success('Đã xóa khóa học thành công');
+                    setShowDeleteCourseDialog(false);
+                    navigateTo('my-courses');
+                }}
+            >
+                <div className="flex gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <img
+                        src={course.image}
+                        alt={course.title}
+                        className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{course.title}</p>
+                        <p className="text-sm text-gray-500">Giảng viên: {course.ownerName}</p>
+                    </div>
+                </div>
+            </DeleteConfirmDialog>
         </div >
     );
 }
