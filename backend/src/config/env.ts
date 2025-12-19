@@ -6,8 +6,8 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '5000', 10),
+  PORT: parseInt(process.env.PORT || '5001', 10),
   SUPABASE_URL: process.env.SUPABASE_URL || '',
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
-  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
 };

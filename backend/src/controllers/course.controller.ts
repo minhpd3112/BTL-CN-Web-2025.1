@@ -4,41 +4,27 @@ import { HttpStatus } from '@utils/httpStatus';
 export const courseController = {
   async getCourses(req: Request, res: Response) {
     try {
-      const { status, visibility, owner_id, search, page = '1', limit = '10' } = req.query;
-
-      let filters: any = {};
-      if (status) filters.status = status;
-      if (visibility) filters.visibility = visibility;
-      if (owner_id) filters.owner_id = owner_id;
-
-      const courses = await CourseModel.findAll(filters);
-
-      // Search filter
-      let filteredCourses = courses;
-      if (search) {
-        const searchLower = (search as string).toLowerCase();
-        filteredCourses = courses.filter((course: any) =>
-          course.title.toLowerCase().includes(searchLower) ||
-          course.description?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Pagination
-      const pageNum = parseInt(page as string);
-      const limitNum = parseInt(limit as string);
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
-      const paginatedCourses = filteredCourses.slice(startIndex, endIndex);
-
+      const { status, visibility, owner_id, search, tag, sort, page = '1', pageSize = '9' } = req.query;
+      // Compose filters for service
+      const filters: any = {
+        status: status || 'approved',
+        visibility: visibility || 'public',
+        search,
+        page: parseInt(page as string) || 1,
+        limit: parseInt(pageSize as string) || 9,
+        tag,
+        sort,
+        owner_id,
+      };
+      // Use service for DB query, filtering, sorting, pagination
+      const result = await require('../services/course.service').courseService.getCourses(filters);
       res.json({
         success: true,
-        data: {
-          courses: paginatedCourses,
-          total: filteredCourses.length,
-          page: pageNum,
-          limit: limitNum,
-          totalPages: Math.ceil(filteredCourses.length / limitNum),
-        },
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
       });
     } catch (error: any) {
       console.error('Get courses error:', error);

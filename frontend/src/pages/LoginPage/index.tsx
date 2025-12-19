@@ -64,7 +64,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         if (data?.user) {
           const realUser: User = {
-            id: parseInt(data.user.id) || Date.now(),
+            id: data.user.id,
             username: data.user.email?.split('@')[0] || 'user',
             password: '',
             email: data.user.email || '',

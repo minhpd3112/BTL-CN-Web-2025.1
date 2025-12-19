@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Search, TrendingUp, Star, Clock, BookOpen, Users } from 'lucide-react';
+import { Search, TrendingUp, Star, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { CourseCard } from '@/components/shared/CourseCard';
-import { mockCourses, mockTags } from '@/services/mocks';
 import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { useCoursesQuery } from '@/hooks/useCoursesQuery';
+import { tagsAPI } from '@/services/api';
+import { useEffect } from 'react';
 
 interface ExplorePageProps {
   navigateTo: (page: Page) => void;
@@ -20,46 +22,30 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
   const [selectedTag, setSelectedTag] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [currentPage, setCurrentPage] = useState(1);
+  const [allTags, setAllTags] = useState<string[]>(['all']);
 
   const ITEMS_PER_PAGE = 9;
 
-  // Get unique tags from courses
-  const allTags = ['all', ...Array.from(new Set(mockCourses.flatMap(c => c.tags)))];
-
-  // Chỉ hiển thị khóa public đã approved
-  const availableCourses = mockCourses.filter(c => c.visibility === 'public' && c.status === 'approved');
-
-  const filteredAndSortedCourses = useMemo(() => {
-    // Filter courses
-    let filtered = availableCourses.filter(c => {
-      const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesTag = selectedTag === 'all' || c.tags.includes(selectedTag);
-      return matchesSearch && matchesTag;
-    });
-
-    // Sort courses
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'popular':
-          return b.students - a.students;
-        case 'rating':
-          return (b.rating || 0) - (a.rating || 0);
-        case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        default:
-          return 0;
+  // Fetch tags from backend
+  useEffect(() => {
+    tagsAPI.getAllTags().then((res) => {
+      if (Array.isArray(res.data)) {
+        setAllTags(['all', ...res.data.map((t: any) => t.name)]);
       }
     });
+  }, []);
 
-    return sorted;
-  }, [searchQuery, selectedTag, sortBy, availableCourses]);
+  // Fetch courses from backend
+  const { courses, total, loading, error } = useCoursesQuery({
+    searchQuery,
+    selectedTag,
+    sortBy,
+    page: currentPage,
+    pageSize: ITEMS_PER_PAGE,
+  });
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredAndSortedCourses.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentCourses = filteredAndSortedCourses.slice(startIndex, endIndex);
+  const totalPages = Math.ceil((total || 0) / ITEMS_PER_PAGE);
+  const currentCourses = courses;
 
   // Reset to page 1 when filters change
   const handleSearchChange = (value: string) => {
@@ -162,16 +148,20 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
 
           <div className="mt-4 text-sm text-gray-600 flex items-center gap-2">
             <div className="w-2 h-2 bg-[#1E88E5] rounded-full"></div>
-            Tìm thấy {filteredAndSortedCourses.length} khóa học
+            Tìm thấy {courses.length} khóa học
           </div>
         </div>
       </AnimatedSection>
 
       {/* Course Grid */}
-      {filteredAndSortedCourses.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-16">Đang tải dữ liệu...</div>
+      ) : error ? (
+        <div className="text-center py-16 text-red-500">{error}</div>
+      ) : courses && courses.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 explore-course-grid">
-            {currentCourses.map((course, index) => (
+            {currentCourses.map((course: any, index: number) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 50}>
                 <CourseCard
                   course={course}
