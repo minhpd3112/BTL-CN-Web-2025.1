@@ -1,250 +1,173 @@
-import { Star, Users, Clock, CheckCircle, XCircle, Trash2, BarChart3, ArrowLeft, Edit } from 'lucide-react';
+import { useState } from 'react';
+import {
+  ArrowLeft,
+  Share2,
+  MoreVertical,
+  Eye,
+  BarChart3,
+  Settings,
+  Users
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { OverviewTab } from './components/OverviewTab';
+import { EditCourseTab } from './components/EditCourseTab';
+import { CourseStudentsTab } from './components/CourseStudentsTab';
 import { toast } from 'sonner';
-import { Course, Page } from '@/types';
+import { Course, Page, User } from '@/types';
 
 interface CourseDashboardPageProps {
   course: Course;
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, course?: any) => void;
   enrollmentRequests?: any[];
   onApproveRequest?: (id: number) => void;
   onRejectRequest?: (id: number) => void;
+  currentUser: User;
 }
 
-export function CourseDashboardPage({ 
-  course, 
+export function CourseDashboardPage({
+  course,
   navigateTo,
   enrollmentRequests = [],
   onApproveRequest,
-  onRejectRequest
+  onRejectRequest,
+  currentUser
 }: CourseDashboardPageProps) {
-  const coursePendingRequests = enrollmentRequests.filter(r => r.courseId === course.id && r.status === 'pending');
+  const [activeTab, setActiveTab] = useState(currentUser.role === 'admin' ? 'content' : 'overview');
 
-  const handleApprove = (requestId: number) => {
-    if (onApproveRequest) onApproveRequest(requestId);
-    toast.success('Đã chấp nhận học viên');
-  };
+  if (!course) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <h2 className="text-2xl font-bold mb-4">Không tìm thấy khóa học</h2>
+        <Button onClick={() => navigateTo('my-courses')}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Quay lại
+        </Button>
+      </div>
+    );
+  }
 
-  const handleReject = (requestId: number) => {
-    if (onRejectRequest) onRejectRequest(requestId);
-    toast.success('Đã từ chối học viên');
-  };
-
-  const handleDeleteCourse = () => {
-    toast.success('Đã xóa khóa học thành công!');
-    setTimeout(() => navigateTo('my-courses'), 1000);
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Đã sao chép liên kết khóa học');
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header Section */}
-      <div className="mb-8">
-        {/* Back Button */}
-        <Button 
-          variant="ghost" 
-          onClick={() => navigateTo('my-courses')}
-          className="text-[#1E88E5] hover:bg-[#1E88E5]/10 -ml-2 mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Khóa học của tôi
-        </Button>
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigateTo('my-courses')}
+            className="shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl font-bold truncate max-w-xl">{course.title}</h1>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${course.visibility === 'public'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-700'
+                }`}>
+                {course.visibility === 'public' ? 'Công khai' : 'Riêng tư'}
+              </span>
+            </div>
+            <p className="text-gray-500 text-sm">
+              Cập nhật lần cuối: {new Date().toLocaleDateString('vi-VN')}
+            </p>
+          </div>
+        </div>
 
-        <div className="flex items-center gap-3 mb-3">
-          <BarChart3 className="w-8 h-8 text-[#1E88E5]" />
-          <h1 
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleShare}
+            className="bg-white border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5]/10 shadow-sm hover:shadow-md transition-all"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Chia sẻ
+          </Button>
+          <Button
+            className="bg-gradient-to-r from-[#1E88E5] to-[#1565C0] text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            onClick={() => navigateTo('course-detail', course)}
+          >
+            Xem với tư cách học viên
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
+          {/* Sliding indicator */}
+          <div
+            className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
             style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              left: currentUser.role === 'admin'
+                ? (activeTab === 'content' ? '0%' : '50%')
+                : (activeTab === 'overview' ? '0%' : activeTab === 'content' ? '33.33%' : '66.66%'),
+              width: currentUser.role === 'admin' ? '50%' : '33.33%',
             }}
+          />
+          {currentUser.role !== 'admin' && (
+            <TabsTrigger
+              value="overview"
+              className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+              style={{ color: activeTab === 'overview' ? '#FFFFFF' : '#1E88E5' }}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Tổng quan
+            </TabsTrigger>
+          )}
+          <TabsTrigger
+            value="content"
+            className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+            style={{ color: activeTab === 'content' ? '#FFFFFF' : '#1E88E5' }}
           >
-            Dashboard Khóa học
-          </h1>
-        </div>
-        <p className="text-gray-600 ml-11">{course.title}</p>
-        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        
-        {/* Action Buttons */}
-        <div className="flex gap-2 ml-11 mt-6">
-          <Button 
-            onClick={() => navigateTo('edit-course')}
-            className="bg-[#1E88E5] hover:bg-[#1565C0] text-white transition-colors"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Chỉnh sửa
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => navigateTo('course-students')}
-            className="border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white transition-colors"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Quản lý học viên
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Xóa khóa học
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Xóa khóa học này?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bạn có chắc chắn muốn xóa khóa học <strong>"{course.title}"</strong>?
-                  <br /><br />
-                  Hành động này không thể hoàn tác. Tất cả nội dung, học viên ({course.students} người) 
-                  và dữ liệu liên quan sẽ bị xóa vĩnh viễn.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleDeleteCourse}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Xác nhận xóa
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-
-      {/* Quick Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Tổng học viên</p>
-                <p className="text-3xl">{course.students}</p>
-              </div>
-              <div className="w-12 h-12 bg-[#1E88E5]/10 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-[#1E88E5]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Đánh giá trung bình</p>
-                <p className="text-3xl flex items-center gap-1">
-                  {course.rating}
-                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-400/10 rounded-lg flex items-center justify-center">
-                <Star className="w-6 h-6 text-yellow-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${coursePendingRequests.length > 0 ? 'border-[#1E88E5] border-2' : ''}`}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Yêu cầu chờ duyệt</p>
-                <p className="text-3xl text-[#1E88E5]">{coursePendingRequests.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-[#1E88E5]/10 rounded-lg flex items-center justify-center relative">
-                <Clock className="w-6 h-6 text-[#1E88E5]" />
-                {coursePendingRequests.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#1E88E5] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {coursePendingRequests.length}
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Content Tabs */}
-      <Tabs defaultValue="enrollments">
-        <TabsList>
-          <TabsTrigger value="enrollments">
-            Yêu cầu đăng ký ({coursePendingRequests.length})
+            <Settings className="w-4 h-4" />
+            Nội dung
           </TabsTrigger>
-          <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+          <TabsTrigger
+            value="students"
+            className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 gap-2"
+            style={{ color: activeTab === 'students' ? '#FFFFFF' : '#1E88E5' }}
+          >
+            <Users className="w-4 h-4" />
+            Học viên
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="enrollments">
-          <Card>
-            <CardContent className="p-6">
-              {coursePendingRequests.length > 0 ? (
-                <div className="space-y-4">
-                  {coursePendingRequests.map((request: any) => (
-                    <div key={request.id} className="p-4 border rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-[#1E88E5] text-white">
-                            {request.userAvatar}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="font-medium mb-1">{request.userName}</div>
-                          <div className="text-sm text-gray-600 mb-2">{request.userEmail}</div>
-                          {request.message && (
-                            <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                              <p className="text-sm text-gray-700 italic">"{request.message}"</p>
-                            </div>
-                          )}
-                          <div className="text-xs text-gray-500">
-                            Đăng ký lúc: {request.requestedAt}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600"
-                            onClick={() => handleApprove(request.id)}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Chấp nhận
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleReject(request.id)}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Từ chối
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p>Không có yêu cầu đăng ký mới</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {currentUser.role !== 'admin' && (
+          <TabsContent value="overview" className="mt-6">
+            <OverviewTab
+              course={course}
+              enrollmentRequests={enrollmentRequests}
+            />
+          </TabsContent>
+        )}
+
+        <TabsContent value="content" className="mt-6">
+          <EditCourseTab
+            course={course}
+            currentUser={currentUser}
+            navigateTo={navigateTo}
+          />
         </TabsContent>
 
-        <TabsContent value="reviews">
-          <Card>
-            <CardContent className="p-12 text-center text-gray-500">
-              <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p>Chưa có đánh giá nào</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="students" className="mt-6">
+          <CourseStudentsTab
+            course={course}
+            enrollmentRequests={enrollmentRequests}
+          />
         </TabsContent>
       </Tabs>
     </div>

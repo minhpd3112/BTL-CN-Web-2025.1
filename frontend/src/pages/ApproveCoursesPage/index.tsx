@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, CheckCircle, XCircle, Users, BookOpen, FileCheck, ArrowLeft } from 'lucide-react';
+import { Eye, CheckCircle, Users, BookOpen, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface ApproveCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -21,7 +22,7 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [courseToReject, setCourseToReject] = useState<Course | null>(null);
-  
+
   // Only show pending public courses
   const pendingCourses = mockCourses.filter(c => c.status === 'pending' && c.visibility === 'public');
 
@@ -47,115 +48,120 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
   };
 
   const CoursePreviewCard = ({ course }: { course: Course }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="p-0">
-        <div className="relative">
-          <img src={course.image} alt={course.title} className="w-full h-48 object-cover rounded-t-lg" />
-          <Badge 
-            className={`absolute top-3 right-3 ${
-              course.status === 'pending' ? 'bg-orange-500' :
-              course.status === 'approved' ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          >
-            {course.status === 'pending' ? 'Chờ duyệt' :
-             course.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
-          </Badge>
+    <>
+      <style>{`
+        @keyframes border-rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      <div className="group relative h-full">
+        {/* Animated Moving Light Border (Visible on Hover) */}
+        <div className="absolute -inset-[2px] rounded-xl overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_340deg,#1E88E5_360deg)] animate-[border-rotate_4s_linear_infinite]" />
         </div>
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-3">
-            {course.tags.slice(0, 2).map((tag: string) => (
-              <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-            ))}
-          </div>
-          <h3 className="mb-2 line-clamp-2">{course.title}</h3>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
-          
-          <div className="flex items-center gap-3 mb-4 text-sm text-gray-600">
-            <div className="flex items-center gap-1">
-              <Avatar className="w-6 h-6">
-                <AvatarFallback className="text-xs bg-[#1E88E5] text-white">{course.ownerAvatar}</AvatarFallback>
-              </Avatar>
-              <span>{course.ownerName}</span>
+
+        {/* Static Blue Glow */}
+        <div className="absolute -inset-[1px] rounded-xl bg-[#1E88E5]/20 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
+
+        <Card
+          className="relative z-10 h-full flex flex-col overflow-hidden border-[#1E88E5]/30 bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+          onClick={() => {
+            setSelectedCourse(course);
+            navigateTo('course-detail');
+          }}
+        >
+          {/* Image Area */}
+          <div className="relative aspect-video overflow-hidden">
+            <img
+              src={course.image}
+              alt={course.title}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+
+            {/* Play Icon Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
+              <div className="bg-white/30 backdrop-blur-md p-3 rounded-full shadow-lg">
+                <Eye className="w-10 h-10 text-white" />
+              </div>
             </div>
-            <span className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              {course.students}
-            </span>
-            <span className="flex items-center gap-1">
-              <BookOpen className="w-4 h-4" />
-              {course.lessons} mục
-            </span>
           </div>
 
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                setSelectedCourse(course);
-                navigateTo('course-detail');
-              }}
+          <CardContent className="flex flex-col flex-grow p-5 gap-3">
+
+            <h3
+              className="font-bold text-lg leading-snug line-clamp-2 group-hover:text-[#1E88E5] transition-colors duration-200"
+              title={course.title}
             >
-              <Eye className="w-4 h-4 mr-1" />
-              Xem chi tiết
-            </Button>
-            {course.status === 'pending' && (
-              <>
-                <Button 
-                  size="sm"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => handleApproveCourse(course)}
-                >
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Duyệt
-                </Button>
-                <Button 
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleRejectCourse(course)}
-                >
-                  <XCircle className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+              {course.title}
+            </h3>
+
+            {/* Description */}
+            <p className="text-gray-500 text-sm line-clamp-2 flex-grow">
+              {course.description}
+            </p>
+
+            {/* Author & Stats */}
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Avatar className="w-6 h-6 border border-gray-100">
+                  <AvatarFallback className="text-[10px] bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white">
+                    {course.ownerAvatar}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs font-medium truncate max-w-[100px]">{course.ownerName}</span>
+              </div>
+              <span className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                {course.students}
+              </span>
+              <span className="flex items-center gap-1">
+                <BookOpen className="w-4 h-4" />
+                {course.lessons}
+              </span>
+            </div>
+
+            <div className="mt-3 pt-4 border-t border-gray-100 flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleApproveCourse(course);
+                }}
+              >
+                Phê duyệt
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRejectCourse(course);
+                }}
+              >
+                Từ chối
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back Button */}
-      <Button 
-        variant="ghost" 
-        onClick={() => navigateTo('admin-dashboard')}
-        className="mb-6"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Quay về Dashboard
-      </Button>
-
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <FileCheck className="w-8 h-8 text-[#1E88E5]" />
-          <h1 
-            style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}
-          >
-            Duyệt khóa học
-          </h1>
-        </div>
-        <p className="text-gray-600 ml-11">Xem xét và phê duyệt các khóa học chờ duyệt</p>
-        <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-      </div>
+      <PageHeader
+        icon={<FileCheck className="w-8 h-8" />}
+        title="Duyệt khóa học"
+        description="Xem xét và phê duyệt các khóa học chờ duyệt"
+        backButton={{
+          label: 'Quay về Dashboard',
+          onClick: () => navigateTo('admin-dashboard'),
+        }}
+      />
 
       {/* Pending Courses Grid */}
       {pendingCourses.length > 0 ? (
@@ -179,9 +185,6 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Từ chối khóa học</DialogTitle>
-            <DialogDescription>
-              Vui lòng cho biết lý do từ chối khóa học "{courseToReject?.title}"
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -197,18 +200,13 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
                 rows={4}
               />
             </div>
-            <Alert className="bg-orange-50 border-orange-200">
-              <AlertDescription className="text-orange-800 text-sm">
-                ⚠️ Người tạo khóa học sẽ nhận được thông báo từ chối kèm lý do này
-              </AlertDescription>
-            </Alert>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
               Hủy
             </Button>
             <Button
-              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white"
               onClick={confirmReject}
             >
               Xác nhận từ chối

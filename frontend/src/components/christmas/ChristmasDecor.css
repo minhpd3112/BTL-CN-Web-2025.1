@@ -1,0 +1,49 @@
+.led-card-container {
+  position: relative;
+  z-index: 1;
+}
+
+.christmas-string-lights {
+  position: absolute;
+  /* Chỉnh top âm một chút để dây bắt đầu từ mép trên cùng của card */
+  top: -5px; 
+  left: 0;
+  right: 0;
+  height: 60px;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.christmas-string-lights svg {
+  width: 104%;
+  height: 100%;
+}
+
+/* Hiệu ứng nháy theo đợt (Flash) */
+.light-group-1 use, .light-group-2 use {
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  /* Chuyển động mượt mà */
+  transition: all 0.3s ease-in-out;
+}
+
+.light-group-1 use { animation-name: bulbs-flash-1; }
+.light-group-2 use { animation-name: bulbs-flash-2; }
+
+@keyframes bulbs-flash-1 {
+  0%, 100% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 10px currentColor); }
+  50% { opacity: 0.3; filter: brightness(0.7) drop-shadow(0 0 1px rgba(255,255,255,0.1)); }
+}
+
+@keyframes bulbs-flash-2 {
+  0%, 100% { opacity: 0.3; filter: brightness(0.7) drop-shadow(0 0 1px rgba(255,255,255,0.1)); }
+  50% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 10px currentColor); }
+}
+
+.led-card-inner {
+  position: relative;
+  z-index: 10;
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+}

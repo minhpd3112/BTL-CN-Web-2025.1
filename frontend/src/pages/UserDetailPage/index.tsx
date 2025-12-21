@@ -1,18 +1,23 @@
-import { Eye, BookOpen, Users, Star } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpen, Users, Star, Calendar, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { CourseListCard } from '@/components/shared/CourseListCard';
 import { mockCourses } from '@/services/mocks';
-import { User, Page } from '@/types';
+import { User, Page, Course } from '@/types';
+
+const COURSES_PER_PAGE = 5;
 
 interface UserDetailPageProps {
   user: User;
   navigateTo: (page: Page) => void;
+  setSelectedCourse?: (course: Course) => void;
 }
 
-export function UserDetailPage({ user, navigateTo }: UserDetailPageProps) {
+export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDetailPageProps) {
   if (!user) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -31,188 +36,240 @@ export function UserDetailPage({ user, navigateTo }: UserDetailPageProps) {
   // Get user's courses
   const userCourses = mockCourses.filter(c => c.ownerId === user.id);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(userCourses.length / COURSES_PER_PAGE);
+  const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
+  const paginatedCourses = userCourses.slice(startIndex, startIndex + COURSES_PER_PAGE);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <Button variant="ghost" onClick={() => navigateTo('manage-users')} className="mb-4">
-        ← Quay lại danh sách
-      </Button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* User Info Card */}
-        <Card>
-          <CardHeader className="text-center">
-            <Avatar className="w-24 h-24 mx-auto mb-4">
-              <AvatarFallback className="text-2xl bg-[#1E88E5] text-white">
-                {user.avatar}
-              </AvatarFallback>
-            </Avatar>
-            <CardTitle className="text-xl">{user.name}</CardTitle>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                {user.role === 'admin' ? 'Admin' : 'User'}
-              </Badge>
+
+      {/* User Profile Header */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start gap-6">
+            {/* Avatar */}
+            <div className="relative mx-auto md:mx-0">
+              <Avatar className="w-24 h-24 ring-4 ring-[#1E88E5]/20">
+                <AvatarFallback className="text-3xl bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
+                  {user.avatar}
+                </AvatarFallback>
+              </Avatar>
               {user.status === 'active' && (
-                <Badge variant="outline" className="text-green-600 border-green-600">
-                  <div className="w-2 h-2 bg-green-600 rounded-full mr-1" />
-                  Online
-                </Badge>
+                <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-white" />
               )}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Separator />
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Email</p>
-              <p className="font-medium">{user.email}</p>
+
+            {/* User Info */}
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <Badge
+                    className={user.role === 'admin'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-600'
+                    }
+                  >
+                    {user.role === 'admin' ? 'Admin' : 'User'}
+                  </Badge>
+                  {user.status === 'active' && (
+                    <Badge className="bg-green-100 text-green-700">
+                      Đang hoạt động
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Bio */}
+              {user.bio && (
+                <p className="text-gray-600 mb-4">{user.bio}</p>
+              )}
+
+              {/* Quick Info Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Mail className="w-4 h-4 text-[#1E88E5]" />
+                  <span className="truncate">{user.email}</span>
+                </div>
+                {user.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Phone className="w-4 h-4 text-[#1E88E5]" />
+                    <span>{user.phone}</span>
+                  </div>
+                )}
+                {user.location && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <MapPin className="w-4 h-4 text-[#1E88E5]" />
+                    <span>{user.location}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="w-4 h-4 text-[#1E88E5]" />
+                  <span>Tham gia: {user.joinedDate}</span>
+                </div>
+              </div>
+
+              {/* Last Login */}
+              <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
+                <Clock className="w-4 h-4" />
+                <span>Đăng nhập gần đây: {user.lastLogin}</span>
+              </div>
             </div>
-            <Separator />
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Số điện thoại</p>
-              <p className="font-medium">{user.phone}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Địa chỉ</p>
-              <p className="font-medium">{user.location}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Ngày tham gia</p>
-              <p className="font-medium">{user.joinedDate}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Đăng nhập gần đây</p>
-              <p className="font-medium">{user.lastLogin}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Trạng thái</p>
-              <Badge variant="outline" className="text-green-600 border-green-600">
-                <div className="w-2 h-2 bg-green-600 rounded-full mr-1" />
-                {user.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-              </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Cards - Dashboard Style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-[#1E88E5] overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none">
+            <BookOpen className="w-24 h-24 text-[#1E88E5]" />
+          </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Khóa học đã tạo</p>
+                <p className="text-3xl font-bold text-gray-900">{user.coursesCreated}</p>
+              </div>
+              <div className="w-12 h-12 bg-[#1E88E5] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                <BookOpen className="w-6 h-6" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* User Stats & Courses */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <BookOpen className="w-8 h-8 text-[#1E88E5] mx-auto mb-2" />
-                <p className="text-2xl mb-1">{user.coursesCreated}</p>
-                <p className="text-sm text-gray-600">Khóa học đã tạo</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <p className="text-2xl mb-1">{user.totalStudents}</p>
-                <p className="text-sm text-gray-600">Tổng học viên</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                <p className="text-2xl mb-1">4.7</p>
-                <p className="text-sm text-gray-600">Đánh giá TB</p>
-              </CardContent>
-            </Card>
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none">
+            <Users className="w-24 h-24 text-green-500" />
           </div>
-
-          {/* Courses Created */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Khóa học đã tạo ({userCourses.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {userCourses.length > 0 ? (
-                <div className="space-y-4">
-                  {userCourses.map(course => (
-                    <div key={course.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <img src={course.image} alt={course.title} className="w-24 h-16 object-cover rounded" />
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h4 className="font-medium mb-1">{course.title}</h4>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={course.visibility === 'public' ? 'default' : 'secondary'} className="text-xs">
-                                {course.visibility === 'public' ? 'Công khai' : 'Riêng tư'}
-                              </Badge>
-                              <Badge className={`text-xs ${
-                                course.status === 'pending' ? 'bg-orange-500' :
-                                course.status === 'approved' ? 'bg-green-500' : 'bg-red-500'
-                              }`}>
-                                {course.status === 'pending' ? 'Chờ duyệt' :
-                                 course.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
-                              </Badge>
-                            </div>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            <Eye className="w-3 h-3 mr-1" />
-                            Xem
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-600">
-                          <span>👥 {course.students} học viên</span>
-                          <span>⭐ {course.rating}</span>
-                          <span>📚 {course.lessons} mục</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p>Chưa tạo khóa học nào</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Activity Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Hoạt động gần đây</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 pb-4 border-b">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">Tạo khóa học mới</p>
-                    <p className="text-xs text-gray-500 mt-1">2 ngày trước</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 pb-4 border-b last:border-0">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-5 h-5 text-[#1E88E5]" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">Chấp nhận 5 học viên mới</p>
-                    <p className="text-xs text-gray-500 mt-1">3 ngày trước</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                    <Star className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">Nhận được 3 đánh giá 5 sao</p>
-                    <p className="text-xs text-gray-500 mt-1">1 tuần trước</p>
-                  </div>
-                </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tổng học viên</p>
+                <p className="text-3xl font-bold text-gray-900">{user.totalStudents}</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-500/30">
+                <Users className="w-6 h-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-yellow-500 overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none">
+            <Star className="w-24 h-24 text-yellow-500" />
+          </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Đánh giá TB</p>
+                <p className="text-3xl font-bold text-gray-900">4.7</p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-yellow-500/30">
+                <Star className="w-6 h-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Courses Created */}
+      <Card>
+        <CardHeader className="border-b border-gray-100 pb-4 bg-blue-50/50">
+          <CardTitle className="text-lg font-bold text-[#1E88E5]">Khóa học đã tạo </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {userCourses.length > 0 ? (
+            <div className="space-y-4">
+              {paginatedCourses.map(course => (
+                <CourseListCard
+                  key={course.id}
+                  course={course}
+                  onClick={() => {
+                    if (setSelectedCourse) {
+                      setSelectedCourse(course);
+                      navigateTo('course-detail');
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p>Chưa tạo khóa học nào</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1);
+
+                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+
+                    if (showEllipsisBefore) {
+                      return (
+                        <PaginationItem key={`ellipsis-before-${page}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+
+                    if (showEllipsisAfter) {
+                      return (
+                        <PaginationItem key={`ellipsis-after-${page}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+
+                    if (showPage) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className={`cursor-pointer rounded-md transition-colors ${currentPage === page
+                              ? '!bg-[#1E88E5] !text-white hover:!bg-[#1565C0] border-none'
+                              : 'hover:bg-[#1E88E5]/10 text-[#1E88E5]'
+                              }`}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50 rounded-md' : 'cursor-pointer hover:bg-[#1E88E5]/10 rounded-md transition-colors text-[#1E88E5]'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

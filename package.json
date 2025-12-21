@@ -13,5 +13,13 @@
     "preview": "npm --prefix frontend run preview",
     "lint:backend": "npm --prefix backend run lint",
     "test:backend": "npm --prefix backend run test"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "tailwindcss": "^4.1.17"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.0",
+    "supabase": "^2.65.5"
   }
 }

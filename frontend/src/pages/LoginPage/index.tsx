@@ -1,60 +1,127 @@
 import { useState } from 'react';
-import { GraduationCap, Users, BookOpen, TrendingUp, Award, Video, Sparkles } from 'lucide-react';
+import { GraduationCap, Users, BookOpen, TrendingUp, Award, Video, Sparkles, Mail, Lock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { supabase } from '@/services/api';
+// Đã xóa Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
+import { toast, Toaster } from 'sonner';
 import { mockUsers } from '@/services/mocks';
 import { User } from '@/types';
-import { mockGoogleAccounts } from '@/hooks/useDemoAppState';
+// Không cần mockGoogleAccounts nữa
 import { AnimatedSection } from '@/utils/animations';
-import { StatsCounter } from '@/components/shared/StatsCounter';
+// Không cần StatsCounter
+import { authAPI } from '@/services/api'; // Giả sử api.ts nằm ở đường dẫn này
+
+
+
 
 interface LoginPageProps {
   onLogin: (user: User, googlePicture?: string) => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  // Đã xóa showGoogleModal state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); // Rất quan trọng để tránh load lại trang
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        // Nếu đang ở trạng thái Đăng ký
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: 'Người dùng mới' }
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+          toast.success("Đăng ký thành công! Giờ bạn có thể đăng nhập.");
+          setIsSignUp(false); // Chuyển giao diện về Đăng nhập
+        }
+      } else {
+        // Nếu đang ở trạng thái Đăng nhập
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        if (data?.user) {
+          const realUser: User = {
+            id: parseInt(data.user.id) || Date.now(),
+            username: data.user.email?.split('@')[0] || 'user',
+            password: '',
+            email: data.user.email || '',
+            name: data.user.user_metadata?.full_name || 'Người dùng mới',
+            avatar: data.user.user_metadata?.avatar_url || '',
+            role: 'user',
+            joinedDate: new Date().toISOString(),
+            coursesCreated: 0,
+            coursesEnrolled: 0,
+            totalStudents: 0,
+            status: 'active',
+            lastLogin: new Date().toISOString(),
+            googleId: data.user.id,
+          };
+          localStorage.setItem('user_data', JSON.stringify(realUser));
+          onLogin(realUser);
+          toast.success("Đăng nhập thành công!");
+        }
+      }
+    } catch (error: any) {
+      // Xử lý lỗi từ Supabase (ví dụ: sai mật khẩu, email đã tồn tại...)
+      toast.error(error.message || "Đã có lỗi xảy ra");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
 
   const handleQuickLogin = (user: User) => {
     onLogin(user);
+    toast.success(`Đăng nhập nhanh thành công, ${user.name}!`);
   };
 
-  const handleGoogleLogin = (googleAccount: typeof mockGoogleAccounts[0]) => {
-    let user = mockUsers.find(u => u.email === googleAccount.email);
-    
-    if (!user) {
-      // Create new user for demo
-      user = {
-        id: Date.now(),
-        username: googleAccount.email.split('@')[0],
-        password: '',
-        role: googleAccount.role as 'admin' | 'user',
-        name: googleAccount.name,
-        avatar: googleAccount.name.split(' ').map(n => n[0]).join(''),
-        email: googleAccount.email,
-        joinedDate: new Date().toISOString().split('T')[0],
-        coursesCreated: 0,
-        coursesEnrolled: 0,
-        totalStudents: 0,
-        status: 'active',
-        lastLogin: new Date().toISOString()
-      };
+  // Hàm handleGoogleLogin mới - Gọi trực tiếp Supabase và kích hoạt chuyển hướng
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        // Đảm bảo URL này là chính xác
+        redirectTo: window.location.origin + '/',
+      },
+    });
+
+    if (error) {
+      toast.error('Lỗi đăng nhập Google: ' + error.message);
+    } else {
+      // Supabase sẽ tự chuyển hướng người dùng đến trang đăng nhập Google
+      // và sau đó quay lại trang đã chỉ định trong redirectTo
+      toast.success('Đang chuyển hướng đến Google...');
     }
-    
-    setShowGoogleModal(false);
-    toast.success(`Đăng nhập thành công với ${googleAccount.email}`);
-    setTimeout(() => onLogin(user!, googleAccount.picture), 300);
   };
+
 
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background with image and gradient overlay */}
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage: 'url(https://images.unsplash.com/photo-1608986596619-eb50cc56831f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBvbmxpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NjA1Mjc4NDB8MA&ixlib=rb-4.1.0&q=80&w=1080)',
@@ -76,7 +143,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <GraduationCap className="w-16 h-16 text-white" />
                 <div className="absolute -inset-2 bg-white/20 rounded-full blur-xl"></div>
               </div>
-              <h1 
+              <h1
                 className="text-white"
                 style={{
                   fontSize: '3.5rem',
@@ -105,7 +172,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       <GraduationCap className="w-10 h-10 text-white" />
                     </div>
                   </div>
-                  <CardTitle 
+                  <CardTitle
                     className="mb-2"
                     style={{
                       fontSize: '1.875rem',
@@ -121,79 +188,155 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     Đăng nhập để tiếp tục học tập
                   </CardDescription>
                 </CardHeader>
-        <CardContent className="space-y-6 px-8">
-          {/* Google Sign In Button */}
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className="w-full h-12 text-base hover:bg-gray-50 hover:border-gray-400 hover:scale-[1.02] transition-all shadow-sm"
-            onClick={() => setShowGoogleModal(true)}
-          >
-            <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Đăng nhập với Google
-          </Button>
+                <CardContent className="space-y-6 px-8">
+                  <form onSubmit={handleEmailLogin} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
+                      <div className="relative group">
+                        <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400 group-focus-within:text-[#1E88E5] transition-colors" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1E88E5]/20 focus:border-[#1E88E5] transition-all duration-200 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password" className="text-gray-700 font-medium">Mật khẩu</Label>
+                        {!isSignUp && (
+                          <a href="#" className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors">Quên mật khẩu?</a>
+                        )}
+                      </div>
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400 group-focus-within:text-[#1E88E5] transition-colors" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1E88E5]/20 focus:border-[#1E88E5] transition-all duration-200 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full h-11 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] hover:from-[#1976D2] hover:to-[#0D47A1] text-white shadow-lg shadow-blue-500/30 rounded-lg font-semibold text-base transition-all duration-300 hover:scale-[1.01] active:scale-[0.98]"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Đang xử lý...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          {isSignUp ? 'Đăng ký miễn phí' : 'Đăng nhập'}
+                          {!isSignUp && <ArrowRight className="w-4 h-4" />}
+                        </div>
+                      )}
+                    </Button>
 
-          <div className="relative">
-            <Separator />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-white px-3 text-sm text-gray-500">Hoặc sử dụng tài khoản demo</span>
-            </div>
-          </div>
+                    <div className="text-center text-sm">
+                      <span className="text-gray-500">
+                        {isSignUp ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsSignUp(!isSignUp)}
+                        className="text-[#1E88E5] hover:underline font-medium"
+                      >
+                        {isSignUp ? 'Đăng nhập ngay' : 'Đăng ký ngay'}
+                      </button>
+                    </div>
+                  </form>
 
-          {/* Demo Accounts */}
-          <div className="space-y-3">
-            {mockUsers.map((user, index) => (
-              <div
-                key={user.id}
-                style={{ animationDelay: `${index * 50}ms` }}
-                className="animate-in slide-in-from-top-2"
-              >
-                <button
-                  className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 hover:border-[#1E88E5] hover:bg-[#1E88E5]/5 hover:scale-[1.02] transition-all text-left hover:shadow-md"
-                  onClick={() => handleQuickLogin(user)}
-                >
-                  <Avatar className="w-12 h-12">
-                    <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white" style={{ fontSize: '1.125rem' }}>
-                      {user.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate" style={{ fontWeight: 600 }}>{user.name}</div>
-                    <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${
-                      user.role === 'admin' 
-                        ? 'bg-yellow-100 text-yellow-700' 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {user.role === 'admin' ? '👑 Admin' : '👤 User'}
-                    </span>
+                  <div className="relative">
+                    <Separator />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="bg-white px-3 text-xs text-gray-500 uppercase">Hoặc tiếp tục với</span>
+                    </div>
                   </div>
-                </button>
-              </div>
-            ))}
-          </div>
 
-          <Alert className="bg-blue-50 border-blue-200">
-            <AlertDescription className="text-sm text-blue-800 flex items-center gap-2">
-              <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span><strong>Demo:</strong> Chọn tài khoản để trải nghiệm hệ thống</span>
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-        <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
-          <p>
-            Chưa có tài khoản Google? <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="text-[#1E88E5] hover:underline">Tạo tài khoản</a>
-          </p>
-          <p className="text-xs text-gray-500">
-            Bằng cách đăng nhập, bạn đồng ý với <a href="#" className="text-[#1E88E5] hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-[#1E88E5] hover:underline">Chính sách bảo mật</a>
-          </p>
-        </CardFooter>
+                  {/* Google Sign In Button - GỌI TRỰC TIẾP HÀM ĐĂNG NHẬP GOOGLE THẬT */}
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="outline"
+                    className="w-full h-12 text-base hover:bg-gray-50 hover:border-gray-400 hover:scale-[1.02] transition-all shadow-sm"
+                    onClick={handleGoogleLogin} // GỌI TRỰC TIẾP
+                  >
+                    <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Đăng nhập với Google
+                  </Button>
+
+                  <div className="relative">
+                    <Separator />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="bg-white px-3 text-sm text-gray-500">Hoặc sử dụng tài khoản demo</span>
+                    </div>
+                  </div>
+
+                  {/* Demo Accounts */}
+                  <div className="space-y-3">
+                    {mockUsers.map((user, index) => (
+                      <div
+                        key={user.id}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                        className="animate-in slide-in-from-top-2"
+                      >
+                        <button
+                          className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 hover:border-[#1E88E5] hover:bg-[#1E88E5]/5 hover:scale-[1.02] transition-all text-left hover:shadow-md"
+                          onClick={() => handleQuickLogin(user)}
+                        >
+                          <Avatar className="w-12 h-12">
+                            <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white" style={{ fontSize: '1.125rem' }}>
+                              {user.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm truncate" style={{ fontWeight: 600 }}>{user.name}</div>
+                            <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                            <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${user.role === 'admin'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-blue-100 text-blue-700'
+                              }`}>
+                              {user.role === 'admin' ? '👑 Admin' : '👤 User'}
+                            </span>
+                          </div>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <AlertDescription className="text-sm text-blue-800 flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span><strong>Demo:</strong> Chọn tài khoản để trải nghiệm hệ thống</span>
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+                <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
+                  <p>
+                    Chưa có tài khoản Google? <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="text-[#1E88E5] hover:underline">Tạo tài khoản</a>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Bằng cách đăng nhập, bạn đồng ý với <a href="#" className="text-[#1E88E5] hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-[#1E88E5] hover:underline">Chính sách bảo mật</a>
+                  </p>
+                </CardFooter>
               </Card>
             </AnimatedSection>
           </div>
@@ -207,55 +350,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
       </div>
 
-      {/* Google Login Modal */}
-      <Dialog open={showGoogleModal} onOpenChange={setShowGoogleModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="text-center pb-4">
-            <div className="flex justify-center mb-4">
-              <svg className="w-12 h-12" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-            </div>
-            <DialogTitle className="text-2xl">Đăng nhập</DialogTitle>
-            <DialogDescription>để tiếp tục tới EduLearn</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-4">
-            {mockGoogleAccounts.map((account, index) => (
-              <button
-                key={account.email}
-                onClick={() => handleGoogleLogin(account)}
-                className="w-full flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-left group"
-              >
-                <div className="relative">
-                  <img src={account.picture} alt={account.name} className="w-11 h-11 rounded-full ring-2 ring-gray-100" />
-                  {index === 0 && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate group-hover:text-[#1E88E5] transition-colors">{account.name}</div>
-                  <div className="text-xs text-gray-500 truncate">{account.email}</div>
-                </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-2 h-2 bg-[#1E88E5] rounded-full"></div>
-                </div>
-              </button>
-            ))}
-          </div>
-          <Separator />
-          <div className="text-center py-4">
-            <button onClick={() => setShowGoogleModal(false)} className="text-sm text-[#1E88E5] hover:text-[#1565C0] font-medium">
-              ← Quay lại đăng nhập khác
-            </button>
-          </div>
-          <div className="text-xs text-gray-500 text-center pb-2">
-            Bằng cách tiếp tục, bạn đồng ý với Điều khoản dịch vụ của chúng tôi
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* ĐÃ XÓA GOOGLE LOGIN MODAL (Dialog component) Ở ĐÂY */}
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 }

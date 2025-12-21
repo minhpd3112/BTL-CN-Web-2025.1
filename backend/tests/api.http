@@ -1,0 +1,213 @@
+### Health Check
+GET http://localhost:5000/
+Content-Type: application/json
+
+### API Health
+GET http://localhost:5000/api/health
+Content-Type: application/json
+
+###############################################
+# AUTH API
+###############################################
+
+### Signup - Create new account
+POST http://localhost:5000/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Password123!",
+  "full_name": "Test User"
+}
+
+### Login - Valid credentials
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Password123!"
+}
+
+### Login - Invalid email
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "invalid@example.com",
+  "password": "Password123!"
+}
+
+### Login - Invalid password
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "WrongPassword"
+}
+
+### Login - Missing email
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "password": "Password123!"
+}
+
+### Login - Missing password
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com"
+}
+
+### Get Profile (requires token - will fail without auth header)
+GET http://localhost:5000/api/auth/profile
+Content-Type: application/json
+
+### Logout
+POST http://localhost:5000/api/auth/logout
+Content-Type: application/json
+
+### Update Profile (requires token)
+PATCH http://localhost:5000/api/auth/profile
+Content-Type: application/json
+
+{
+  "full_name": "Updated Name",
+  "phone": "+1234567890",
+  "bio": "Software developer"
+}
+
+###############################################
+# TAGS API
+###############################################
+
+### Get all tags
+GET http://localhost:5000/api/tags
+Content-Type: application/json
+
+### Get tag by ID
+GET http://localhost:5000/api/tags/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+### Create tag (will fail - no auth)
+POST http://localhost:5000/api/tags
+Content-Type: application/json
+
+{
+  "name": "JavaScript",
+  "description": "JavaScript programming language"
+}
+
+### Update tag (will fail - no auth)
+PATCH http://localhost:5000/api/tags/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "name": "TypeScript",
+  "description": "TypeScript programming language"
+}
+
+### Delete tag (will fail - no auth)
+DELETE http://localhost:5000/api/tags/00000000-0000-0000-0000-000000000000
+
+###############################################
+# COURSES API
+###############################################
+
+### Get all courses (default pagination)
+GET http://localhost:5000/api/courses
+Content-Type: application/json
+
+### Get courses with pagination
+GET http://localhost:5000/api/courses?page=1&limit=10
+Content-Type: application/json
+
+### Get courses with search
+GET http://localhost:5000/api/courses?search=javascript
+Content-Type: application/json
+
+### Get courses by status
+GET http://localhost:5000/api/courses?status=approved
+Content-Type: application/json
+
+### Get courses by visibility
+GET http://localhost:5000/api/courses?visibility=public
+Content-Type: application/json
+
+### Get courses with multiple filters
+GET http://localhost:5000/api/courses?page=1&limit=5&search=web&status=approved&visibility=public
+Content-Type: application/json
+
+### Get course by ID (non-existent)
+GET http://localhost:5000/api/courses/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+### Get course by ID (invalid format)
+GET http://localhost:5000/api/courses/invalid-id
+Content-Type: application/json
+
+### Create course (will fail - no auth)
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{
+  "title": "Learn JavaScript",
+  "description": "Complete JavaScript course for beginners",
+  "image_url": "https://example.com/image.jpg",
+  "visibility": "public",
+  "tag_ids": []
+}
+
+### Update course (will fail - no auth)
+PATCH http://localhost:5000/api/courses/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "description": "Updated description"
+}
+
+### Delete course (will fail - no auth)
+DELETE http://localhost:5000/api/courses/00000000-0000-0000-0000-000000000000
+
+### Get my courses (will fail - no auth)
+GET http://localhost:5000/api/courses/my
+Content-Type: application/json
+
+### Submit course for approval (will fail - no auth)
+POST http://localhost:5000/api/courses/00000000-0000-0000-0000-000000000000/submit
+Content-Type: application/json
+
+### Approve course (will fail - no admin auth)
+POST http://localhost:5000/api/courses/00000000-0000-0000-0000-000000000000/approve
+Content-Type: application/json
+
+### Reject course (will fail - no admin auth)
+POST http://localhost:5000/api/courses/00000000-0000-0000-0000-000000000000/reject
+Content-Type: application/json
+
+###############################################
+# ERROR HANDLING TESTS
+###############################################
+
+### 404 - Route not found
+GET http://localhost:5000/api/nonexistent
+Content-Type: application/json
+
+### Invalid JSON body
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{invalid json}
+
+### Missing required field
+POST http://localhost:5000/api/tags
+Content-Type: application/json
+
+{
+  "description": "Missing name field"
+}

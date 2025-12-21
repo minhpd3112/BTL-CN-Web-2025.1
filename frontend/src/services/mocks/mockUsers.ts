@@ -4,7 +4,6 @@ export const mockUsers: User[] = [
   {
     id: 1,
     username: "admin",
-    password: "admin123",
     role: "admin",
     name: "Quản trị viên",
     avatar: "QT",
@@ -25,7 +24,6 @@ export const mockUsers: User[] = [
   {
     id: 2,
     username: "user1",
-    password: "user123",
     role: "user",
     name: "Nguyễn Văn A",
     avatar: "NA",
@@ -46,7 +44,6 @@ export const mockUsers: User[] = [
   {
     id: 3,
     username: "user2",
-    password: "user123",
     role: "user",
     name: "Trần Thị B",
     avatar: "TB",
@@ -67,7 +64,6 @@ export const mockUsers: User[] = [
   {
     id: 4,
     username: "user3",
-    password: "user123",
     role: "user",
     name: "Lê Văn C",
     avatar: "LC",

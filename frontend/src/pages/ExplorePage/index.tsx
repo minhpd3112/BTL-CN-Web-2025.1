@@ -1,10 +1,13 @@
-import { useState, useMemo } from 'react';
-import { Search, TrendingUp, Star, Clock, BookOpen, Users } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, TrendingUp, Star, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Combobox } from '@/components/ui/combobox';
 import { CourseCard } from '@/components/shared/CourseCard';
-import { mockCourses, mockTags } from '@/services/mocks';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { DataPagination } from '@/components/shared/DataPagination';
+import { usePagination } from '@/hooks/usePagination';
+import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 
@@ -14,25 +17,22 @@ interface ExplorePageProps {
   currentUser: any;
 }
 
-export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: ExplorePageProps) {
+export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
-  const [currentPage, setCurrentPage] = useState(1);
-  
-  const ITEMS_PER_PAGE = 9;
 
   // Get unique tags from courses
   const allTags = ['all', ...Array.from(new Set(mockCourses.flatMap(c => c.tags)))];
-  
+
   // Chỉ hiển thị khóa public đã approved
   const availableCourses = mockCourses.filter(c => c.visibility === 'public' && c.status === 'approved');
-  
+
   const filteredAndSortedCourses = useMemo(() => {
     // Filter courses
     let filtered = availableCourses.filter(c => {
-      const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           c.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesTag = selectedTag === 'all' || c.tags.includes(selectedTag);
       return matchesSearch && matchesTag;
     });
@@ -54,52 +54,25 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
     return sorted;
   }, [searchQuery, selectedTag, sortBy, availableCourses]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredAndSortedCourses.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentCourses = filteredAndSortedCourses.slice(startIndex, endIndex);
+  // Use pagination hook
+  const { currentPage, setCurrentPage, totalPages, paginatedItems: currentCourses, resetPage } =
+    usePagination(filteredAndSortedCourses, { itemsPerPage: 9 });
 
-  // Reset to page 1 when filters change
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(1);
-  };
-
-  const handleTagChange = (value: string) => {
-    setSelectedTag(value);
-    setCurrentPage(1);
-  };
-
-  const handleSortChange = (value: string) => {
-    setSortBy(value);
-    setCurrentPage(1);
-  };
+  // Reset page when filters change
+  useEffect(() => {
+    resetPage();
+  }, [searchQuery, selectedTag, sortBy, resetPage]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <AnimatedSection animation="fade-up">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <Search className="w-8 h-8 text-[#1E88E5]" />
-            <h1 
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              Khám phá khóa học
-            </h1>
-          </div>
-          <p className="text-gray-600 ml-11">Tìm kiếm và khám phá khóa học phù hợp với bạn</p>
-          <div className="ml-11 w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full mt-2"></div>
-        </div>
+        <PageHeader
+          icon={<Search className="w-8 h-8" />}
+          title="Khám phá khóa học"
+          description="Tìm kiếm và khám phá khóa học phù hợp với bạn"
+        />
       </AnimatedSection>
-      
+
       {/* Search and Filter */}
       <AnimatedSection animation="fade-up" delay={100}>
         <div className="bg-white rounded-lg p-6 mb-8 shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -110,31 +83,27 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
               <Input
                 placeholder="Tìm kiếm khóa học..."
                 value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-[#1E88E5]/20"
               />
             </div>
 
             {/* Tag Filter */}
-            <div className="md:col-span-3">
-              <Select value={selectedTag} onValueChange={handleTagChange}>
-                <SelectTrigger className="w-full transition-all duration-300 hover:border-[#1E88E5]/50">
-                  <SelectValue placeholder="Chủ đề" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allTags.map(tag => (
-                    <SelectItem key={tag} value={tag} className="cursor-pointer">
-                      {tag === 'all' ? 'Tất cả chủ đề' : tag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="md:col-span-4">
+              <Combobox
+                items={allTags.map(tag => ({ value: tag, label: tag === 'all' ? 'Tất cả chủ đề' : tag }))}
+                value={selectedTag}
+                onValueChange={(val) => setSelectedTag(val || 'all')}
+                placeholder="Chọn chủ đề"
+                searchPlaceholder="Tìm chủ đề..."
+                emptyText="Không tìm thấy chủ đề."
+                className="w-full"
+              />
             </div>
 
             {/* Sort Dropdown */}
-            <div className="md:col-span-3 flex items-center gap-3">
-              <span className="text-sm text-gray-600 whitespace-nowrap">Sắp xếp:</span>
-              <Select value={sortBy} onValueChange={handleSortChange}>
+            <div className="md:col-span-2">
+              <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full transition-all duration-300 hover:border-[#1E88E5]/50">
                   <SelectValue />
                 </SelectTrigger>
@@ -161,7 +130,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
               </Select>
             </div>
           </div>
-          
+
           <div className="mt-4 text-sm text-gray-600 flex items-center gap-2">
             <div className="w-2 h-2 bg-[#1E88E5] rounded-full"></div>
             Tìm thấy {filteredAndSortedCourses.length} khóa học
@@ -175,85 +144,23 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 explore-course-grid">
             {currentCourses.map((course, index) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 50}>
-                <CourseCard 
-                  course={course} 
+                <CourseCard
+                  course={course}
                   onClick={() => {
                     setSelectedCourse(course);
                     navigateTo('course-detail');
-                  }} 
+                  }}
                 />
               </AnimatedSection>
             ))}
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <AnimatedSection animation="fade-up">
-              <div className="flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:bg-[#1E88E5]/10'}
-                      />
-                    </PaginationItem>
-                    
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                      // Show first page, last page, current page, and pages around current
-                      const showPage = 
-                        page === 1 || 
-                        page === totalPages || 
-                        (page >= currentPage - 1 && page <= currentPage + 1);
-                      
-                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
-                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
-
-                      if (showEllipsisBefore) {
-                        return (
-                          <PaginationItem key={`ellipsis-before-${page}`}>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        );
-                      }
-
-                      if (showEllipsisAfter) {
-                        return (
-                          <PaginationItem key={`ellipsis-after-${page}`}>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        );
-                      }
-
-                      if (!showPage) return null;
-
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(page)}
-                            isActive={currentPage === page}
-                            className={currentPage === page 
-                              ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0]' 
-                              : 'cursor-pointer hover:bg-[#1E88E5]/10'
-                            }
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:bg-[#1E88E5]/10'}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </AnimatedSection>
-          )}
+          <DataPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       ) : (
         <AnimatedSection animation="fade-up">

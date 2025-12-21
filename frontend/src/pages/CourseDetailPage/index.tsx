@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { 
-  Star, Users, Clock, Lock, BarChart3, UserPlus, CheckCircle, 
-  Play, FileText, Award, Video, PlayCircle, Eye, ChevronDown, ChevronUp
+import {
+  Star, Users, Clock, Lock, BarChart3, UserPlus, CheckCircle,
+  Play, FileText, Award, Video, PlayCircle, Eye, ChevronDown, ChevronUp,
+  Share2, MoreVertical, ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -18,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { mockUsers } from '@/services/mocks';
 
 // Mock lessons for curriculum display
 const mockLessons = [
@@ -26,6 +34,30 @@ const mockLessons = [
   { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', completed: false },
   { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', completed: false },
   { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false }
+];
+
+const mockReviews = [
+  {
+    id: 1,
+    user: { name: 'Nguyễn Văn A', avatar: 'A' },
+    rating: 5,
+    date: '2 ngày trước',
+    content: 'Khóa học rất hay, giảng viên nhiệt tình. Nội dung đi từ cơ bản đến nâng cao rất dễ hiểu.'
+  },
+  {
+    id: 2,
+    user: { name: 'Trần Thị B', avatar: 'B' },
+    rating: 4,
+    date: '1 tuần trước',
+    content: 'Kiến thức bổ ích, tuy nhiên phần âm thanh của video số 3 hơi nhỏ. Mong giảng viên sớm khắc phục.'
+  },
+  {
+    id: 3,
+    user: { name: 'Lê Văn C', avatar: 'C' },
+    rating: 5,
+    date: '2 tuần trước',
+    content: 'Tuyệt vời! Đã áp dụng được ngay vào dự án thực tế của công ty. Rất đáng tiền.'
+  }
 ];
 
 // Mock course sections with full content for admin preview
@@ -44,10 +76,10 @@ const mockCourseSections = [
     lessons: [
       { id: 3, title: 'Video hướng dẫn chi tiết', type: 'video' as const, duration: '15:00', youtubeUrl: 'dQw4w9WgXcQ' },
       { id: 4, title: 'Tài liệu PDF tham khảo', type: 'pdf' as const, duration: '10:00', pdfUrl: 'sample-document.pdf' },
-      { 
-        id: 5, 
-        title: 'Bài kiểm tra kiến thức', 
-        type: 'quiz' as const, 
+      {
+        id: 5,
+        title: 'Bài kiểm tra kiến thức',
+        type: 'quiz' as const,
         duration: '10 phút',
         quizQuestions: [
           {
@@ -85,30 +117,33 @@ interface CourseDetailPageProps {
   canAccess: boolean;
   enrollmentRequests?: any[];
   onEnrollRequest?: (request: any) => void;
+  setSelectedUser?: (user: User) => void;
 }
 
-export function CourseDetailPage({ 
-  course, 
-  navigateTo, 
-  currentUser, 
-  isOwner, 
+export function CourseDetailPage({
+  course,
+  navigateTo,
+  currentUser,
+  isOwner,
   canAccess,
   enrollmentRequests,
-  onEnrollRequest
+  onEnrollRequest,
+  setSelectedUser
 }: CourseDetailPageProps) {
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState('');
   const [expandedSections, setExpandedSections] = useState<number[]>([1]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
-  
+  const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
+
   // Check if user has pending request
   const hasPendingRequest = enrollmentRequests?.some(
     (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
   );
-  
+
   // Check if user is already enrolled
   const isEnrolled = course.enrolledUsers?.includes(currentUser?.id);
-  
+
   // Check if user is owner or admin
   const canManage = isOwner || currentUser?.role === 'admin';
 
@@ -117,7 +152,7 @@ export function CourseDetailPage({
       toast.error('Vui lòng nhập lời nhắn');
       return;
     }
-    
+
     if (onEnrollRequest) {
       onEnrollRequest({
         courseId: course.id,
@@ -128,10 +163,20 @@ export function CourseDetailPage({
         message: enrollMessage
       });
     }
-    
+
     toast.success('Đã gửi yêu cầu đăng ký! Giảng viên sẽ xem xét và phản hồi sớm.');
     setShowEnrollDialog(false);
     setEnrollMessage('');
+  };
+
+  const handleOwnerClick = () => {
+    if (setSelectedUser) {
+      const owner = mockUsers.find(u => u.id === course.ownerId);
+      if (owner) {
+        setSelectedUser(owner);
+        navigateTo('user-detail');
+      }
+    }
   };
 
   const toggleSection = (sectionId: number) => {
@@ -168,74 +213,114 @@ export function CourseDetailPage({
 
   return (
     <div>
-      {/* Course Header */}
-      <div className="bg-gradient-to-r from-[#1E88E5] to-[#1565C0] text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <div className="flex gap-2 mb-4">
-                {course.tags.slice(0, 3).map((tag: string) => (
-                  <Badge key={tag} variant="secondary" className="bg-white/20 text-white">
-                    {tag}
-                  </Badge>
-                ))}
-                {course.visibility === 'private' && (
-                  <Badge variant="secondary" className="bg-white/20 text-white gap-1">
-                    <Lock className="w-3 h-3" />
-                    Riêng tư
-                  </Badge>
-                )}
+      {/* Hero Header */}
+      <div className="bg-[#1E88E5] -mt-6 pt-8 pb-12 mb-8 text-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6">
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              {/* Left Column: Course Info */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  {course.tags && course.tags.length > 0 ? (
+                    course.tags.slice(0, 3).map((tag, index) => (
+                      <Badge key={index} className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
+                        {tag}
+                      </Badge>
+                    ))
+                  ) : (
+                    <>
+                      <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
+                        Thiết kế
+                      </Badge>
+                      <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
+                        UI/UX
+                      </Badge>
+                    </>
+                  )}
+                  {course.visibility === 'private' && (
+                    <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal gap-1">
+                      <Lock className="w-3 h-3" />
+                      Riêng tư
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <h1 className="text-3xl md:text-4xl font-bold leading-tight">{course.title}</h1>
+                  <p className="text-lg text-blue-100 font-medium opacity-90">
+                    {course.description || "Học cách thiết kế giao diện người dùng đẹp mắt và trải nghiệm tốt"}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6 text-sm">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={handleOwnerClick}
+                  >
+                    <Avatar className="w-8 h-8 border-2 border-white/20">
+                      <AvatarImage src={course.ownerAvatar} />
+                      <AvatarFallback className="bg-white text-[#1E88E5] font-bold">{course.ownerName?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium hover:underline decoration-1 underline-offset-2">{course.ownerName}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-bold">{course.rating || 4.9}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4" />
+                    <span>{course.students} học viên</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    <span>{course.duration || "8 tuần"}</span>
+                  </div>
+                </div>
               </div>
-              <h1 className="mb-4">{course.title}</h1>
-              <p className="text-xl mb-6 opacity-90">{course.description}</p>
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-white text-[#1E88E5]">{course.ownerAvatar}</AvatarFallback>
-                  </Avatar>
-                  <span>{course.ownerName}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  <span>{course.rating}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  <span>{course.students} học viên</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  <span>{course.duration}</span>
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-span-1">
-              <Card>
-                <CardContent className="p-0">
-                  <img
-                    src={course.image}
-                    alt={course.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                  />
-                  <div className="px-4 pt-4 pb-4">
-                    {canManage ? (
+
+              {/* Right Column: Course Card */}
+              <div className="hidden lg:block lg:col-span-1">
+                <Card className="bg-white overflow-hidden shadow-xl border-none translate-y-8">
+                  <div className="aspect-video relative overflow-hidden">
+                    <img
+                      src={course.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
+                      alt={course.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <CardContent className="p-4">
+                    {isOwner ? (
                       <Button
-                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0]"
+                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
                         onClick={() => navigateTo('course-dashboard')}
                       >
                         <BarChart3 className="w-4 h-4 mr-2" />
                         Tổng quan khóa học
                       </Button>
-                    ) : isEnrolled ? (
+                    ) : currentUser?.role === 'admin' ? (
                       <Button
-                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0]"
+                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
                         onClick={() => navigateTo('learning')}
                       >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Xem nội dung
+                      </Button>
+                    ) : isEnrolled ? (
+                      <Button
+                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
+                        onClick={() => navigateTo('learning')}
+                      >
+                        <PlayCircle className="w-4 h-4 mr-2" />
                         Bắt đầu học
                       </Button>
                     ) : hasPendingRequest ? (
                       <Button
-                        className="w-full"
+                        className="w-full h-11"
                         variant="outline"
                         disabled
                       >
@@ -245,7 +330,7 @@ export function CourseDetailPage({
                     ) : (
                       <Dialog open={showEnrollDialog} onOpenChange={setShowEnrollDialog}>
                         <DialogTrigger asChild>
-                          <Button className="w-full bg-[#1E88E5] hover:bg-[#1565C0]">
+                          <Button className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300">
                             <UserPlus className="w-4 h-4 mr-2" />
                             Đăng ký học
                           </Button>
@@ -306,9 +391,9 @@ export function CourseDetailPage({
                         </DialogContent>
                       </Dialog>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -316,19 +401,38 @@ export function CourseDetailPage({
 
       {/* Course Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            {currentUser?.role === 'admin' && (
-              <TabsTrigger value="content-preview">
-                Xem khóa học
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+        <Tabs defaultValue="overview" onValueChange={(v) => setActiveDetailTab(v as 'overview' | 'reviews')}>
+          <TabsList className="mb-6 bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
+            {/* Sliding indicator */}
+            <div
+              className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
+              style={{
+                left: activeDetailTab === 'overview' ? '0%' : '50%',
+                width: '50%',
+              }}
+            />
+            <TabsTrigger
+              value="overview"
+              className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              style={{ color: activeDetailTab === 'overview' ? '#FFFFFF' : '#1E88E5' }}
+            >
+              Tổng quan
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="reviews"
+              className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              style={{ color: activeDetailTab === 'reviews' ? '#FFFFFF' : '#1E88E5' }}
+            >
+              Đánh giá
+            </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="overview">
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <CardTitle className="text-lg font-bold text-[#1E88E5]">Tổng quan khóa học</CardTitle>
+              </CardHeader>
               <CardContent className="p-6">
                 {course.overview ? (
                   <div className="prose max-w-none">
@@ -393,11 +497,10 @@ export function CourseDetailPage({
                                       <button
                                         key={lesson.id}
                                         onClick={() => setSelectedLesson(lesson)}
-                                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                                          selectedLesson?.id === lesson.id
-                                            ? 'border-[#1E88E5] bg-[#1E88E5]/5'
-                                            : 'border-gray-200 hover:border-gray-300'
-                                        }`}
+                                        className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedLesson?.id === lesson.id
+                                          ? 'border-[#1E88E5] bg-[#1E88E5]/5'
+                                          : 'border-gray-200 hover:border-gray-300'
+                                          }`}
                                       >
                                         <div className="flex items-center gap-3">
                                           <div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-xs flex-shrink-0">
@@ -517,16 +620,14 @@ export function CourseDetailPage({
                                     return (
                                       <div
                                         key={oIdx}
-                                        className={`p-4 rounded-lg border-2 transition-all ${
-                                          isCorrect
-                                            ? 'border-green-500 bg-green-50'
-                                            : 'border-gray-200 bg-white'
-                                        }`}
+                                        className={`p-4 rounded-lg border-2 transition-all ${isCorrect
+                                          ? 'border-green-500 bg-green-50'
+                                          : 'border-gray-200 bg-white'
+                                          }`}
                                       >
                                         <div className="flex items-center gap-3">
-                                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                                            isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                                          }`}>
+                                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                                            }`}>
                                             {isCorrect && (
                                               <CheckCircle className="w-4 h-4 text-white" />
                                             )}
@@ -560,14 +661,50 @@ export function CourseDetailPage({
           )}
 
           <TabsContent value="reviews">
-            <Card>
-              <CardHeader>
-                <CardTitle>Đánh giá từ học viên</CardTitle>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <CardTitle className="text-lg font-bold text-[#1E88E5]">Đánh giá từ học viên</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Chưa có đánh giá nào
-                </div>
+                {mockReviews.length > 0 ? (
+                  <div className="space-y-6 pt-6">
+                    {mockReviews.map((review) => (
+                      <div key={review.id} className="border-b last:border-0 pb-6 last:pb-0">
+                        <div className="flex items-start gap-4">
+                          <Avatar>
+                            <AvatarFallback className="bg-[#1E88E5] text-white">
+                              {review.user.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-semibold text-gray-900">{review.user.name}</h4>
+                              <span className="text-sm text-gray-500">{review.date}</span>
+                            </div>
+                            <div className="flex items-center gap-1 mb-2">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < review.rating
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'fill-gray-200 text-gray-200'
+                                    }`}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-gray-600 leading-relaxed">
+                              {review.content}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    Chưa có đánh giá nào
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
