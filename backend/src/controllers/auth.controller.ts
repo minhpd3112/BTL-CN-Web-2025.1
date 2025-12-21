@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { supabase } from '@config/supabase';
 import { httpStatus } from '@utils/httpStatus';
 import { logger } from '@config/logger';
-import type { User } from '@/types';
+import type { User } from '../types';
 
 // Helper function to format user response
 const formatUserResponse = (user: any, profile?: any): User => {

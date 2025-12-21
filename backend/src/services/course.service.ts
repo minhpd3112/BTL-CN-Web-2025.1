@@ -1,14 +1,19 @@
-import { supabase } from '@config/supabase';
+import { supabase, supabaseAdmin } from '@config/supabase';
 import type { 
   Course, 
   CourseFilters, 
   PaginatedResponse,
-  CourseWithDetails 
+  CourseWithDetails
 } from 'types/index';
+
+// Extend CourseFilters to include isAdmin property
+interface ExtendedCourseFilters extends CourseFilters {
+  isAdmin?: boolean;
+}
 
 export const courseService = {
   async getCourses(
-    filters: CourseFilters
+    filters: ExtendedCourseFilters
   ): Promise<PaginatedResponse<CourseWithDetails>> {
     try {
       const {
@@ -23,7 +28,9 @@ export const courseService = {
       const offset = (page - 1) * limit;
 
       // Build query
-      let query = supabase
+      // Nếu là admin (không truyền visibility hoặc truyền 1 flag isAdmin), dùng supabaseAdmin để lấy tất cả khoá học
+      const isAdmin = !filters.visibility || filters.isAdmin;
+      let query = (isAdmin ? supabaseAdmin : supabase)
         .from('courses')
         .select(`
           *,

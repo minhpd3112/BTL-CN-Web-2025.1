@@ -214,7 +214,7 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
               <div className="text-left space-y-4 text-sm text-gray-600">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-[#1E88E5]" />
-                  <span>Tham gia: {user.joinedDate || '2024'}</span>
+                  <span>Tham gia: {user.joinedDate ? user.joinedDate.slice(0, 10) : '2024'}</span>
                 </div>
               </div>
             </CardContent>
