@@ -1,5 +1,5 @@
 import { supabase } from '@config/supabase';
-import { Course } from '@types/index';
+import { Course } from '../types';
 
 export const CourseModel = {
   async findAll(filters?: any) {
@@ -7,7 +7,6 @@ export const CourseModel = {
       .from('courses')
       .select(`
         *,
-        owner:user_profiles!courses_owner_id_fkey(id, full_name, avatar_url),
         tags:course_tags(tag:tags(*))
       `);
 
@@ -31,7 +30,6 @@ export const CourseModel = {
       .from('courses')
       .select(`
         *,
-        owner:user_profiles!courses_owner_id_fkey(id, full_name, avatar_url),
         tags:course_tags(tag:tags(*)),
         sections:sections(
           *,
@@ -79,6 +77,13 @@ export const CourseModel = {
   },
 
   async addTags(courseId: string, tagIds: string[]) {
+    // First, remove all existing tags for this course to avoid duplicates
+    await supabase
+      .from('course_tags')
+      .delete()
+      .eq('course_id', courseId);
+
+    // Then insert new tags
     const courseTags = tagIds.map(tagId => ({
       course_id: courseId,
       tag_id: tagId

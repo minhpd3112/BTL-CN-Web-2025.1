@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { TagModel } from '@models/tag.model';
-import { HttpStatus } from '@utils/httpStatus';
+import { httpStatus } from '@utils/httpStatus';
 
 export const tagController = {
   async getTags(req: Request, res: Response) {
@@ -12,7 +12,7 @@ export const tagController = {
       });
     } catch (error: any) {
       console.error('Get tags error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch tags',
         error: error.message,
@@ -26,7 +26,7 @@ export const tagController = {
       const tag = await TagModel.findById(id);
 
       if (!tag) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Tag not found',
         });
@@ -38,7 +38,7 @@ export const tagController = {
       });
     } catch (error: any) {
       console.error('Get tag error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch tag',
         error: error.message,
@@ -49,13 +49,13 @@ export const tagController = {
   async createTag(req: Request, res: Response) {
     try {
       const tag = await TagModel.create(req.body);
-      res.status(HttpStatus.CREATED).json({
+      res.status(httpStatus.CREATED).json({
         success: true,
         data: tag,
       });
     } catch (error: any) {
       console.error('Create tag error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to create tag',
         error: error.message,
@@ -69,7 +69,7 @@ export const tagController = {
       const tag = await TagModel.update(id, req.body);
 
       if (!tag) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Tag not found',
         });
@@ -81,7 +81,7 @@ export const tagController = {
       });
     } catch (error: any) {
       console.error('Update tag error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to update tag',
         error: error.message,
@@ -100,7 +100,7 @@ export const tagController = {
       });
     } catch (error: any) {
       console.error('Delete tag error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to delete tag',
         error: error.message,

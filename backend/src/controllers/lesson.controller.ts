@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { LessonModel } from '@models/lesson.model';
-import { HttpStatus } from '@utils/httpStatus';
+import { httpStatus } from '@utils/httpStatus';
 
 export const LessonController = {
   async getBySectionId(req: Request, res: Response) {
@@ -14,7 +14,7 @@ export const LessonController = {
       });
     } catch (error: any) {
       console.error('Get lessons error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch lessons',
         error: error.message,
@@ -30,7 +30,7 @@ export const LessonController = {
       const lesson = await LessonModel.findById(id, includeQuiz === 'true');
 
       if (!lesson) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Lesson not found',
         });
@@ -42,7 +42,7 @@ export const LessonController = {
       });
     } catch (error: any) {
       console.error('Get lesson error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch lesson',
         error: error.message,
@@ -55,13 +55,13 @@ export const LessonController = {
       const lessonData = req.body;
       const lesson = await LessonModel.create(lessonData);
 
-      res.status(HttpStatus.CREATED).json({
+      res.status(httpStatus.CREATED).json({
         success: true,
         data: lesson,
       });
     } catch (error: any) {
       console.error('Create lesson error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to create lesson',
         error: error.message,
@@ -77,7 +77,7 @@ export const LessonController = {
       const lesson = await LessonModel.update(id, lessonData);
 
       if (!lesson) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Lesson not found',
         });
@@ -89,7 +89,7 @@ export const LessonController = {
       });
     } catch (error: any) {
       console.error('Update lesson error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to update lesson',
         error: error.message,
@@ -108,7 +108,7 @@ export const LessonController = {
       });
     } catch (error: any) {
       console.error('Delete lesson error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to delete lesson',
         error: error.message,
@@ -122,7 +122,7 @@ export const LessonController = {
       const { questions } = req.body;
 
       if (!Array.isArray(questions) || questions.length === 0) {
-        return res.status(HttpStatus.BAD_REQUEST).json({
+        return res.status(httpStatus.BAD_REQUEST).json({
           success: false,
           message: 'Questions array is required',
         });
@@ -130,13 +130,13 @@ export const LessonController = {
 
       const result = await LessonModel.addQuizQuestions(id, questions);
 
-      res.status(HttpStatus.CREATED).json({
+      res.status(httpStatus.CREATED).json({
         success: true,
         data: result,
       });
     } catch (error: any) {
       console.error('Add quiz questions error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to add quiz questions',
         error: error.message,
@@ -157,7 +157,7 @@ export const LessonController = {
       });
     } catch (error: any) {
       console.error('Update quiz question error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to update quiz question',
         error: error.message,
@@ -176,7 +176,7 @@ export const LessonController = {
       });
     } catch (error: any) {
       console.error('Delete quiz question error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to delete quiz question',
         error: error.message,
