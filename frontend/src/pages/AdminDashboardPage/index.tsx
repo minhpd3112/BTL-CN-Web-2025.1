@@ -5,29 +5,52 @@ import { Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { StatsCounter } from '@/components/shared/StatsCounter';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { mockCourses, mockUsers } from '@/services/mocks';
+import { useEffect, useState } from 'react';
+import { usersAPI, coursesAPI } from '@/services/api';
 import './styles.css';
 
 interface AdminDashboardPageProps {
   navigateTo: (page: Page) => void;
 }
 
-export function AdminDashboardPage({ navigateTo }: AdminDashboardPageProps) {
-  // Mock stats
-  const stats = {
-    totalCourses: mockCourses.length,
-    totalUsers: mockUsers.length,
-    pendingCourses: mockCourses.filter(c => c.status === 'pending').length,
-    approvedCourses: mockCourses.filter(c => c.status === 'approved').length,
-  };
+const AdminDashboardPage = ({ navigateTo }: AdminDashboardPageProps) => {
+  const [stats, setStats] = useState({
+    totalCourses: 0,
+    totalUsers: 0,
+    pendingCourses: 0,
+    approvedCourses: 0,
+  });
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Recent activities
-  const recentActivities = [
-    { id: 1, type: 'course_created', user: 'Nguyễn Văn A', action: 'tạo khóa học mới', course: 'Lập trình React', time: '5 phút trước' },
-    { id: 2, type: 'course_pending', user: 'Trần Thị B', action: 'gửi yêu cầu duyệt khóa học', course: 'UI/UX Design', time: '1 giờ trước' },
-    { id: 3, type: 'user_enrolled', user: 'Lê Văn C', action: 'đăng ký khóa học', course: 'Python Cơ bản', time: '2 giờ trước' },
-    { id: 4, type: 'course_approved', user: 'Admin', action: 'duyệt khóa học', course: 'Java Spring Boot', time: '3 giờ trước' },
-  ];
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true);
+      try {
+        const [usersRes, coursesRes] = await Promise.all([
+          usersAPI.getAllUsers(),
+          coursesAPI.getAllCourses({ isAdmin: true }),
+        ]);
+        const users = usersRes.data || [];
+        const courses = coursesRes.data || [];
+        const totalCourses = coursesRes.total || courses.length;
+        setStats({
+          totalCourses: totalCourses,
+          totalUsers: users.length,
+          pendingCourses: courses.filter((c: any) => c.status === 'pending').length,
+          approvedCourses: courses.filter((c: any) => c.status === 'approved').length,
+        });
+        // TODO: Lấy recentActivities thực tế từ backend nếu có API, tạm thời để rỗng hoặc mock
+        setRecentActivities([]);
+      } catch (e) {
+        setStats({ totalCourses: 0, totalUsers: 0, pendingCourses: 0, approvedCourses: 0 });
+        setRecentActivities([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 pt-8 pb-6">
@@ -188,6 +211,7 @@ export function AdminDashboardPage({ navigateTo }: AdminDashboardPageProps) {
       </AnimatedSection>
     </div>
   );
-}
+};
 
 export default AdminDashboardPage;
+export { AdminDashboardPage };

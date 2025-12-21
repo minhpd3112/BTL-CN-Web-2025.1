@@ -1,9 +1,9 @@
-import { supabase } from '@config/supabase';
-import { Course } from '@types/index';
+import { supabaseAdmin, supabase } from '@config/supabase';
+import { Course } from '../types';
 
 export const CourseModel = {
   async findAll(filters?: any) {
-    let query = supabase
+    let query = supabaseAdmin
       .from('courses')
       .select(`
         *,
@@ -27,7 +27,7 @@ export const CourseModel = {
   },
 
   async findById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('courses')
       .select(`
         *,
@@ -46,7 +46,7 @@ export const CourseModel = {
   },
 
   async create(courseData: Partial<Course>) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('courses')
       .insert([courseData])
       .select()
@@ -57,7 +57,7 @@ export const CourseModel = {
   },
 
   async update(id: string, courseData: Partial<Course>) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('courses')
       .update(courseData)
       .eq('id', id)

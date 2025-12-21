@@ -23,7 +23,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                     {/* Image Section - Reduced Width */}
                     <div className="relative w-full md:w-56 h-40 md:h-44 overflow-hidden shrink-0">
                         <img
-                            src={course.image}
+                            src={course.image_url || course.image}
                             alt={course.title}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
@@ -69,16 +69,19 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                             </p>
 
                             <div className="flex flex-wrap gap-2">
-                                {course.tags.slice(0, 3).map(tag => (
-                                    <Badge
-                                        key={tag}
-                                        variant="secondary"
-                                        className="bg-gray-100 text-gray-600 hover:bg-[#1E88E5]/10 hover:text-[#1E88E5] transition-colors text-xs"
-                                    >
-                                        {tag}
-                                    </Badge>
-                                ))}
-                                {course.tags.length > 3 && (
+                                {(Array.isArray(course.tags) ? course.tags : []).slice(0, 3).map((tag: any, idx) => {
+                                    const tagName = typeof tag === 'string' ? tag : tag?.name;
+                                    return (
+                                        <Badge
+                                            key={tagName || idx}
+                                            variant="secondary"
+                                            className="bg-gray-100 text-gray-600 hover:bg-[#1E88E5]/10 hover:text-[#1E88E5] transition-colors text-xs"
+                                        >
+                                            {tagName}
+                                        </Badge>
+                                    );
+                                })}
+                                {Array.isArray(course.tags) && course.tags.length > 3 && (
                                     <Badge variant="secondary" className="bg-gray-50 text-gray-500 text-xs">
                                         +{course.tags.length - 3}
                                     </Badge>
