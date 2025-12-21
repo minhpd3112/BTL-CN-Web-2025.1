@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { TagCard } from '@/components/shared/TagCard';
-import { mockTags } from '@/services/mocks';
+import { useEffect } from 'react';
+import { tagsAPI } from '@/services/api';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { SearchFilterCard } from '@/components/shared/SearchFilterCard';
@@ -27,7 +28,33 @@ interface ManageTagsPageProps {
 }
 
 export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPageProps = {}) {
-  const [tags, setTags] = useState<TagData[]>(mockTags);
+  const [tags, setTags] = useState<TagData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTags() {
+      setLoading(true);
+      setError(null);
+      try {
+        let data = await tagsAPI.getAllTags();
+        // Ensure data is always an array
+        if (!Array.isArray(data)) {
+          if (data && Array.isArray(data.data)) {
+            data = data.data;
+          } else {
+            data = [];
+          }
+        }
+        setTags(data);
+      } catch (e) {
+        setError('Không thể tải danh sách chủ đề');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTags();
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -193,22 +220,26 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       </SearchFilterCard>
 
       {/* Tags Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTags.map(tag => (
-          <TagCard
-            key={tag.id}
-            tag={tag}
-            onClick={() => {
-              setSelectedTag?.(tag);
-              navigateTo?.('tag-detail');
-            }}
-            onEdit={openEditDialog}
-            onDelete={openDeleteDialog}
-          />
-        ))}
-      </div>
-
-      {filteredTags.length === 0 && (
+      {loading ? (
+        <div className="text-center py-12 text-gray-500">Đang tải chủ đề...</div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-500">{error}</div>
+      ) : filteredTags.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTags.map(tag => (
+            <TagCard
+              key={tag.id}
+              tag={tag}
+              onClick={() => {
+                setSelectedTag?.(tag);
+                navigateTo?.('tag-detail');
+              }}
+              onEdit={openEditDialog}
+              onDelete={openDeleteDialog}
+            />
+          ))}
+        </div>
+      ) : (
         <Card className="border-dashed">
           <CardContent className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">

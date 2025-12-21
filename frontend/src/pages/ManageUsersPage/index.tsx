@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { mockUsers } from '@/services/mocks';
+import { usersAPI } from '@/services/api';
 import { User, Page } from '@/types';
 import { usePagination } from '@/hooks/usePagination';
 import { DataPagination } from '@/components/shared/DataPagination';
@@ -23,12 +23,37 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const filteredUsers = mockUsers.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
-  // Use pagination hook
+  // State for users
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch users from API
+  useEffect(() => {
+    async function fetchUsers() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await usersAPI.getAllUsers();
+        setUsers(res.data || []);
+      } catch (e) {
+        setError('Không thể tải dữ liệu người dùng');
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUsers();
+  }, []);
+
+  // Filter users ở FE
+  const filteredUsers = users.filter(user => {
+    const name = user.full_name || '';
+    const email = user.email || '';
+    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase());
+  });
   const { currentPage, setCurrentPage, totalPages, paginatedItems: paginatedUsers, resetPage } =
     usePagination(filteredUsers, { itemsPerPage: 6 });
 
@@ -39,7 +64,7 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
 
   const handleDeleteUser = () => {
     if (userToDelete) {
-      toast.success(`Đã xóa người dùng "${userToDelete.name}"`);
+      toast.success(`Đã xóa người dùng "${userToDelete.full_name}"`);
       setShowDeleteDialog(false);
       setUserToDelete(null);
     }
@@ -47,6 +72,8 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {loading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
+      {error && <div className="text-center text-red-500 py-8">{error}</div>}
       <PageHeader
         icon={<Users className="w-8 h-8" />}
         title="Quản lý người dùng"
@@ -80,9 +107,17 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
                 {/* Avatar Section */}
                 <div className="relative">
                   <Avatar className="w-12 h-12 ring-2 ring-gray-100 group-hover:ring-[#1E88E5]/50 transition-all">
-                    <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
-                      {user.avatar}
-                    </AvatarFallback>
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.full_name || 'avatar'}
+                        className="w-12 h-12 object-cover rounded-full"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
+                        {(user.full_name?.[0] || '?').toUpperCase()}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   {user.status === 'active' && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -93,7 +128,7 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <h3 className="font-semibold text-gray-900 group-hover:text-[#1E88E5] transition-colors truncate">
-                      {user.name}
+                      {user.full_name}
                     </h3>
                     <Badge
                       className={user.role === 'admin'
@@ -157,12 +192,20 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
         {userToDelete && (
           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
             <Avatar className="w-12 h-12">
-              <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
-                {userToDelete.avatar}
-              </AvatarFallback>
+              {userToDelete?.avatar_url ? (
+                <img
+                  src={userToDelete.avatar_url}
+                  alt={userToDelete.full_name || 'avatar'}
+                  className="w-12 h-12 object-cover rounded-full"
+                />
+              ) : (
+                <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
+                  {(userToDelete.full_name?.[0] || '?').toUpperCase()}
+                </AvatarFallback>
+              )}
             </Avatar>
             <div>
-              <p className="font-medium">{userToDelete.name}</p>
+              <p className="font-medium">{userToDelete.full_name}</p>
               <p className="text-sm text-gray-600">{userToDelete.email}</p>
             </div>
           </div>

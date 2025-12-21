@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Users, Star, Calendar, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { CourseListCard } from '@/components/shared/CourseListCard';
-import { mockCourses } from '@/services/mocks';
+import { coursesAPI } from '@/services/api';
 import { User, Page, Course } from '@/types';
 
 const COURSES_PER_PAGE = 5;
@@ -33,14 +33,35 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
     );
   }
 
-  // Get user's courses
-  const userCourses = mockCourses.filter(c => c.ownerId === user.id);
-
+  // State for user's courses
+  const [userCourses, setUserCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(userCourses.length / COURSES_PER_PAGE);
   const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
   const paginatedCourses = userCourses.slice(startIndex, startIndex + COURSES_PER_PAGE);
+
+  // Fetch all courses and filter by owner_id in FE
+  useEffect(() => {
+    async function fetchUserCourses() {
+      setLoadingCourses(true);
+      setCoursesError(null);
+      try {
+        const res = await coursesAPI.getAllCourses({ isAdmin: true });
+        // Filter courses by owner_id === user.id
+        const filtered = (res.data || []).filter((course: Course) => course.owner_id === user.id);
+        setUserCourses(filtered);
+      } catch (e) {
+        setCoursesError('Không thể tải danh sách khoá học');
+        setUserCourses([]);
+      } finally {
+        setLoadingCourses(false);
+      }
+    }
+    if (user?.id) fetchUserCourses();
+  }, [user?.id]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -53,9 +74,17 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             {/* Avatar */}
             <div className="relative mx-auto md:mx-0">
               <Avatar className="w-24 h-24 ring-4 ring-[#1E88E5]/20">
-                <AvatarFallback className="text-3xl bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
-                  {user.avatar}
-                </AvatarFallback>
+                {user.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.full_name || 'avatar'}
+                    className="w-24 h-24 object-cover rounded-full"
+                  />
+                ) : (
+                  <AvatarFallback className="text-3xl bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
+                    {(user.full_name?.[0] || '?').toUpperCase()}
+                  </AvatarFallback>
+                )}
               </Avatar>
               {user.status === 'active' && (
                 <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-white" />
@@ -65,7 +94,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             {/* User Info */}
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{user.full_name}</h1>
                 <div className="flex items-center justify-center md:justify-start gap-2">
                   <Badge
                     className={user.role === 'admin'
@@ -100,22 +129,24 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
                     <span>{user.phone}</span>
                   </div>
                 )}
-                {user.location && (
+                {user.address && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <MapPin className="w-4 h-4 text-[#1E88E5]" />
-                    <span>{user.location}</span>
+                    <span>{user.address}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="w-4 h-4 text-[#1E88E5]" />
-                  <span>Tham gia: {user.joinedDate}</span>
+                  <span>Tham gia: {user.created_at ? user.created_at.slice(0, 10) : ''}</span>
                 </div>
               </div>
 
               {/* Last Login */}
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
                 <Clock className="w-4 h-4" />
-                <span>Đăng nhập gần đây: {user.lastLogin}</span>
+                <span>
+                  Đăng nhập gần đây: {user.updated_at ? new Date(user.updated_at).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : ''}
+                </span>
               </div>
             </div>
           </div>
@@ -132,7 +163,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Khóa học đã tạo</p>
-                <p className="text-3xl font-bold text-gray-900">{user.coursesCreated}</p>
+                <p className="text-3xl font-bold text-gray-900">{userCourses.length}</p>
               </div>
               <div className="w-12 h-12 bg-[#1E88E5] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                 <BookOpen className="w-6 h-6" />
@@ -149,7 +180,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tổng học viên</p>
-                <p className="text-3xl font-bold text-gray-900">{user.totalStudents}</p>
+                <p className="text-3xl font-bold text-gray-900">{user.totalStudents ?? '-'}</p>
               </div>
               <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-500/30">
                 <Users className="w-6 h-6" />
@@ -166,7 +197,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Đánh giá TB</p>
-                <p className="text-3xl font-bold text-gray-900">4.7</p>
+                <p className="text-3xl font-bold text-gray-900">-</p>
               </div>
               <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-yellow-500/30">
                 <Star className="w-6 h-6" />
@@ -182,7 +213,11 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
           <CardTitle className="text-lg font-bold text-[#1E88E5]">Khóa học đã tạo </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          {userCourses.length > 0 ? (
+          {loadingCourses ? (
+            <div className="text-center py-12 text-gray-500">Đang tải khoá học...</div>
+          ) : coursesError ? (
+            <div className="text-center py-12 text-red-500">{coursesError}</div>
+          ) : userCourses.length > 0 ? (
             <div className="space-y-4">
               {paginatedCourses.map(course => (
                 <CourseListCard

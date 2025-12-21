@@ -1,3 +1,9 @@
+// -----------------------------
+// Users API
+// -----------------------------
+export const usersAPI = {
+  getAllUsers: () => api.get('/users').then(res => res.data),
+};
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
@@ -172,10 +178,23 @@ export const authAPI = {
 };
 
 // -----------------------------
+// Admin API
+// -----------------------------
+export const adminAPI = {
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/admin/login', data);
+    if (response.data.success) {
+      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+    }
+    return response.data;
+  },
+};
+
+// -----------------------------
 // Courses API
 // -----------------------------
 export const coursesAPI = {
-  getAllCourses: () => api.get('/courses?limit=1000').then(res => res.data), // Request all courses without pagination
+  getAllCourses: (params?: any) => api.get('/courses', { params }).then(res => res.data),
   getCourseById: (id: string) => api.get(`/courses/${id}`).then(res => res.data),
   createCourse: (data: any) => api.post('/courses', data).then(res => res.data),
   updateCourse: (id: string, data: any) => api.patch(`/courses/${id}`, data).then(res => res.data),

@@ -8,14 +8,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/services/api';
-// Đã xóa Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
+import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
 import { mockUsers } from '@/services/mocks';
 import { User } from '@/types';
-// Không cần mockGoogleAccounts nữa
 import { AnimatedSection } from '@/utils/animations';
-// Không cần StatsCounter
-import { authAPI } from '@/services/api'; // Giả sử api.ts nằm ở đường dẫn này
 
 
 
@@ -25,17 +22,45 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  // Đã xóa showGoogleModal state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Rất quan trọng để tránh load lại trang
+    e.preventDefault();
     setIsLoading(true);
 
     try {
+      // Nếu là tài khoản admin (ví dụ: email là admin@edulearn.vn)
+      if (!isSignUp && email.trim().toLowerCase() === 'admin@edulearn.vn') {
+        const res = await adminAPI.login({ email, password });
+        if (res.success) {
+          const adminUser: User = {
+            id: parseInt(res.data.user.id, 10),
+            username: res.data.user.email?.split('@')[0] || 'admin',
+            email: res.data.user.email || '',
+            name: res.data.user.full_name || 'Admin',
+            avatar: '',
+            role: res.data.user.role || 'admin',
+            joinedDate: new Date().toISOString(),
+            coursesCreated: 0,
+            coursesEnrolled: 0,
+            totalStudents: 0,
+            status: 'active',
+            lastLogin: new Date().toISOString(),
+            googleId: res.data.user.id,
+          };
+          localStorage.setItem('user_data', JSON.stringify(adminUser));
+          onLogin(adminUser);
+          toast.success("Đăng nhập admin thành công!");
+        } else {
+          toast.error(res.message || "Sai thông tin admin");
+        }
+        setIsLoading(false);
+        return;
+      }
+
       if (isSignUp) {
         // Nếu đang ở trạng thái Đăng ký
         const { data, error } = await supabase.auth.signUp({
@@ -62,15 +87,29 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         if (error) throw error;
 
         if (data?.user) {
+          // Lấy ngày tham gia từ user_profiles, đảm bảo là string ISO
+          let joinedDate: string = data.user.created_at;
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('created_at')
+              .eq('id', data.user.id)
+              .single();
+            if (!profileError && profile?.created_at) {
+              joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
+            }
+          } catch (e) {}
+          // Debug log
+          // eslint-disable-next-line no-console
+          console.log('joinedDate for user', data.user.id, joinedDate);
           const realUser: User = {
-            id: parseInt(data.user.id) || Date.now(),
+            id: parseInt(data.user.id, 10),
             username: data.user.email?.split('@')[0] || 'user',
-            password: '',
             email: data.user.email || '',
             name: data.user.user_metadata?.full_name || 'Người dùng mới',
             avatar: data.user.user_metadata?.avatar_url || '',
-            role: 'user',
-            joinedDate: new Date().toISOString(),
+            role: data.user.user_metadata?.role || 'user',
+            joinedDate,
             coursesCreated: 0,
             coursesEnrolled: 0,
             totalStudents: 0,
@@ -103,16 +142,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Đảm bảo URL này là chính xác
         redirectTo: window.location.origin + '/',
       },
     });
-
+    // Không cần thay đổi joinedDate ở đây, joinedDate sẽ luôn là created_at khi nhận về user
     if (error) {
       toast.error('Lỗi đăng nhập Google: ' + error.message);
     } else {
-      // Supabase sẽ tự chuyển hướng người dùng đến trang đăng nhập Google
-      // và sau đó quay lại trang đã chỉ định trong redirectTo
       toast.success('Đang chuyển hướng đến Google...');
     }
   };

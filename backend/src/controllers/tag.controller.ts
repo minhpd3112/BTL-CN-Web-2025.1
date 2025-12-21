@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { TagModel } from '@models/tag.model';
+import { Tag as TagModel } from '@models/tag.model';
 import { httpStatus } from '@utils/httpStatus';
 
 export const tagController = {
   async getTags(req: Request, res: Response) {
     try {
-      const tags = await TagModel.findAll();
+      const tags = await require('../services/tag.service').tagService.getAllTags();
       res.json({
         success: true,
         data: tags,
