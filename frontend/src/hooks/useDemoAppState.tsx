@@ -35,13 +35,21 @@ export function useDemoAppState() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && event === 'SIGNED_IN' && !currentUser) {
+        // Lấy profile từ user_profiles
         const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-      const metadata = session.user.user_metadata;
+        const metadata = session.user.user_metadata;
+        // Lấy ngày tạo tài khoản từ profile (ưu tiên created_at), fallback về ngày hiện tại nếu không có
+        let joinedDate = '';
+        if (profile?.created_at) {
+          joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
+        } else {
+          joinedDate = new Date().toISOString();
+        }
         const user = {
           id: session.user.id,
           email: session.user.email || '',
@@ -51,7 +59,7 @@ export function useDemoAppState() {
           location: profile?.address || '',
           bio: profile?.bio || '',
           role: 'user',
-          joinedDate: new Date().toLocaleDateString('vi-VN'),
+          joinedDate,
           status: 'active',
           coursesCreated: 0,
           totalStudents: 0

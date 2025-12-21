@@ -3,7 +3,7 @@ import { Trash2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { mockCourses, mockTags } from '@/services/mocks';
+import { coursesAPI, tagsAPI } from '@/services/api';
 import { Course, Page } from '@/types';
 import { CourseListCard } from '@/components/shared/CourseListCard';
 import { Combobox } from '@/components/ui/combobox';
@@ -25,23 +25,65 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
-  // Filter courses
-  const filteredCourses = mockCourses.filter(course => {
+
+  // State for courses and tags
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch tags on mount
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const tagsRes = await tagsAPI.getAllTags();
+        setTags(tagsRes.data || []);
+      } catch (e) {
+        setTags([]);
+      }
+    }
+    fetchTags();
+  }, []);
+
+  // Pagination state for FE
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  // Fetch all courses once
+  useEffect(() => {
+    async function fetchCourses() {
+      setLoading(true);
+      setError(null);
+      try {
+        const coursesRes = await coursesAPI.getAllCourses({ isAdmin: true });
+        setCourses(coursesRes.data || []);
+      } catch (e: any) {
+        setError('Không thể tải dữ liệu');
+        setCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCourses();
+  }, []);
+
+  // Filter courses ở FE
+  const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.ownerName.toLowerCase().includes(searchQuery.toLowerCase());
+      (course.ownerName?.toLowerCase?.().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
-    const matchTag = filterTag === 'all' || (course.tags && course.tags.includes(filterTag));
+    const matchTag = filterTag === 'all' || (course.tags && course.tags.some((t: any) => t.name === filterTag || t === filterTag));
     return matchSearch && matchVisibility && matchTag;
   });
 
-  // Use pagination hook
-  const { currentPage, setCurrentPage, totalPages, paginatedItems: paginatedCourses, resetPage } =
-    usePagination(filteredCourses, { itemsPerPage: 6 });
+  // Pagination FE
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
+  const paginatedCourses = filteredCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Reset page when filters change
+  // Reset page về 1 khi đổi filter
   useEffect(() => {
-    resetPage();
-  }, [searchQuery, filterVisibility, filterTag, resetPage]);
+    setCurrentPage(1);
+  }, [searchQuery, filterVisibility, filterTag]);
 
   const handleDeleteCourse = () => {
     if (courseToDelete) {
@@ -53,6 +95,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {loading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
+      {error && <div className="text-center text-red-500 py-8">{error}</div>}
       <PageHeader
         icon={<BookOpen className="w-8 h-8" />}
         title="Quản lý khóa học"
@@ -83,7 +127,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
         </div>
         <div className="md:col-span-4">
           <Combobox
-            items={[{ value: 'all', label: 'Tất cả chủ đề' }, ...mockTags.map(tag => ({ value: tag.name, label: tag.name }))]}
+            items={[{ value: 'all', label: 'Tất cả chủ đề' }, ...tags.map(tag => ({ value: tag.name, label: tag.name }))]}
             value={filterTag}
             onValueChange={(val) => setFilterTag(val || 'all')}
             placeholder="Chọn chủ đề"
@@ -97,7 +141,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       {/* Results */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-gray-600">
-          Hiển thị {filteredCourses.length} / {mockCourses.length} khóa học
+          Hiển thị {filteredCourses.length} / {courses.length} khóa học
         </p>
       </div>
 
