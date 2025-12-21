@@ -14,7 +14,7 @@ import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { useCoursesQuery } from '@/hooks/useCoursesQuery';
 import { tagsAPI } from '@/services/api';
-import { useEffect } from 'react';
+
 
 interface ExplorePageProps {
   navigateTo: (page: Page) => void;
@@ -63,10 +63,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps)
     setCurrentPage(1);
   };
 
-  // Reset page when filters change
-  useEffect(() => {
-    resetPage();
-  }, [searchQuery, selectedTag, sortBy, resetPage]);
+  // ...existing code...
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
