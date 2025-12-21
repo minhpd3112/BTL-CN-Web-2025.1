@@ -11,7 +11,7 @@ const formatUserResponse = (user: any, profile?: any): User => {
     return ((acc << 5) - acc) + char.charCodeAt(0);
   }, 0);
   const numericId = Math.abs(hashId) % 2147483647; // Keep within 32-bit int range
-  
+
   return {
     id: numericId,
     username: user.email?.split('@')[0] || 'user',
@@ -202,7 +202,7 @@ export const authController = {
       }
 
       const { data: supabaseUser } = await supabase.auth.admin.getUserById(req.user.id);
-      
+
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('*')

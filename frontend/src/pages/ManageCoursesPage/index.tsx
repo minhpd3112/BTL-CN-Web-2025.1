@@ -24,6 +24,48 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [filterTag, setFilterTag] = useState<string>('all');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch courses on mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await coursesAPI.getAllCourses();
+
+      if (response.success) {
+        // Map backend course data to frontend Course type
+        const mappedCourses = response.data.courses.map((course: any) => ({
+          id: course.id,
+          title: course.title,
+          description: course.description || '',
+          image: course.image_url || '/placeholder-course.jpg',
+          ownerId: course.owner_id,
+          ownerName: course.owner?.full_name || 'Unknown',
+          ownerAvatar: course.owner?.avatar_url || '',
+          tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
+          visibility: course.visibility as 'public' | 'private',
+          status: course.status,
+          studentsCount: 0, // TODO: Get from backend
+          lessonsCount: 0,  // TODO: Get from backend
+        }));
+        setCourses(mappedCourses);
+      } else {
+        setError(response.message || 'Không thể tải khóa học');
+      }
+    } catch (err: any) {
+      console.error('Fetch courses error:', err);
+      setError('Đã xảy ra lỗi khi tải danh sách khóa học');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   // State for courses and tags
@@ -146,41 +188,55 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       </div>
 
       {/* Course List */}
-      <div className="space-y-4">
-        {paginatedCourses.length > 0 ? (
-          paginatedCourses.map(course => (
-            <CourseListCard
-              key={course.id}
-              course={course}
-              onClick={() => {
-                setSelectedCourse(course);
-                navigateTo('course-detail');
-              }}
-              action={
-                <Button
-                  size="sm"
-                  className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCourseToDelete(course);
-                    setShowDeleteDialog(true);
-                  }}
-                  title="Xóa khóa học"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Xóa
-                </Button>
-              }
-            />
-          ))
-        ) : (
-          <div className="p-12 text-center bg-white rounded-lg shadow-sm">
-            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="mb-2">Không tìm thấy khóa học</h3>
-            <p className="text-gray-600">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
-          </div>
-        )}
-      </div>
+      {error ? (
+        <div className="p-12 text-center bg-white rounded-lg shadow-sm">
+          <BookOpen className="w-16 h-16 text-red-300 mx-auto mb-4" />
+          <h3 className="mb-2 text-red-600">Lỗi tải dữ liệu</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={fetchCourses}>Thử lại</Button>
+        </div>
+      ) : isLoading ? (
+        <div className="p-12 text-center bg-white rounded-lg shadow-sm">
+          <div className="w-16 h-16 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải khóa học...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {paginatedCourses.length > 0 ? (
+            paginatedCourses.map(course => (
+              <CourseListCard
+                key={course.id}
+                course={course}
+                onClick={() => {
+                  setSelectedCourse(course);
+                  navigateTo('course-detail');
+                }}
+                action={
+                  <Button
+                    size="sm"
+                    className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCourseToDelete(course);
+                      setShowDeleteDialog(true);
+                    }}
+                    title="Xóa khóa học"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Xóa
+                  </Button>
+                }
+              />
+            ))
+          ) : (
+            <div className="p-12 text-center bg-white rounded-lg shadow-sm">
+              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="mb-2">Không tìm thấy khóa học</h3>
+              <p className="text-gray-600">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pagination */}
       <DataPagination

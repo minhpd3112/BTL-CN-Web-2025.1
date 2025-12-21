@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { EnrollmentModel } from '@models/enrollment.model';
 import { supabase } from '@config/supabase';
-import { HttpStatus } from '@utils/httpStatus';
+import { httpStatus } from '@utils/httpStatus';
 
 export const EnrollmentController = {
   async getMyEnrollments(req: Request, res: Response) {
@@ -21,7 +21,7 @@ export const EnrollmentController = {
       });
     } catch (error: any) {
       console.error('Get enrollments error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch enrollments',
         error: error.message,
@@ -43,7 +43,7 @@ export const EnrollmentController = {
         .single();
 
       if (!course || course.owner_id !== userId) {
-        return res.status(HttpStatus.FORBIDDEN).json({
+        return res.status(httpStatus.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to view enrollments',
         });
@@ -60,7 +60,7 @@ export const EnrollmentController = {
       });
     } catch (error: any) {
       console.error('Get course enrollments error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch enrollments',
         error: error.message,
@@ -76,7 +76,7 @@ export const EnrollmentController = {
       // Check if already enrolled
       const existing = await EnrollmentModel.findByUserId(userId);
       if (existing.some((e: any) => e.course_id === course_id)) {
-        return res.status(HttpStatus.BAD_REQUEST).json({
+        return res.status(httpStatus.BAD_REQUEST).json({
           success: false,
           message: 'Already enrolled in this course',
         });
@@ -88,13 +88,13 @@ export const EnrollmentController = {
         request_message,
       });
 
-      res.status(HttpStatus.CREATED).json({
+      res.status(httpStatus.CREATED).json({
         success: true,
         data: enrollment,
       });
     } catch (error: any) {
       console.error('Create enrollment error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to create enrollment',
         error: error.message,
@@ -109,7 +109,7 @@ export const EnrollmentController = {
       const userId = req.user!.id;
 
       if (!['approved', 'rejected'].includes(status)) {
-        return res.status(HttpStatus.BAD_REQUEST).json({
+        return res.status(httpStatus.BAD_REQUEST).json({
           success: false,
           message: 'Invalid status',
         });
@@ -118,7 +118,7 @@ export const EnrollmentController = {
       // Get enrollment and check ownership
       const enrollmentData = await EnrollmentModel.findById(id);
       if (!enrollmentData) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Enrollment not found',
         });
@@ -131,7 +131,7 @@ export const EnrollmentController = {
         .single();
 
       if (!course || course.owner_id !== userId) {
-        return res.status(HttpStatus.FORBIDDEN).json({
+        return res.status(httpStatus.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to update this enrollment',
         });
@@ -150,7 +150,7 @@ export const EnrollmentController = {
       });
     } catch (error: any) {
       console.error('Update enrollment status error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to update enrollment status',
         error: error.message,
@@ -165,14 +165,14 @@ export const EnrollmentController = {
 
       const enrollment = await EnrollmentModel.findById(id);
       if (!enrollment) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Enrollment not found',
         });
       }
 
       if ((enrollment as any).user_id !== userId) {
-        return res.status(HttpStatus.FORBIDDEN).json({
+        return res.status(httpStatus.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to delete this enrollment',
         });
@@ -186,7 +186,7 @@ export const EnrollmentController = {
       });
     } catch (error: any) {
       console.error('Delete enrollment error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to delete enrollment',
         error: error.message,
@@ -201,14 +201,14 @@ export const EnrollmentController = {
 
       const enrollment = await EnrollmentModel.findById(id);
       if (!enrollment) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Enrollment not found',
         });
       }
 
       if ((enrollment as any).user_id !== userId) {
-        return res.status(HttpStatus.FORBIDDEN).json({
+        return res.status(httpStatus.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to view this progress',
         });
@@ -225,7 +225,7 @@ export const EnrollmentController = {
       });
     } catch (error: any) {
       console.error('Get enrollment progress error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch enrollment progress',
         error: error.message,

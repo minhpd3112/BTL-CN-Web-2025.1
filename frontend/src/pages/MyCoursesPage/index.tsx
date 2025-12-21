@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, BookOpen, Search, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { mockCourses, mockEnrollments } from '@/services/mocks';
+import { coursesAPI } from '@/services/api';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { CourseListCard } from '@/components/shared/CourseListCard';
@@ -36,8 +37,47 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
     }).filter(Boolean) as (Course & { progress: number; completedLessons: number })[];
   });
 
-  // Khóa học tôi tạo
-  const myCreatedCourses = mockCourses.filter(c => c.ownerId === currentUser.id);
+  // Khóa học tôi tạo - Fetch from API
+  const [myCreatedCourses, setMyCreatedCourses] = useState<Course[]>([]);
+  const [isLoadingCreated, setIsLoadingCreated] = useState(true);
+
+  // Fetch courses created by current user
+  useEffect(() => {
+    const fetchMyCreatedCourses = async () => {
+      try {
+        setIsLoadingCreated(true);
+        const response = await coursesAPI.getAllCourses();
+
+        if (response.success) {
+          // Map backend course data to frontend Course type and filter by owner
+          const mappedCourses = response.data.courses
+            .filter((course: any) => course.owner_id === currentUser.id) // Filter by owner
+            .map((course: any) => ({
+              id: course.id,
+              title: course.title,
+              description: course.description || '',
+              image: course.image_url || '/placeholder-course.jpg',
+              ownerId: course.owner_id,
+              ownerName: course.owner?.full_name || currentUser.name,
+              ownerAvatar: course.owner?.avatar_url || currentUser.avatar,
+              tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
+              visibility: course.visibility as 'public' | 'private',
+              status: course.status,
+              studentsCount: 0,
+              lessonsCount: 0,
+            }));
+          setMyCreatedCourses(mappedCourses);
+        }
+      } catch (error) {
+        console.error('Failed to fetch created courses:', error);
+        toast.error('Không thể tải khóa học của bạn');
+      } finally {
+        setIsLoadingCreated(false);
+      }
+    };
+
+    fetchMyCreatedCourses();
+  }, [currentUser.id, currentUser.name, currentUser.avatar]);
 
   // Active tab state for animations
   const [activeTab, setActiveTab] = useState<'created' | 'enrolled'>('created');
@@ -107,7 +147,16 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               : '-translate-x-full opacity-0 absolute inset-0'
               }`}
           >
-            {myCreatedCourses.length > 0 ? (
+            {isLoadingCreated ? (
+              <AnimatedSection animation="fade-up">
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <div className="w-16 h-16 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Đang tải khóa học...</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            ) : myCreatedCourses.length > 0 ? (
               <>
                 {paginatedCreatedCourses.map((course, index) => (
                   <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>

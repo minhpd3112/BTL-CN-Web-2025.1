@@ -1,5 +1,5 @@
 import { supabase } from '@config/supabase';
-import { Enrollment } from '@types/index';
+import { Enrollment } from '../types';
 
 export const EnrollmentModel = {
   async findByUserId(userId: string) {
