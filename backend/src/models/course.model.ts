@@ -67,7 +67,7 @@ export const CourseModel = {
   },
 
   async delete(id: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('courses')
       .delete()
       .eq('id', id);

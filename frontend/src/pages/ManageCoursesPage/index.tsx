@@ -27,21 +27,19 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-  // Fetch courses on mount
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
+  // Chuẩn hoá fetchCourses duy nhất
   const fetchCourses = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await coursesAPI.getAllCourses();
-
+      const response = await coursesAPI.getAllCourses({ isAdmin: true });
       if (response.success) {
-        // Map backend course data to frontend Course type
-        const mappedCourses = response.data.courses.map((course: any) => ({
+        const courseList = Array.isArray(response.data) ? response.data : [];
+        const mappedCourses = courseList.map((course: any) => ({
           id: course.id,
           title: course.title,
           description: course.description || '',
@@ -52,8 +50,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
           visibility: course.visibility as 'public' | 'private',
           status: course.status,
-          studentsCount: 0, // TODO: Get from backend
-          lessonsCount: 0,  // TODO: Get from backend
+          studentsCount: 0,
+          lessonsCount: 0,
         }));
         setCourses(mappedCourses);
       } else {
@@ -67,15 +65,9 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     }
   };
 
-
-  // State for courses and tags
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch tags on mount
+  // Fetch courses & tags on mount
   useEffect(() => {
+    fetchCourses();
     async function fetchTags() {
       try {
         const tagsRes = await tagsAPI.getAllTags();
@@ -85,28 +77,6 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       }
     }
     fetchTags();
-  }, []);
-
-  // Pagination state for FE
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-
-  // Fetch all courses once
-  useEffect(() => {
-    async function fetchCourses() {
-      setLoading(true);
-      setError(null);
-      try {
-        const coursesRes = await coursesAPI.getAllCourses({ isAdmin: true });
-        setCourses(coursesRes.data || []);
-      } catch (e: any) {
-        setError('Không thể tải dữ liệu');
-        setCourses([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCourses();
   }, []);
 
   // Filter courses ở FE
@@ -129,15 +99,25 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
 
   const handleDeleteCourse = () => {
     if (courseToDelete) {
-      toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
-      setShowDeleteDialog(false);
-      setCourseToDelete(null);
+      coursesAPI.deleteCourse(courseToDelete.id)
+        .then(() => {
+          toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
+          // Refresh course list
+          fetchCourses();
+        })
+        .catch((err) => {
+          toast.error(`Xoá khoá học thất bại: ${err?.response?.data?.message || err.message || 'Lỗi không xác định'}`);
+        })
+        .finally(() => {
+          setShowDeleteDialog(false);
+          setCourseToDelete(null);
+        });
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {loading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
+      {isLoading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
       {error && <div className="text-center text-red-500 py-8">{error}</div>}
       <PageHeader
         icon={<BookOpen className="w-8 h-8" />}

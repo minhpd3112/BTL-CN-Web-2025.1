@@ -185,6 +185,9 @@ export const adminAPI = {
     const response = await api.post<AuthResponse>('/auth/admin/login', data);
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      if (response.data.data.token) {
+        localStorage.setItem('auth_token', response.data.data.token);
+      }
     }
     return response.data;
   },

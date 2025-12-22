@@ -5,7 +5,7 @@
 export type UserRole = 'admin' | 'user';
 
 export interface User {
-  id: number;
+  id: string; // uuid
   username: string;
   // NOTE: password đã bị xóa - frontend KHÔNG BAO GIỜ nên biết password của user
   role: UserRole;
@@ -38,12 +38,12 @@ export interface Tag {
 }
 
 export interface Course {
-  id: number;
+  id: string; // uuid
   title: string;
   description: string;
   overview?: string;
   ownerName: string;
-  ownerId: number;
+  ownerId: string; // uuid
   ownerAvatar: string;
   rating: number;
   students: number;

@@ -12,6 +12,7 @@ router.get('/:id', courseController.getCourseById);
 router.post('/', authenticate, courseController.createCourse);
 router.post('/:id/tags', authenticate, courseController.addCourseTags);
 router.patch('/:id', authenticate, courseController.updateCourse);
-router.delete('/:id', authenticate, courseController.deleteCourse);
+import { requireOwnerOrAdmin } from '@middlewares/auth.middleware';
+router.delete('/:id', authenticate, requireOwnerOrAdmin('course'), courseController.deleteCourse);
 
 export default router;

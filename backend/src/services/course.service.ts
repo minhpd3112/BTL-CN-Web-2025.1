@@ -27,29 +27,40 @@ export const courseService = {
 
       const offset = (page - 1) * limit;
 
-      // Build query
-      // Nếu là admin (không truyền visibility hoặc truyền 1 flag isAdmin), dùng supabaseAdmin để lấy tất cả khoá học
-      const isAdmin = !filters.visibility || filters.isAdmin;
-      let query = (isAdmin ? supabaseAdmin : supabase)
-        .from('courses')
-        .select(`
-          *,
-          course_tags(
-            tags(*)
-          )
-        `, { count: 'exact' });
+      // Nếu truyền owner_id thì trả về tất cả khoá học của owner đó (bỏ filter status/visibility)
+      let query;
+      if (filters.owner_id) {
+        query = supabase
+          .from('courses')
+          .select(`
+            *,
+            course_tags(
+              tags(*)
+            )
+          `, { count: 'exact' })
+          .eq('owner_id', filters.owner_id);
+      } else {
+        // Nếu là admin (không truyền visibility hoặc truyền 1 flag isAdmin), dùng supabaseAdmin để lấy tất cả khoá học
+        const isAdmin = !filters.visibility || filters.isAdmin;
+        query = (isAdmin ? supabaseAdmin : supabase)
+          .from('courses')
+          .select(`
+            *,
+            course_tags(
+              tags(*)
+            )
+          `, { count: 'exact' });
+        if (status) {
+          query = query.eq('status', status);
+        }
+        if (visibility) {
+          query = query.eq('visibility', visibility);
+        }
+      }
 
       // Apply filters
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-
-      if (visibility) {
-        query = query.eq('visibility', visibility);
       }
 
       // Apply pagination and ordering
