@@ -3,8 +3,7 @@ import { Trash2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { mockTags } from '@/services/mocks';
-import { coursesAPI } from '@/services/api';
+import { coursesAPI, tagsAPI } from '@/services/api';
 import { Course, Page } from '@/types';
 import { CourseListCard } from '@/components/shared/CourseListCard';
 import { Combobox } from '@/components/ui/combobox';
@@ -28,21 +27,19 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-  // Fetch courses on mount
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
+  // Chuẩn hoá fetchCourses duy nhất
   const fetchCourses = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await coursesAPI.getAllCourses();
-
+      const response = await coursesAPI.getAllCourses({ isAdmin: true });
       if (response.success) {
-        // Map backend course data to frontend Course type
-        const mappedCourses = response.data.courses.map((course: any) => ({
+        const courseList = Array.isArray(response.data) ? response.data : [];
+        const mappedCourses = courseList.map((course: any) => ({
           id: course.id,
           title: course.title,
           description: course.description || '',
@@ -53,8 +50,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
           visibility: course.visibility as 'public' | 'private',
           status: course.status,
-          studentsCount: 0, // TODO: Get from backend
-          lessonsCount: 0,  // TODO: Get from backend
+          studentsCount: 0,
+          lessonsCount: 0,
         }));
         setCourses(mappedCourses);
       } else {
@@ -68,34 +65,60 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     }
   };
 
-  // Filter courses
+  // Fetch courses & tags on mount
+  useEffect(() => {
+    fetchCourses();
+    async function fetchTags() {
+      try {
+        const tagsRes = await tagsAPI.getAllTags();
+        setTags(tagsRes.data || []);
+      } catch (e) {
+        setTags([]);
+      }
+    }
+    fetchTags();
+  }, []);
+
+  // Filter courses ở FE
   const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.ownerName.toLowerCase().includes(searchQuery.toLowerCase());
+      (course.ownerName?.toLowerCase?.().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
-    const matchTag = filterTag === 'all' || (course.tags && course.tags.includes(filterTag));
+    const matchTag = filterTag === 'all' || (course.tags && course.tags.some((t: any) => t.name === filterTag || t === filterTag));
     return matchSearch && matchVisibility && matchTag;
   });
 
-  // Use pagination hook
-  const { currentPage, setCurrentPage, totalPages, paginatedItems: paginatedCourses, resetPage } =
-    usePagination(filteredCourses, { itemsPerPage: 6 });
+  // Pagination FE
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
+  const paginatedCourses = filteredCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Reset page when filters change
+  // Reset page về 1 khi đổi filter
   useEffect(() => {
-    resetPage();
-  }, [searchQuery, filterVisibility, filterTag, resetPage]);
+    setCurrentPage(1);
+  }, [searchQuery, filterVisibility, filterTag]);
 
   const handleDeleteCourse = () => {
     if (courseToDelete) {
-      toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
-      setShowDeleteDialog(false);
-      setCourseToDelete(null);
+      coursesAPI.deleteCourse(courseToDelete.id)
+        .then(() => {
+          toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
+          // Refresh course list
+          fetchCourses();
+        })
+        .catch((err) => {
+          toast.error(`Xoá khoá học thất bại: ${err?.response?.data?.message || err.message || 'Lỗi không xác định'}`);
+        })
+        .finally(() => {
+          setShowDeleteDialog(false);
+          setCourseToDelete(null);
+        });
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {isLoading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
+      {error && <div className="text-center text-red-500 py-8">{error}</div>}
       <PageHeader
         icon={<BookOpen className="w-8 h-8" />}
         title="Quản lý khóa học"
@@ -126,7 +149,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
         </div>
         <div className="md:col-span-4">
           <Combobox
-            items={[{ value: 'all', label: 'Tất cả chủ đề' }, ...mockTags.map(tag => ({ value: tag.name, label: tag.name }))]}
+            items={[{ value: 'all', label: 'Tất cả chủ đề' }, ...tags.map(tag => ({ value: tag.name, label: tag.name }))]}
             value={filterTag}
             onValueChange={(val) => setFilterTag(val || 'all')}
             placeholder="Chọn chủ đề"
@@ -140,7 +163,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       {/* Results */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-gray-600">
-          {isLoading ? 'Đang tải...' : `Hiển thị ${filteredCourses.length} / ${courses.length} khóa học`}
+          Hiển thị {filteredCourses.length} / {courses.length} khóa học
         </p>
       </div>
 

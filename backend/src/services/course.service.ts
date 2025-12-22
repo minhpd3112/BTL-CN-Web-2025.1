@@ -1,14 +1,19 @@
-import { supabase } from '@config/supabase';
+import { supabase, supabaseAdmin } from '@config/supabase';
 import type { 
   Course, 
   CourseFilters, 
   PaginatedResponse,
-  CourseWithDetails 
+  CourseWithDetails
 } from 'types/index';
+
+// Extend CourseFilters to include isAdmin property
+interface ExtendedCourseFilters extends CourseFilters {
+  isAdmin?: boolean;
+}
 
 export const courseService = {
   async getCourses(
-    filters: CourseFilters
+    filters: ExtendedCourseFilters
   ): Promise<PaginatedResponse<CourseWithDetails>> {
     try {
       const {
@@ -22,27 +27,40 @@ export const courseService = {
 
       const offset = (page - 1) * limit;
 
-      // Build query
-      let query = supabase
-        .from('courses')
-        .select(`
-          *,
-          course_tags(
-            tags(*)
-          )
-        `, { count: 'exact' });
+      // Nếu truyền owner_id thì trả về tất cả khoá học của owner đó (bỏ filter status/visibility)
+      let query;
+      if (filters.owner_id) {
+        query = supabase
+          .from('courses')
+          .select(`
+            *,
+            course_tags(
+              tags(*)
+            )
+          `, { count: 'exact' })
+          .eq('owner_id', filters.owner_id);
+      } else {
+        // Nếu là admin (không truyền visibility hoặc truyền 1 flag isAdmin), dùng supabaseAdmin để lấy tất cả khoá học
+        const isAdmin = !filters.visibility || filters.isAdmin;
+        query = (isAdmin ? supabaseAdmin : supabase)
+          .from('courses')
+          .select(`
+            *,
+            course_tags(
+              tags(*)
+            )
+          `, { count: 'exact' });
+        if (status) {
+          query = query.eq('status', status);
+        }
+        if (visibility) {
+          query = query.eq('visibility', visibility);
+        }
+      }
 
       // Apply filters
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-
-      if (visibility) {
-        query = query.eq('visibility', visibility);
       }
 
       // Apply pagination and ordering

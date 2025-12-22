@@ -35,26 +35,26 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
     const fetchMyCreatedCourses = async () => {
       try {
         setIsLoadingCreated(true);
-        const response = await coursesAPI.getAllCourses();
+        // Truyền owner_id để backend trả về tất cả khoá học của user này
+        const response = await coursesAPI.getAllCourses({ owner_id: currentUser.id });
 
         if (response.success) {
-          // Map backend course data to frontend Course type and filter by owner
-          const mappedCourses = response.data.courses
-            .filter((course: any) => course.owner_id === currentUser.id) // Filter by owner
-            .map((course: any) => ({
-              id: course.id,
-              title: course.title,
-              description: course.description || '',
-              image: course.image_url || '/placeholder-course.jpg',
-              ownerId: course.owner_id,
-              ownerName: course.owner?.full_name || currentUser.name,
-              ownerAvatar: course.owner?.avatar_url || currentUser.avatar,
-              tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
-              visibility: course.visibility as 'public' | 'private',
-              status: course.status,
-              studentsCount: 0,
-              lessonsCount: 0,
-            }));
+          // Defensive: ensure response.data is an array (API trả về data: Array)
+          const courseList = Array.isArray(response.data) ? response.data : [];
+          const mappedCourses = courseList.map((course: any) => ({
+            id: course.id,
+            title: course.title,
+            description: course.description || '',
+            image: course.image_url || '/placeholder-course.jpg',
+            ownerId: course.owner_id,
+            ownerName: course.owner?.full_name || currentUser.name,
+            ownerAvatar: course.owner?.avatar_url || currentUser.avatar,
+            tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
+            visibility: course.visibility as 'public' | 'private',
+            status: course.status,
+            studentsCount: 0,
+            lessonsCount: 0,
+          }));
           setMyCreatedCourses(mappedCourses);
         }
       } catch (error) {
