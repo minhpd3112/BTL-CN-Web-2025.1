@@ -90,14 +90,20 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                         </div>
 
                         {/* Footer / Progress Section - Removed Views/Lessons */}
-                        {showProgress && course.progress !== undefined && (
+                        {showProgress && (course.progress !== null && course.progress !== undefined) && (
                             <div className="mt-3 pt-3 border-t border-gray-100">
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-xs font-medium">
                                         <span className="text-gray-600">Tiến độ học tập</span>
                                         <span className="text-[#1E88E5]">{course.progress}%</span>
                                     </div>
-                                    <Progress value={course.progress} className="h-1.5 bg-gray-100" />
+                                    {/* Custom Progress Bar */}
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-[#1E88E5] transition-all duration-300 rounded-full"
+                                            style={{ width: `${course.progress}%` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}

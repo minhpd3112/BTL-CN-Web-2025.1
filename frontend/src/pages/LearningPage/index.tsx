@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award } from 'lucide-react';
 import { LearningHeader } from './components/LearningHeader';
 import { CourseSidebar } from './components/CourseSidebar';
@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Course, Page } from '@/types';
+import { sectionsAPI, lessonsAPI, lessonProgressAPI } from '@/services/api';
 
 // Mock quiz questions
 const mockQuizQuestions = [
@@ -73,40 +74,163 @@ const mockQuizQuestions = [
   }
 ];
 
-// Mock sections with lessons
-const mockSections = [
-  {
-    id: 1,
-    title: 'Giới thiệu',
-    lessons: [
-      { id: 1, title: 'Giới thiệu khóa học', type: 'video', duration: '10:00', youtubeUrl: 'https://www.youtube.com/watch?v=kcdMj9IImEs', completed: true },
-      { id: 2, title: 'Cài đặt môi trường', type: 'video', duration: '15:00', youtubeUrl: 'https://www.youtube.com/watch?v=kcdMj9IImEs', completed: true },
-    ]
-  },
-  {
-    id: 2,
-    title: 'Nội dung chính',
-    lessons: [
-      { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', youtubeUrl: 'https://www.youtube.com/watch?v=kcdMj9IImEs', completed: false },
-      { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', pdfUrl: 'https://drive.google.com/file/d/1403bMpvCH1IxV-B7ZU50YU64C2M4OfmF/preview', completed: false },
-      { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false },
-    ]
-  }
-];
-
 interface LearningPageProps {
   course: Course;
   navigateTo: (page: Page) => void;
 }
 
 export function LearningPage({ course, navigateTo }: LearningPageProps) {
-  const [selectedLesson, setSelectedLesson] = useState(mockSections[0].lessons[0]);
-  const [expandedSections, setExpandedSections] = useState<number[]>([1, 2]);
+  // State for real sections and lessons
+  const [sections, setSections] = useState<any[]>([]);
+  const [allLessons, setAllLessons] = useState<any[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedSections, setExpandedSections] = useState<number[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Lesson progress tracking
+  const [lessonsProgress, setLessonsProgress] = useState<Record<string, boolean>>({});
 
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
+
+  // Fetch real course sections and lessons
+  const fetchCourseSections = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      console.log('Fetching sections for course:', course.id);
+
+      // Fetch user progress FIRST
+      let progressMap: Record<string, boolean> = {};
+      try {
+        console.log('🔄 Fetching progress for course:', course.id);
+        const progressResponse = await lessonProgressAPI.getUserProgress(course.id.toString());
+        if (progressResponse.success && progressResponse.data) {
+          progressResponse.data.forEach((p: any) => {
+            progressMap[p.lesson_id] = p.completed;
+          });
+          setLessonsProgress(progressMap);
+          console.log('📊 Loaded progress:', progressMap);
+        }
+      } catch (error: any) {
+        console.error('❌ Failed to fetch progress:', error);
+      }
+
+      // Then fetch sections
+      const sectionsResponse = await sectionsAPI.getByCourseId(course.id.toString());
+
+      if (sectionsResponse.success && sectionsResponse.data) {
+        const sectionsData = sectionsResponse.data;
+
+        // Fetch lessons for each section
+        const sectionsWithLessons = await Promise.all(
+          sectionsData.map(async (section: any) => {
+            try {
+              const lessonsResponse = await lessonsAPI.getBySectionId(section.id.toString());
+              const lessons = lessonsResponse.success ? lessonsResponse.data || [] : [];
+
+              const mappedLessons = lessons.map((lesson: any) => ({
+                ...lesson,
+                type: lesson.content_type || lesson.type || 'video',
+                youtubeUrl: lesson.content_url || '',
+                pdfUrl: lesson.content_type === 'document' ? lesson.content_url || '' : '',
+                completed: progressMap[lesson.id] || false, // Use loaded progress
+                isCompleted: progressMap[lesson.id] || false,
+                isLocked: false,
+              }));
+
+              return {
+                ...section,
+                lessons: mappedLessons
+              };
+            } catch (err) {
+              console.error('Failed to fetch lessons for section:', section.id, err);
+              return { ...section, lessons: [] };
+            }
+          })
+        );
+
+        setSections(sectionsWithLessons);
+
+        // Expand all sections by default
+        setExpandedSections(sectionsWithLessons.map((s: any) => s.id));
+
+        // Flatten all lessons
+        const flatLessons = sectionsWithLessons.flatMap((s: any) => s.lessons);
+        setAllLessons(flatLessons);
+
+        // Set first lesson as selected
+        if (flatLessons.length > 0) {
+          console.log('Setting first lesson as selected:', flatLessons[0]);
+          console.log('First lesson details:', {
+            id: flatLessons[0].id,
+            title: flatLessons[0].title,
+            type: flatLessons[0].type,
+            youtubeUrl: flatLessons[0].youtubeUrl,
+            pdfUrl: flatLessons[0].pdfUrl
+          });
+          setSelectedLesson(flatLessons[0]);
+        } else {
+          toast.error('Khóa học chưa có bài học nào');
+        }
+      } else {
+        toast.error('Không thể tải nội dung khóa học');
+      }
+    } catch (error) {
+      console.error('Failed to fetch course sections:', error);
+      toast.error('Không thể tải nội dung khóa học');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [course.id]);
+
+  // Fetch sections on mount
+  useEffect(() => {
+    fetchCourseSections();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Toggle lesson completion
+  const handleToggleLessonCompletion = async (lessonId: string) => {
+    try {
+      const response = await lessonProgressAPI.toggleCompletion(lessonId);
+      if (response.success) {
+        // Update local progress state
+        const newCompleted = !lessonsProgress[lessonId];
+        setLessonsProgress(prev => ({
+          ...prev,
+          [lessonId]: newCompleted
+        }));
+
+        // Update sections state to reflect change immediately
+        setSections(prevSections =>
+          prevSections.map((section: any) => ({
+            ...section,
+            lessons: section.lessons.map((lesson: any) =>
+              lesson.id === lessonId
+                ? { ...lesson, completed: newCompleted, isCompleted: newCompleted }
+                : lesson
+            )
+          }))
+        );
+
+        // Update allLessons
+        setAllLessons(prevLessons =>
+          prevLessons.map(lesson =>
+            lesson.id === lessonId
+              ? { ...lesson, completed: newCompleted, isCompleted: newCompleted }
+              : lesson
+          )
+        );
+
+        toast.success(newCompleted ? 'Đã đánh dấu hoàn thành!' : 'Đã bỏ đánh dấu!');
+      }
+    } catch (error) {
+      console.error('Failed to toggle lesson completion:', error);
+      toast.error('Không thể cập nhật tiến độ');
+    }
+  };
 
   const toggleSection = (sectionId: number) => {
     if (expandedSections.includes(sectionId)) {
@@ -121,11 +245,11 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     return `https://www.youtube.com/embed/${videoId}`;
   };
 
-  const allLessons = mockSections.flatMap(s => s.lessons);
+  // Calculate progress from state
   const completedLessons = allLessons.filter(l => l.completed).length;
-  const progress = (completedLessons / allLessons.length) * 100;
+  const progress = allLessons.length > 0 ? (completedLessons / allLessons.length) * 100 : 0;
 
-  const currentIndex = allLessons.findIndex(l => l.id === selectedLesson.id);
+  const currentIndex = selectedLesson ? allLessons.findIndex(l => l.id === selectedLesson.id) : -1;
   const canGoPrevious = currentIndex > 0;
   const canGoNext = currentIndex < allLessons.length - 1;
 
@@ -177,16 +301,43 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     toast.success('Đã làm mới quiz!');
   };
 
-  // Transform data for Sidebar
-  const sidebarSections = mockSections.map(s => ({
+  // Transform sections data for Sidebar
+  const sidebarSections = sections.map((s: any) => ({
     ...s,
-    lessons: s.lessons.map(l => ({
+    lessons: s.lessons.map((l: any) => ({
       ...l,
       type: l.type as 'video' | 'pdf' | 'quiz',
       isCompleted: l.completed,
-      isLocked: false // Default unlock for demo
+      isLocked: false
     }))
   }));
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E88E5] mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải nội dung khóa học...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no lessons
+  if (!selectedLesson) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">Khóa học chưa có nội dung</p>
+          <Button onClick={() => navigateTo('my-courses')} className="mt-4">
+            Quay lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
@@ -402,6 +553,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                 setQuizAnswers({});
               }
             }}
+            onToggleCompletion={handleToggleLessonCompletion}
           />
         </div>
       </div>

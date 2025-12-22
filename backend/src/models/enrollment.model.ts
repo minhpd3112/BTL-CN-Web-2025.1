@@ -1,16 +1,13 @@
-import { supabase } from '@config/supabase';
+import { supabase, supabaseAdmin } from '@config/supabase';
 import { Enrollment } from '../types';
 
 export const EnrollmentModel = {
   async findByUserId(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enrollments')
       .select(`
         *,
-        course:courses(
-          *,
-          owner:user_profiles!courses_owner_id_fkey(full_name, avatar_url)
-        )
+        course:courses(*)
       `)
       .eq('user_id', userId);
 
@@ -19,12 +16,9 @@ export const EnrollmentModel = {
   },
 
   async findByCourseId(courseId: string, status?: string) {
-    let query = supabase
+    let query = supabaseAdmin
       .from('enrollments')
-      .select(`
-        *,
-        user:user_profiles!enrollments_user_id_fkey(id, full_name, avatar_url)
-      `)
+      .select('*')
       .eq('course_id', courseId);
 
     if (status) {
@@ -32,18 +26,15 @@ export const EnrollmentModel = {
     }
 
     const { data, error } = await query;
+    console.log('EnrollmentModel.findByCourseId:', { courseId, found: data?.length, error });
     if (error) throw error;
     return data || [];
   },
 
   async findById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enrollments')
-      .select(`
-        *,
-        user:user_profiles!enrollments_user_id_fkey(*),
-        course:courses(*)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -98,7 +89,7 @@ export const EnrollmentModel = {
   },
 
   async getProgress(userId: string, courseId: string) {
-    const { data: sections } = await supabase
+    const { data: sections } = await supabaseAdmin
       .from('sections')
       .select('id')
       .eq('course_id', courseId);
@@ -107,14 +98,14 @@ export const EnrollmentModel = {
 
     const sectionIds = sections.map(s => s.id);
 
-    const { data: lessons } = await supabase
+    const { data: lessons } = await supabaseAdmin
       .from('lessons')
       .select('id')
       .in('section_id', sectionIds);
 
     const totalLessons = lessons?.length || 0;
 
-    const { data: progress } = await supabase
+    const { data: progress } = await supabaseAdmin
       .from('lesson_progress')
       .select('id')
       .eq('user_id', userId)
@@ -127,6 +118,37 @@ export const EnrollmentModel = {
       total: totalLessons,
       completed: completedLessons,
       percentage: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
+    };
+  },
+
+  async getCourseAverageProgress(courseId: string) {
+    // Get all approved enrollments for this course
+    const { data: enrollments } = await supabaseAdmin
+      .from('enrollments')
+      .select('user_id')
+      .eq('course_id', courseId)
+      .eq('status', 'approved');
+
+    if (!enrollments || enrollments.length === 0) {
+      return { averageProgress: 0, totalStudents: 0 };
+    }
+
+    // Calculate progress for each student
+    const progressPromises = enrollments.map(enrollment =>
+      this.getProgress(enrollment.user_id, courseId)
+    );
+
+    const progressResults = await Promise.all(progressPromises);
+
+    // Calculate average
+    const totalPercentage = progressResults.reduce((sum, result) => sum + result.percentage, 0);
+    const averageProgress = enrollments.length > 0
+      ? Math.round(totalPercentage / enrollments.length)
+      : 0;
+
+    return {
+      averageProgress,
+      totalStudents: enrollments.length,
     };
   }
 };

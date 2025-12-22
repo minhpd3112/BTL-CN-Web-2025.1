@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { mockCourses, mockEnrollments } from '@/services/mocks';
-import { coursesAPI } from '@/services/api';
+import { coursesAPI, enrollmentsAPI } from '@/services/api';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { CourseListCard } from '@/components/shared/CourseListCard';
@@ -23,19 +22,9 @@ interface MyCoursesPageProps {
 }
 
 export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: MyCoursesPageProps) {
-  const [enrolledCourses, setEnrolledCourses] = useState(() => {
-    // Khóa học đang học - từ enrollments
-    const myEnrollments = mockEnrollments.filter(e => e.userId === parseInt(currentUser.id));
-    return myEnrollments.map(enrollment => {
-      const course = mockCourses.find(c => c.id === String(enrollment.courseId));
-      if (!course) return null;
-      return {
-        ...course,
-        progress: enrollment.progress,
-        completedLessons: enrollment.completedLessons.length
-      };
-    }).filter(Boolean) as (Course & { progress: number; completedLessons: number })[];
-  });
+  // Khóa học đang học - Fetch from API
+  const [enrolledCourses, setEnrolledCourses] = useState<(Course & { progress: number; completedLessons: number })[]>([]);
+  const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
 
   // Khóa học tôi tạo - Fetch from API
   const [myCreatedCourses, setMyCreatedCourses] = useState<Course[]>([]);
@@ -78,6 +67,47 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
 
     fetchMyCreatedCourses();
   }, [currentUser.id, currentUser.name, currentUser.avatar]);
+
+  // Fetch enrolled courses
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      try {
+        setIsLoadingEnrolled(true);
+        const response = await enrollmentsAPI.getMyEnrollments();
+
+        if (response.success && response.data) {
+          // Map enrollments to course format
+          const courses = response.data
+            .filter((e: any) => e.status === 'approved' && e.course)
+            .map((enrollment: any) => ({
+              id: enrollment.course.id,
+              title: enrollment.course.title,
+              description: enrollment.course.description || '',
+              image: enrollment.course.image_url || '/placeholder-course.jpg',
+              ownerId: enrollment.course.owner_id,
+              ownerName: enrollment.course.owner?.full_name || 'Unknown',
+              ownerAvatar: enrollment.course.owner?.avatar_url || '',
+              tags: enrollment.course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
+              visibility: enrollment.course.visibility as 'public' | 'private',
+              status: enrollment.course.status,
+              studentsCount: 0,
+              lessonsCount: enrollment.progress?.total || 0,
+              progress: enrollment.progress?.percentage || 0,
+              completedLessons: enrollment.progress?.completed || 0,
+            }));
+          setEnrolledCourses(courses);
+          console.log('Enrolled courses with progress:', courses.map(c => ({ title: c.title, progress: c.progress })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch enrolled courses:', error);
+        toast.error('Không thể tải khóa học đang học');
+      } finally {
+        setIsLoadingEnrolled(false);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, [currentUser.id]);
 
   // Active tab state for animations
   const [activeTab, setActiveTab] = useState<'created' | 'enrolled'>('created');
@@ -239,7 +269,16 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               : 'translate-x-full opacity-0 absolute inset-0'
               }`}
           >
-            {enrolledCourses.length > 0 ? (
+            {isLoadingEnrolled ? (
+              <AnimatedSection animation="fade-up">
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <div className="w-16 h-16 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Đang tải khóa học...</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            ) : enrolledCourses.length > 0 ? (
               <>
                 {paginatedEnrolledCourses.map((course, index) => (
                   <AnimatedSection key={course.id} animation="fade-up" delay={index * 100}>

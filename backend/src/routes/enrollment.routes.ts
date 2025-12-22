@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { EnrollmentController } from '@controllers/enrollment.controller';
+import { authenticate } from '@middlewares/auth.middleware';
 
 const router = Router();
 
-// TEMPORARY - no auth
+// Apply authentication to all routes
+router.use(authenticate);
+
 router.get('/my-enrollments', EnrollmentController.getMyEnrollments);
 router.get('/course/:courseId', EnrollmentController.getByCourseId);
 router.post('/', EnrollmentController.create);
+router.post('/invite-by-email', EnrollmentController.inviteByEmail);
 router.patch('/:id/status', EnrollmentController.updateStatus);
 router.delete('/:id', EnrollmentController.delete);
 router.get('/:id/progress', EnrollmentController.getProgress);
-
-// TODO: Add auth later
-// router.use(authenticate);
-// router.post('/', validateEnrollmentCreate, EnrollmentController.create);
+router.get('/course/:courseId/average-progress', EnrollmentController.getCourseAverageProgress);
 
 export default router;
