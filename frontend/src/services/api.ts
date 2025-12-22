@@ -161,7 +161,18 @@ export const authAPI = {
 
   getStoredUser() {
     const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) {
+      console.log('[getStoredUser] user_data not found in localStorage');
+      return null;
+    }
+    try {
+      const user = JSON.parse(userData);
+      console.log('[getStoredUser] user loaded from localStorage:', user);
+      return user;
+    } catch (e) {
+      console.error('[getStoredUser] Failed to parse user_data:', e, userData);
+      return null;
+    }
   },
 
   getStoredToken() {
