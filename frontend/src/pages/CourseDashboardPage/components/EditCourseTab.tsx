@@ -36,11 +36,10 @@ interface Lesson {
     id: string;
     title: string;
     description: string;
-    content_type: 'video' | 'text' | 'pdf' | 'quiz';
+    content_type: 'video' | 'text' | 'pdf' | 'quiz' | 'article';
     duration?: number;
-    video_url?: string;
-    text_content?: string;
-    pdf_url?: string;
+    content_url?: string;  // For video and PDF
+    content_text?: string; // For text/article
     section_id: string;
     order_index: number;
     quizQuestions?: QuizQuestion[];
@@ -88,9 +87,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
     // Inline editing states
     const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
-    const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
     const [editSectionTitle, setEditSectionTitle] = useState('');
-    const [editLessonTitle, setEditLessonTitle] = useState('');
 
     // Fetch available tags on mount
     useEffect(() => {
@@ -257,11 +254,16 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     const handleEditLesson = (lesson: Lesson, sectionId: string) => {
         setEditingLesson(lesson);
         setCurrentSectionId(sectionId);
-        setLessonType(lesson.content_type);
+        setLessonType(lesson.content_type === 'article' ? 'text' : lesson.content_type);
         setLessonTitle(lesson.title);
-        setYoutubeUrl(lesson.video_url || '');
-        setLessonContent(lesson.text_content || '');
-        setPdfUrl(lesson.pdf_url || '');
+        // Load content based on type
+        if (lesson.content_type === 'video') {
+            setYoutubeUrl(lesson.content_url || '');
+        } else if (lesson.content_type === 'article' || lesson.content_type === 'text') {
+            setLessonContent(lesson.content_text || '');
+        } else if (lesson.content_type === 'pdf') {
+            setPdfUrl(lesson.content_url || '');
+        }
         setQuizQuestions(lesson.quizQuestions || []);
         setShowAddLesson(true);
     };
@@ -285,9 +287,9 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                         title: lessonTitle,
                         content_type: lessonType,
                     };
-                    if (lessonType === 'video') updateData.video_url = youtubeUrl;
-                    if (lessonType === 'text') updateData.text_content = lessonContent;
-                    if (lessonType === 'pdf') updateData.pdf_url = pdfUrl;
+                    if (lessonType === 'video') updateData.content_url = youtubeUrl;
+                    if (lessonType === 'text') updateData.content_text = lessonContent;
+                    if (lessonType === 'pdf') updateData.content_url = pdfUrl;
 
                     const response = await lessonsAPI.update(editingLesson.id, updateData);
                     if (response.success && response.data) {
@@ -384,35 +386,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         }
     };
 
-    const handleSaveLessonEdit = async () => {
-        if (!editingLessonId || !editLessonTitle.trim()) {
-            setEditingLessonId(null);
-            return;
-        }
 
-        try {
-            const response = await lessonsAPI.update(editingLessonId.toString(), {
-                title: editLessonTitle.trim()
-            });
-
-            if (response.success) {
-                const updatedSections = sections.map(section => ({
-                    ...section,
-                    lessons: section.lessons.map(l =>
-                        l.id === editingLessonId ? { ...l, title: editLessonTitle.trim() } : l
-                    )
-                }));
-                setSections(updatedSections);
-                toast.success('Đã cập nhật tên bài học');
-                setEditingLessonId(null);
-            } else {
-                toast.error('Không thể cập nhật tên bài học');
-            }
-        } catch (error) {
-            console.error('Error updating lesson:', error);
-            toast.error('Có lỗi xảy ra khi cập nhật');
-        }
-    };
 
     const handleSaveChanges = async () => {
         if (!courseName.trim()) {
@@ -961,49 +935,20 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                                 {lesson.content_type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                {editingLessonId === lesson.id ? (
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Input
-                                                                            value={editLessonTitle}
-                                                                            onChange={(e) => setEditLessonTitle(e.target.value)}
-                                                                            onKeyDown={async (e) => {
-                                                                                if (e.key === 'Enter') {
-                                                                                    e.preventDefault();
-                                                                                    await handleSaveLessonEdit();
-                                                                                }
-                                                                                if (e.key === 'Escape') {
-                                                                                    setEditingLessonId(null);
-                                                                                }
-                                                                            }}
-                                                                            onBlur={handleSaveLessonEdit}
-                                                                            className="flex-1"
-                                                                            autoFocus
-                                                                        />
-                                                                        <Button
-                                                                            size="sm"
-                                                                            variant="ghost"
-                                                                            onClick={handleSaveLessonEdit}
-                                                                        >
-                                                                            <Check className="w-4 h-4 text-green-600" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="flex items-center gap-2 group/lesson">
-                                                                        <div className="text-sm mb-1 flex-1">{lesson.title}</div>
-                                                                        <Button
-                                                                            size="sm"
-                                                                            variant="ghost"
-                                                                            className="opacity-0 group-hover/lesson:opacity-100 transition-opacity"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setEditingLessonId(lesson.id);
-                                                                                setEditLessonTitle(lesson.title);
-                                                                            }}
-                                                                        >
-                                                                            <Edit className="w-3 h-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
+                                                                <div className="flex items-center gap-2 group/lesson">
+                                                                    <div className="text-sm mb-1 flex-1">{lesson.title}</div>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="opacity-0 group-hover/lesson:opacity-100 transition-opacity"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleEditLesson(lesson, section.id);
+                                                                        }}
+                                                                    >
+                                                                        <Edit className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
                                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                                                     <span>
                                                                         {lesson.content_type === 'video' && '📹 Video'}

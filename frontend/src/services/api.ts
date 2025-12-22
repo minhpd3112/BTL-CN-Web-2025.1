@@ -10,12 +10,14 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('Missing Supabase environment variables! Check your .env file.');
 }
 
+// Create Supabase client for direct database queries (e.g., user profiles)
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // -----------------------------
 // Axios instance
 // -----------------------------
-const api: AxiosInstance = axios.create({
+// Create axios instance with token
+export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -216,3 +218,39 @@ export const lessonsAPI = {
   update: (id: string, data: any) => api.patch(`/lessons/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/lessons/${id}`).then(res => res.data),
 };
+
+// -----------------------------
+// Enrollments API
+// -----------------------------
+export const enrollmentsAPI = {
+  getMyEnrollments: () => api.get('/enrollments/my-enrollments').then(res => res.data),
+  getByCourseId: (courseId: string, status?: string) => {
+    const params = status ? `?status=${status}` : '';
+    const cacheBuster = `${params ? '&' : '?'}_t=${Date.now()}`; // Prevent cache
+    return api.get(`/enrollments/course/${courseId}${params}${cacheBuster}`).then(res => res.data);
+  },
+  create: (data: { course_id: string; request_message?: string }) =>
+    api.post('/enrollments', data).then(res => res.data),
+  updateStatus: (id: string, status: 'approved' | 'rejected', rejection_reason?: string) =>
+    api.patch(`/enrollments/${id}/status`, { status, rejection_reason }).then(res => res.data),
+  delete: (id: string) => api.delete(`/enrollments/${id}`).then(res => res.data),
+  inviteByEmail: (courseId: string, inviteeEmail: string) =>
+    api.post('/enrollments/invite-by-email', {
+      course_id: courseId,
+      invitee_email: inviteeEmail
+    }).then(res => res.data),
+  getCourseAverageProgress: (courseId: string) =>
+    api.get(`/enrollments/course/${courseId}/average-progress`).then(res => res.data),
+};
+
+// -----------------------------
+// Lesson Progress API
+// -----------------------------
+export const lessonProgressAPI = {
+  toggleCompletion: (lessonId: string) =>
+    api.post('/lesson-progress/toggle', { lessonId }).then(res => res.data),
+
+  getUserProgress: (courseId: string) =>
+    api.get(`/lesson-progress/course/${courseId}`).then(res => res.data),
+};
+
