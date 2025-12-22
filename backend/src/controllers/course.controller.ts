@@ -142,4 +142,63 @@ export const courseController = {
       });
     }
   },
+
+  async addCourseTags(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { tags } = req.body; // Array of tag names
+
+      if (!tags || !Array.isArray(tags) || tags.length === 0) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'Tags array is required',
+        });
+      }
+
+      // Import TagModel to look up tag IDs
+      const { TagModel } = await import('@models/tag.model');
+
+      // Get all available tags
+      const allTags = await TagModel.findAll();
+      console.log('All available tags:', allTags.map((t: any) => ({ id: t.id, name: t.name })));
+      console.log('Requested tags:', tags);
+
+      // Map tag names to IDs
+      const tagIds: string[] = [];
+      for (const tagName of tags) {
+        const foundTag = allTags.find((t: any) => t.name === tagName);
+        if (foundTag) {
+          tagIds.push(foundTag.id);
+          console.log(`Found tag: ${tagName} -> ${foundTag.id}`);
+        } else {
+          console.log(`Tag not found: ${tagName}`);
+        }
+      }
+
+      console.log('Tag IDs to save:', tagIds);
+
+      if (tagIds.length === 0) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'No valid tags found',
+        });
+      }
+
+      // Add tags to course
+      await CourseModel.addTags(id, tagIds);
+
+      res.json({
+        success: true,
+        message: 'Tags added successfully',
+        data: { tagIds },
+      });
+    } catch (error: any) {
+      console.error('Add course tags error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to add tags to course',
+        error: error.message,
+      });
+    }
+  },
 };

@@ -161,7 +161,18 @@ export const authAPI = {
 
   getStoredUser() {
     const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) {
+      console.log('[getStoredUser] user_data not found in localStorage');
+      return null;
+    }
+    try {
+      const user = JSON.parse(userData);
+      console.log('[getStoredUser] user loaded from localStorage:', user);
+      return user;
+    } catch (e) {
+      console.error('[getStoredUser] Failed to parse user_data:', e, userData);
+      return null;
+    }
   },
 
   getStoredToken() {
@@ -185,6 +196,9 @@ export const adminAPI = {
     const response = await api.post<AuthResponse>('/auth/admin/login', data);
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      if (response.data.data.token) {
+        localStorage.setItem('auth_token', response.data.data.token);
+      }
     }
     return response.data;
   },
@@ -199,6 +213,7 @@ export const coursesAPI = {
   createCourse: (data: any) => api.post('/courses', data).then(res => res.data),
   updateCourse: (id: string, data: any) => api.patch(`/courses/${id}`, data).then(res => res.data),
   deleteCourse: (id: string) => api.delete(`/courses/${id}`).then(res => res.data),
+  addCourseTags: (courseId: string, tags: string[]) => api.post(`/courses/${courseId}/tags`, { tags }).then(res => res.data),
 };
 
 // -----------------------------
@@ -210,4 +225,27 @@ export const tagsAPI = {
   createTag: (data: any) => api.post('/tags', data).then(res => res.data),
   updateTag: (id: string, data: any) => api.patch(`/tags/${id}`, data).then(res => res.data),
   deleteTag: (id: string) => api.delete(`/tags/${id}`).then(res => res.data),
+};
+
+// -----------------------------
+// Sections API
+// -----------------------------
+export const sectionsAPI = {
+  getByCourseId: (courseId: string) => api.get(`/sections/course/${courseId}`).then(res => res.data),
+  getById: (id: string) => api.get(`/sections/${id}`).then(res => res.data),
+  create: (data: any) => api.post('/sections', data).then(res => res.data),
+  update: (id: string, data: any) => api.patch(`/sections/${id}`, data).then(res => res.data),
+  delete: (id: string) => api.delete(`/sections/${id}`).then(res => res.data),
+  reorder: (data: any) => api.post('/sections/reorder', data).then(res => res.data),
+};
+
+// -----------------------------
+// Lessons API
+// -----------------------------
+export const lessonsAPI = {
+  getBySectionId: (sectionId: string) => api.get(`/lessons/section/${sectionId}`).then(res => res.data),
+  getById: (id: string) => api.get(`/lessons/${id}`).then(res => res.data),
+  create: (data: any) => api.post('/lessons', data).then(res => res.data),
+  update: (id: string, data: any) => api.patch(`/lessons/${id}`, data).then(res => res.data),
+  delete: (id: string) => api.delete(`/lessons/${id}`).then(res => res.data),
 };

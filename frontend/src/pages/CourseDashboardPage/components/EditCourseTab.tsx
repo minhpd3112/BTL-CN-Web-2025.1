@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, AlertTriangle, Loader2, Edit, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,15 +11,16 @@ import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { mockTags } from '@/services/mocks';
+import { coursesAPI, sectionsAPI, lessonsAPI, tagsAPI, supabase } from '@/services/api';
 import { Course, Page, User } from '@/types';
 import { QuizEditor } from '@/components/shared/QuizEditor';
 
 interface Section {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    order: number;
+    order_index: number;
+    course_id: string;
     lessons: Lesson[];
 }
 
@@ -32,30 +33,18 @@ interface QuizQuestion {
 }
 
 interface Lesson {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    type: 'video' | 'text' | 'pdf' | 'quiz';
-    duration: string;
-    youtubeUrl?: string;
-    content?: string;
-    pdfUrl?: string;
+    content_type: 'video' | 'text' | 'pdf' | 'quiz';
+    duration?: number;
+    video_url?: string;
+    text_content?: string;
+    pdf_url?: string;
+    section_id: string;
+    order_index: number;
     quizQuestions?: QuizQuestion[];
 }
-
-// Mock course sections data - in real app, this would come from the course
-const mockCourseSections: Section[] = [
-    {
-        id: 1,
-        title: 'Giới thiệu',
-        description: 'Tổng quan về khóa học',
-        order: 1,
-        lessons: [
-            { id: 1, title: 'Chào mừng đến với khóa học', description: 'Video giới thiệu', type: 'video', duration: '10:00', youtubeUrl: 'dQw4w9WgXcQ' },
-            { id: 2, title: 'Cài đặt môi trường', description: 'Hướng dẫn setup', type: 'video', duration: '15:00', youtubeUrl: 'dQw4w9WgXcQ' },
-        ]
-    }
-];
 
 interface EditCourseTabProps {
     course: Course;
@@ -64,17 +53,25 @@ interface EditCourseTabProps {
 }
 
 export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTabProps) {
+    // Form states - initialize with course data
     const [courseName, setCourseName] = useState(course.title);
     const [description, setDescription] = useState(course.description);
     const [visibility, setVisibility] = useState<'private' | 'public'>(course.visibility || 'private');
     const [selectedTags, setSelectedTags] = useState<string[]>(course.tags || []);
-    const [courseOverview, setCourseOverview] = useState('');
+    const [courseOverview, setCourseOverview] = useState(course.overview || '');
+    const [imageUrl, setImageUrl] = useState(course.image || '');
+    const [availableTags, setAvailableTags] = useState<Array<{ value: string; label: string }>>([]);
+
+    // Loading states
+    const [isLoadingCourse, setIsLoadingCourse] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Sections and lessons
-    const [sections, setSections] = useState<Section[]>(mockCourseSections);
+    const [sections, setSections] = useState<Section[]>([]);
     const [showAddSection, setShowAddSection] = useState(false);
     const [sectionTitle, setSectionTitle] = useState('');
-    const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
+    const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
     const [editingSection, setEditingSection] = useState<Section | null>(null);
 
     // Lessons
@@ -89,53 +86,187 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
     const [showDeleteCourseDialog, setShowDeleteCourseDialog] = useState(false);
 
+    // Inline editing states
+    const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+    const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+    const [editSectionTitle, setEditSectionTitle] = useState('');
+    const [editLessonTitle, setEditLessonTitle] = useState('');
+
+    // Fetch available tags on mount
+    useEffect(() => {
+        const fetchTags = async () => {
+            try {
+                const response = await tagsAPI.getAllTags();
+                if (response.success && response.data) {
+                    const tagOptions = response.data.map((tag: any) => ({
+                        value: tag.name,
+                        label: tag.name
+                    }));
+                    setAvailableTags(tagOptions);
+                    console.log('Loaded tags from backend:', tagOptions);
+                }
+            } catch (error: any) {
+                console.error('Error fetching tags:', error);
+                // Fallback to empty array if fetch fails
+                setAvailableTags([]);
+            }
+        };
+
+        fetchTags();
+    }, []);
+
+    // Fetch full course details on mount
+    useEffect(() => {
+        const fetchCourseDetails = async () => {
+            if (!course.id) return;
+
+            setIsLoadingCourse(true);
+            try {
+                const response = await coursesAPI.getCourseById(course.id.toString());
+                if (response.success && response.data) {
+                    const fullCourse = response.data;
+
+                    // Parse tags - handle different formats from backend
+                    let courseTags: string[] = [];
+                    if (fullCourse.tags) {
+                        if (typeof fullCourse.tags === 'string') {
+                            try {
+                                courseTags = JSON.parse(fullCourse.tags);
+                            } catch (e) {
+                                // If parsing fails, treat as single tag
+                                courseTags = [fullCourse.tags];
+                            }
+                        } else if (Array.isArray(fullCourse.tags)) {
+                            // Tags might be array of objects like [{tag: {name: "JavaScript"}}]
+                            // or array of strings like ["JavaScript", "React"]
+                            courseTags = fullCourse.tags.map((item: any) => {
+                                // If item has a nested 'tag' object with 'name' property
+                                if (item?.tag?.name) {
+                                    return item.tag.name;
+                                }
+                                // If item itself has a 'name' property
+                                if (item?.name) {
+                                    return item.name;
+                                }
+                                // If item is already a string
+                                if (typeof item === 'string') {
+                                    return item;
+                                }
+                                return '';
+                            }).filter(Boolean); // Remove empty strings
+                        }
+                    }
+
+                    console.log('Parsed course tags:', courseTags);
+
+                    // Update all form fields with full course data
+                    setCourseName(fullCourse.title || '');
+                    setDescription(fullCourse.description || '');
+                    setVisibility(fullCourse.visibility || 'private');
+                    setSelectedTags(courseTags);
+                    setCourseOverview(fullCourse.overview || '');
+                    setImageUrl(fullCourse.image_url || fullCourse.image || '');
+
+                    console.log('Loaded course data:', {
+                        title: fullCourse.title,
+                        tags: courseTags,
+                        overview: fullCourse.overview,
+                        image: fullCourse.image_url || fullCourse.image
+                    });
+                }
+            } catch (error: any) {
+                console.error('Error fetching course details:', error);
+                toast.error('Không thể tải thông tin khóa học');
+            } finally {
+                setIsLoadingCourse(false);
+            }
+        };
+
+        fetchCourseDetails();
+    }, [course.id]);
+
+    // Fetch sections and lessons on mount
+    useEffect(() => {
+        const fetchCourseContent = async () => {
+            if (!course.id) return;
+
+            setIsLoading(true);
+            try {
+                const response = await sectionsAPI.getByCourseId(course.id.toString());
+                if (response.success && response.data) {
+                    setSections(response.data);
+                    console.log('Loaded sections:', response.data);
+                } else {
+                    console.log('No sections found or error:', response);
+                }
+            } catch (error: any) {
+                console.error('Error fetching course content:', error);
+                toast.error('Không thể tải nội dung khóa học');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCourseContent();
+    }, [course.id]);
+
     const handleEditSection = (section: Section) => {
         setEditingSection(section);
         setSectionTitle(section.title);
         setShowAddSection(true);
     };
 
-    const handleAddSection = () => {
+    const handleAddSection = async () => {
         if (sectionTitle.trim()) {
-            if (editingSection) {
-                // Update existing section
-                setSections(sections.map(s =>
-                    s.id === editingSection.id
-                        ? { ...s, title: sectionTitle }
-                        : s
-                ));
-                toast.success('Đã cập nhật mục!');
-            } else {
-                // Add new section
-                const newSection: Section = {
-                    id: Date.now(),
-                    title: sectionTitle,
-                    description: '',
-                    order: sections.length + 1,
-                    lessons: []
-                };
-                setSections([...sections, newSection]);
-                toast.success('Đã thêm mục mới!');
+            try {
+                if (editingSection) {
+                    // Update existing section
+                    const response = await sectionsAPI.update(editingSection.id, { title: sectionTitle });
+                    if (response.success) {
+                        setSections(sections.map(s =>
+                            s.id === editingSection.id
+                                ? { ...s, title: sectionTitle }
+                                : s
+                        ));
+                        toast.success('Đã cập nhật mục!');
+                    }
+                } else {
+                    // Add new section
+                    const newSectionData = {
+                        course_id: course.id.toString(),
+                        title: sectionTitle,
+                        description: '',
+                        order_index: sections.length,
+                    };
+                    const response = await sectionsAPI.create(newSectionData);
+                    if (response.success && response.data) {
+                        setSections([...sections, { ...response.data, lessons: [] }]);
+                        toast.success('Đã thêm mục mới!');
+                    }
+                }
+                setSectionTitle('');
+                setEditingSection(null);
+                setShowAddSection(false);
+            } catch (error: any) {
+                console.error('Error saving section:', error);
+                toast.error('Không thể lưu mục. Vui lòng thử lại.');
             }
-            setSectionTitle('');
-            setEditingSection(null);
-            setShowAddSection(false);
         }
     };
 
-    const handleEditLesson = (lesson: Lesson, sectionId: number) => {
+    const handleEditLesson = (lesson: Lesson, sectionId: string) => {
         setEditingLesson(lesson);
         setCurrentSectionId(sectionId);
-        setLessonType(lesson.type);
+        setLessonType(lesson.content_type);
         setLessonTitle(lesson.title);
-        setYoutubeUrl(lesson.youtubeUrl || '');
-        setLessonContent(lesson.content || '');
-        setPdfUrl(lesson.pdfUrl || '');
+        setYoutubeUrl(lesson.video_url || '');
+        setLessonContent(lesson.text_content || '');
+        setPdfUrl(lesson.pdf_url || '');
         setQuizQuestions(lesson.quizQuestions || []);
         setShowAddLesson(true);
     };
 
-    const handleAddLesson = () => {
+    const handleAddLesson = async () => {
         if (!currentSectionId) {
             toast.error('Vui lòng chọn mục để thêm mục nhỏ');
             return;
@@ -147,97 +278,77 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 return;
             }
 
-            if (editingLesson) {
-                // Update existing lesson
-                const updatedLesson: Lesson = {
-                    ...editingLesson,
-                    title: lessonTitle,
-                    description: '',
-                    type: lessonType,
-                    ...(lessonType === 'video' && { youtubeUrl }),
-                    ...(lessonType === 'text' && { content: lessonContent }),
-                    ...(lessonType === 'pdf' && { pdfUrl }),
-                    ...(lessonType === 'quiz' && { quizQuestions })
-                };
+            try {
+                if (editingLesson) {
+                    // Update existing lesson
+                    const updateData: any = {
+                        title: lessonTitle,
+                        content_type: lessonType,
+                    };
+                    if (lessonType === 'video') updateData.video_url = youtubeUrl;
+                    if (lessonType === 'text') updateData.text_content = lessonContent;
+                    if (lessonType === 'pdf') updateData.pdf_url = pdfUrl;
 
-                setSections(sections.map(section =>
-                    section.id === currentSectionId
-                        ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
-                        : section
-                ));
+                    const response = await lessonsAPI.update(editingLesson.id, updateData);
+                    if (response.success && response.data) {
+                        setSections(sections.map(section =>
+                            section.id === currentSectionId
+                                ? {
+                                    ...section,
+                                    lessons: section.lessons.map(l =>
+                                        l.id === editingLesson.id ? response.data : l
+                                    )
+                                }
+                                : section
+                        ));
+                        toast.success('Đã cập nhật mục nhỏ!');
+                    }
+                } else {
+                    // Add new lesson
+                    const currentSection = sections.find(s => s.id === currentSectionId);
+                    const newLessonData: any = {
+                        section_id: currentSectionId,
+                        title: lessonTitle,
+                        description: '',
+                        content_type: lessonType === 'text' ? 'article' : lessonType,
+                        order_index: currentSection?.lessons.length || 0,
+                        is_free: false,
+                    };
+                    // Map to correct database columns
+                    if (lessonType === 'video') newLessonData.content_url = youtubeUrl;
+                    if (lessonType === 'text') newLessonData.content_text = lessonContent;
+                    if (lessonType === 'pdf') newLessonData.content_url = pdfUrl;
 
-                toast.success('Đã cập nhật mục nhỏ!');
-            } else {
-                // Add new lesson
-                const newLesson: Lesson = {
-                    id: Date.now(),
-                    title: lessonTitle,
-                    description: '',
-                    type: lessonType,
-                    duration: '15:00',
-                    ...(lessonType === 'video' && { youtubeUrl }),
-                    ...(lessonType === 'text' && { content: lessonContent }),
-                    ...(lessonType === 'pdf' && { pdfUrl })
-                };
+                    const response = await lessonsAPI.create(newLessonData);
+                    if (response.success && response.data) {
+                        setSections(sections.map(section =>
+                            section.id === currentSectionId
+                                ? { ...section, lessons: [...section.lessons, response.data] }
+                                : section
+                        ));
+                        toast.success('Đã thêm mục nhỏ!');
+                    }
+                }
 
-                setSections(sections.map(section =>
-                    section.id === currentSectionId
-                        ? { ...section, lessons: [...section.lessons, newLesson] }
-                        : section
-                ));
-
-                toast.success('Đã thêm mục nhỏ!');
+                setLessonTitle('');
+                setYoutubeUrl('');
+                setLessonContent('');
+                setPdfUrl('');
+                setEditingLesson(null);
+                setShowAddLesson(false);
+            } catch (error: any) {
+                console.error('Error saving lesson:', error);
+                toast.error('Không thể lưu mục nhỏ. Vui lòng thử lại.');
             }
-
-            setLessonTitle('');
-            setYoutubeUrl('');
-            setLessonContent('');
-            setPdfUrl('');
-            setEditingLesson(null);
-            setShowAddLesson(false);
         }
     };
 
-    const handleSaveQuiz = (questions: QuizQuestion[]) => {
+    const handleSaveQuiz = async (questions: QuizQuestion[], settings: any) => {
         if (!currentSectionId) return;
 
-        if (editingLesson) {
-            // Update existing quiz
-            const updatedLesson: Lesson = {
-                ...editingLesson,
-                title: lessonTitle,
-                description: '',
-                type: 'quiz',
-                duration: `${questions.length * 2} phút`,
-                quizQuestions: questions
-            };
-
-            setSections(sections.map(section =>
-                section.id === currentSectionId
-                    ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
-                    : section
-            ));
-
-            toast.success('Đã cập nhật quiz!');
-        } else {
-            // Add new quiz
-            const newLesson: Lesson = {
-                id: Date.now(),
-                title: lessonTitle,
-                description: '',
-                type: 'quiz',
-                duration: `${questions.length * 2} phút`,
-                quizQuestions: questions
-            };
-
-            setSections(sections.map(section =>
-                section.id === currentSectionId
-                    ? { ...section, lessons: [...section.lessons, newLesson] }
-                    : section
-            ));
-
-            toast.success('Đã thêm quiz!');
-        }
+        // Note: Quiz functionality would need additional implementation on backend
+        // For now, just save as a quiz lesson without the questions
+        toast.warning('Lưu quiz nhưng câu hỏi chưa được lưu vào database. Tính năng đang phát triển.');
 
         setLessonTitle('');
         setQuizQuestions([]);
@@ -246,7 +357,64 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         setShowQuizEditor(false);
     };
 
-    const handleSaveChanges = () => {
+    // Inline edit handlers
+    const handleSaveSectionEdit = async () => {
+        if (!editingSectionId || !editSectionTitle.trim()) {
+            setEditingSectionId(null);
+            return;
+        }
+
+        try {
+            const response = await sectionsAPI.update(editingSectionId.toString(), {
+                title: editSectionTitle.trim()
+            });
+
+            if (response.success) {
+                setSections(sections.map(s =>
+                    s.id === editingSectionId ? { ...s, title: editSectionTitle.trim() } : s
+                ));
+                toast.success('Đã cập nhật tên mục');
+                setEditingSectionId(null);
+            } else {
+                toast.error('Không thể cập nhật tên mục');
+            }
+        } catch (error) {
+            console.error('Error updating section:', error);
+            toast.error('Có lỗi xảy ra khi cập nhật');
+        }
+    };
+
+    const handleSaveLessonEdit = async () => {
+        if (!editingLessonId || !editLessonTitle.trim()) {
+            setEditingLessonId(null);
+            return;
+        }
+
+        try {
+            const response = await lessonsAPI.update(editingLessonId.toString(), {
+                title: editLessonTitle.trim()
+            });
+
+            if (response.success) {
+                const updatedSections = sections.map(section => ({
+                    ...section,
+                    lessons: section.lessons.map(l =>
+                        l.id === editingLessonId ? { ...l, title: editLessonTitle.trim() } : l
+                    )
+                }));
+                setSections(updatedSections);
+                toast.success('Đã cập nhật tên bài học');
+                setEditingLessonId(null);
+            } else {
+                toast.error('Không thể cập nhật tên bài học');
+            }
+        } catch (error) {
+            console.error('Error updating lesson:', error);
+            toast.error('Có lỗi xảy ra khi cập nhật');
+        }
+    };
+
+    const handleSaveChanges = async () => {
         if (!courseName.trim()) {
             toast.error('Vui lòng nhập tên khóa học');
             return;
@@ -259,13 +427,42 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             toast.error('Vui lòng chọn ít nhất 1 chủ đề');
             return;
         }
-        if (sections.length === 0) {
-            toast.error('Vui lòng thêm ít nhất 1 mục');
-            return;
-        }
 
-        toast.success('Đã lưu thay đổi!');
-        // No navigation needed, just a success message
+        setIsSaving(true);
+        try {
+            const updateData = {
+                title: courseName,
+                description: description,
+                overview: courseOverview || null,
+                visibility: visibility,
+                image_url: imageUrl || null,
+            };
+
+            const response = await coursesAPI.updateCourse(course.id.toString(), updateData);
+            if (response.success) {
+                // Save tags after course update
+                try {
+                    // Remove all existing tags first by calling addCourseTags with selected tags
+                    // The backend addTags will replace existing associations
+                    if (selectedTags.length > 0) {
+                        await coursesAPI.addCourseTags(course.id.toString(), selectedTags);
+                        console.log('Tags saved successfully:', selectedTags);
+                    }
+                } catch (tagError) {
+                    console.error('Error saving tags:', tagError);
+                    toast.warning('Đã lưu khóa học nhưng không thể cập nhật chủ đề');
+                }
+
+                toast.success('Đã lưu thay đổi!');
+            } else {
+                toast.error(response.message || 'Không thể lưu thay đổi');
+            }
+        } catch (error: any) {
+            console.error('Error saving course:', error);
+            toast.error('Không thể lưu thay đổi. Vui lòng thử lại.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -316,13 +513,81 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                 <p className="text-xs text-gray-500 mt-1">{courseOverview.length}/2000 ký tự</p>
                             </div>
                             <div>
-                                <Label htmlFor="image">Ảnh bìa</Label>
-                                <Input
-                                    id="image"
-                                    type="file"
-                                    accept="image/*"
-                                    className="mt-2"
-                                />
+                                <Label htmlFor="image-upload">Ảnh bìa khóa học</Label>
+                                <div className="mt-2 space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="image-upload"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+
+                                                // Validate file size (max 5MB)
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    toast.error('Kích thước ảnh không được vượt quá 5MB');
+                                                    return;
+                                                }
+
+                                                setIsSaving(true);
+                                                try {
+                                                    // Upload to Supabase storage
+                                                    const fileExt = file.name.split('.').pop();
+                                                    const fileName = `course-${course.id}-${Date.now()}.${fileExt}`;
+                                                    const filePath = `${fileName}`;
+
+                                                    const { data, error } = await supabase.storage
+                                                        .from('course-images')
+                                                        .upload(filePath, file, {
+                                                            cacheControl: '3600',
+                                                            upsert: true
+                                                        });
+
+                                                    if (error) throw error;
+
+                                                    // Get public URL
+                                                    const { data: { publicUrl } } = supabase.storage
+                                                        .from('course-images')
+                                                        .getPublicUrl(filePath);
+
+                                                    setImageUrl(publicUrl);
+                                                    toast.success('Đã tải ảnh lên thành công!');
+                                                } catch (error: any) {
+                                                    console.error('Error uploading image:', error);
+                                                    toast.error('Không thể tải ảnh lên. Vui lòng thử lại.');
+                                                } finally {
+                                                    setIsSaving(false);
+                                                }
+                                            }}
+                                            className="flex-1"
+                                            disabled={isSaving}
+                                        />
+                                        {imageUrl && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setImageUrl('')}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-500">💡 Chọn ảnh từ máy tính (tối đa 5MB)</p>
+                                    {imageUrl && (
+                                        <div className="mt-3">
+                                            <img
+                                                src={imageUrl}
+                                                alt="Course preview"
+                                                className="w-full h-48 object-cover rounded-lg border"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x400?text=Invalid+Image';
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <Label>Chủ đề khóa học (có thể chọn nhiều) *</Label>
@@ -347,7 +612,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
                                     {/* Tag Selection Dropdown */}
                                     <Combobox
-                                        items={mockTags.map(tag => ({ value: tag.name, label: tag.name }))}
+                                        items={availableTags}
                                         value=""
                                         onValueChange={(value) => {
                                             if (value && !selectedTags.includes(value)) {
@@ -491,7 +756,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                             <div className="space-y-4">
                                                 <div>
                                                     <Label>Mục *</Label>
-                                                    <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(Number(val))}>
+                                                    <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(val)}>
                                                         <SelectTrigger className="mt-2">
                                                             <SelectValue placeholder="Chọn mục" />
                                                         </SelectTrigger>
@@ -610,24 +875,71 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                             </div>
                         </CardHeader>
                         <CardContent>
-                            {sections.length > 0 ? (
+                            {isLoading ? (
+                                <div className="text-center py-16">
+                                    <Loader2 className="w-10 h-10 text-[#1E88E5] mx-auto mb-4 animate-spin" />
+                                    <p className="text-gray-500">\u0110ang t\u1ea3i n\u1ed9i dung kh\u00f3a h\u1ecdc...</p>
+                                </div>
+                            ) : sections.length > 0 ? (
                                 <div className="space-y-6">
                                     {sections.map((section) => (
                                         <div key={section.id} className="border-2 border-gray-200 rounded-lg overflow-hidden">
                                             {/* Section Header */}
                                             <div className="bg-gray-50 px-4 py-3 flex items-center justify-between group">
-                                                <div
-                                                    className="flex-1 cursor-pointer"
-                                                    onClick={() => handleEditSection(section)}
-                                                >
-                                                    <h4 className="text-sm font-medium">{section.title}</h4>
-                                                </div>
+                                                {editingSectionId === section.id ? (
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <Input
+                                                            value={editSectionTitle}
+                                                            onChange={(e) => setEditSectionTitle(e.target.value)}
+                                                            onKeyDown={async (e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    await handleSaveSectionEdit();
+                                                                }
+                                                                if (e.key === 'Escape') {
+                                                                    setEditingSectionId(null);
+                                                                }
+                                                            }}
+                                                            onBlur={handleSaveSectionEdit}
+                                                            className="flex-1"
+                                                            autoFocus
+                                                        />
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={handleSaveSectionEdit}
+                                                        >
+                                                            <Check className="w-4 h-4 text-green-600" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <h4 className="text-sm font-medium">{section.title}</h4>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingSectionId(section.id);
+                                                                setEditSectionTitle(section.title);
+                                                            }}
+                                                        >
+                                                            <Edit className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant="secondary">{section.lessons.length} mục nhỏ</Badge>
-                                                    <Button variant="ghost" size="icon" onClick={(e) => {
+                                                    <Button variant="ghost" size="icon" onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        setSections(sections.filter(s => s.id !== section.id));
-                                                        toast.success('Đã xóa mục');
+                                                        try {
+                                                            await sectionsAPI.delete(section.id);
+                                                            setSections(sections.filter(s => s.id !== section.id));
+                                                            toast.success('Đã xóa mục');
+                                                        } catch (error) {
+                                                            toast.error('Không thể xóa mục');
+                                                        }
                                                     }}>
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -643,39 +955,83 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                                 {lessonIndex + 1}
                                                             </div>
                                                             <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#1E88E5]" />}
-                                                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-green-600" />}
-                                                                {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-red-600" />}
-                                                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
+                                                                {lesson.content_type === 'video' && <Video className="w-5 h-5 text-[#1E88E5]" />}
+                                                                {lesson.content_type === 'text' && <FileText className="w-5 h-5 text-green-600" />}
+                                                                {lesson.content_type === 'pdf' && <FileText className="w-5 h-5 text-red-600" />}
+                                                                {lesson.content_type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
                                                             </div>
-                                                            <div
-                                                                className="flex-1 min-w-0 cursor-pointer"
-                                                                onClick={() => handleEditLesson(lesson, section.id)}
-                                                            >
-                                                                <div className="text-sm mb-1">{lesson.title}</div>
+                                                            <div className="flex-1 min-w-0">
+                                                                {editingLessonId === lesson.id ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Input
+                                                                            value={editLessonTitle}
+                                                                            onChange={(e) => setEditLessonTitle(e.target.value)}
+                                                                            onKeyDown={async (e) => {
+                                                                                if (e.key === 'Enter') {
+                                                                                    e.preventDefault();
+                                                                                    await handleSaveLessonEdit();
+                                                                                }
+                                                                                if (e.key === 'Escape') {
+                                                                                    setEditingLessonId(null);
+                                                                                }
+                                                                            }}
+                                                                            onBlur={handleSaveLessonEdit}
+                                                                            className="flex-1"
+                                                                            autoFocus
+                                                                        />
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            onClick={handleSaveLessonEdit}
+                                                                        >
+                                                                            <Check className="w-4 h-4 text-green-600" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-2 group/lesson">
+                                                                        <div className="text-sm mb-1 flex-1">{lesson.title}</div>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            className="opacity-0 group-hover/lesson:opacity-100 transition-opacity"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setEditingLessonId(lesson.id);
+                                                                                setEditLessonTitle(lesson.title);
+                                                                            }}
+                                                                        >
+                                                                            <Edit className="w-3 h-3" />
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
                                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                                                     <span>
-                                                                        {lesson.type === 'video' && '📹 Video'}
-                                                                        {lesson.type === 'text' && '📝 Bài viết'}
-                                                                        {lesson.type === 'pdf' && '📄 PDF'}
-                                                                        {lesson.type === 'quiz' && '✅ Quiz'}
+                                                                        {lesson.content_type === 'video' && '📹 Video'}
+                                                                        {lesson.content_type === 'text' && '📝 Bài viết'}
+                                                                        {lesson.content_type === 'pdf' && '📄 PDF'}
+                                                                        {lesson.content_type === 'quiz' && '✅ Quiz'}
                                                                     </span>
                                                                     <span>•</span>
-                                                                    <span>{lesson.duration}</span>
+                                                                    <span>{lesson.duration ? `${lesson.duration} phút` : 'N/A'}</span>
                                                                 </div>
                                                             </div>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="flex-shrink-0"
-                                                                onClick={(e) => {
+                                                                onClick={async (e) => {
                                                                     e.stopPropagation();
-                                                                    setSections(sections.map(s =>
-                                                                        s.id === section.id
-                                                                            ? { ...s, lessons: s.lessons.filter(l => l.id !== lesson.id) }
-                                                                            : s
-                                                                    ));
-                                                                    toast.success('Đã xóa bài học');
+                                                                    try {
+                                                                        await lessonsAPI.delete(lesson.id);
+                                                                        setSections(sections.map(s =>
+                                                                            s.id === section.id
+                                                                                ? { ...s, lessons: s.lessons.filter(l => l.id !== lesson.id) }
+                                                                                : s
+                                                                        ));
+                                                                        toast.success('Đã xóa bài học');
+                                                                    } catch (error) {
+                                                                        toast.error('Không thể xóa bài học');
+                                                                    }
                                                                 }}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
@@ -730,8 +1086,26 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                             <CardTitle className="text-lg font-bold text-[#1E88E5]">Hành động</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 pt-6">
-                            <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md hover:shadow-lg transition-all" onClick={handleSaveChanges}>
-                                Lưu thay đổi
+                            <Button
+                                className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md hover:shadow-lg transition-all"
+                                onClick={handleSaveChanges}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Đang lưu...
+                                    </>
+                                ) : (
+                                    'Lưu thay đổi'
+                                )}
+                            </Button>
+                            <Button
+                                onClick={() => setShowDeleteCourseDialog(true)}
+                                className="w-full bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Xóa khóa học</span>
                             </Button>
                         </CardContent>
                     </Card>
@@ -759,10 +1133,21 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 open={showDeleteCourseDialog}
                 onOpenChange={setShowDeleteCourseDialog}
                 title="Xác nhận xóa khóa học"
-                onConfirm={() => {
-                    toast.success('Đã xóa khóa học thành công');
-                    setShowDeleteCourseDialog(false);
-                    navigateTo('my-courses');
+                onConfirm={async () => {
+                    try {
+                        const response = await coursesAPI.deleteCourse(course.id.toString());
+                        if (response.success) {
+                            toast.success('Đã xóa khóa học thành công');
+                            setShowDeleteCourseDialog(false);
+                            // Navigate back to my courses after a short delay
+                            setTimeout(() => navigateTo('my-courses'), 500);
+                        } else {
+                            toast.error(response.message || 'Không thể xóa khóa học');
+                        }
+                    } catch (error: any) {
+                        console.error('Error deleting course:', error);
+                        toast.error('Có lỗi xảy ra khi xóa khóa học');
+                    }
                 }}
             >
                 <div className="flex gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">

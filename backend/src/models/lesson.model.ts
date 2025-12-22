@@ -1,5 +1,5 @@
 import { supabase } from '@config/supabase';
-import { Lesson } from '@types/index';
+import { Lesson } from '../types';
 
 export const LessonModel = {
   async findBySectionId(sectionId: string) {

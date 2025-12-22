@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Course } from '@/types';
-import { mockUsers } from '@/services/mocks';
 
 interface CourseStudentsTabProps {
     course: Course;
@@ -32,20 +31,14 @@ export function CourseStudentsTab({
     const pendingRequests = courseEnrollments.filter(r => r.status === 'pending');
     const approvedStudents = courseEnrollments.filter(r => r.status === 'approved');
 
-    // Get enrolled user IDs
-    const enrolledUserIds = courseEnrollments.map(r => r.userId);
-
-    // Filter available users (exclude owner and already enrolled)
-    const availableUsers = mockUsers.filter(user =>
-        user.id !== course.ownerId &&
-        !enrolledUserIds.includes(user.id) &&
-        user.role !== 'admin' // Exclude admin from student list
-    );
+    // Note: In real app, we would fetch available users from an API endpoint
+    // For now, this feature is disabled until backend implements user listing
+    const availableUsers: any[] = [];
 
     // Filter users based on search
     const filteredUsers = availableUsers.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const handleApproveRequest = (requestId: number) => {

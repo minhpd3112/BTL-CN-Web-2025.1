@@ -224,9 +224,9 @@ export function CourseDetailPage({
               <div className="lg:col-span-2 space-y-6">
                 <div className="flex flex-wrap gap-2">
                   {course.tags && course.tags.length > 0 ? (
-                    course.tags.slice(0, 3).map((tag, index) => (
+                    course.tags.slice(0, 3).map((tag: any, index: number) => (
                       <Badge key={index} className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
-                        {tag}
+                        {typeof tag === 'string' ? tag : tag.name}
                       </Badge>
                     ))
                   ) : (

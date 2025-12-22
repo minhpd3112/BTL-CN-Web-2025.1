@@ -24,16 +24,50 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [filterTag, setFilterTag] = useState<string>('all');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
-
-
-  // State for courses and tags
   const [courses, setCourses] = useState<Course[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-  // Fetch tags on mount
+  // Chuẩn hoá fetchCourses duy nhất
+  const fetchCourses = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await coursesAPI.getAllCourses({ isAdmin: true });
+      if (response.success) {
+        const courseList = Array.isArray(response.data) ? response.data : [];
+        const mappedCourses = courseList.map((course: any) => ({
+          id: course.id,
+          title: course.title,
+          description: course.description || '',
+          image: course.image_url || '/placeholder-course.jpg',
+          ownerId: course.owner_id,
+          ownerName: course.owner?.full_name || 'Unknown',
+          ownerAvatar: course.owner?.avatar_url || '',
+          tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
+          visibility: course.visibility as 'public' | 'private',
+          status: course.status,
+          studentsCount: 0,
+          lessonsCount: 0,
+        }));
+        setCourses(mappedCourses);
+      } else {
+        setError(response.message || 'Không thể tải khóa học');
+      }
+    } catch (err: any) {
+      console.error('Fetch courses error:', err);
+      setError('Đã xảy ra lỗi khi tải danh sách khóa học');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch courses & tags on mount
   useEffect(() => {
+    fetchCourses();
     async function fetchTags() {
       try {
         const tagsRes = await tagsAPI.getAllTags();
@@ -43,28 +77,6 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       }
     }
     fetchTags();
-  }, []);
-
-  // Pagination state for FE
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-
-  // Fetch all courses once
-  useEffect(() => {
-    async function fetchCourses() {
-      setLoading(true);
-      setError(null);
-      try {
-        const coursesRes = await coursesAPI.getAllCourses({ isAdmin: true });
-        setCourses(coursesRes.data || []);
-      } catch (e: any) {
-        setError('Không thể tải dữ liệu');
-        setCourses([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCourses();
   }, []);
 
   // Filter courses ở FE
@@ -87,15 +99,25 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
 
   const handleDeleteCourse = () => {
     if (courseToDelete) {
-      toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
-      setShowDeleteDialog(false);
-      setCourseToDelete(null);
+      coursesAPI.deleteCourse(courseToDelete.id)
+        .then(() => {
+          toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
+          // Refresh course list
+          fetchCourses();
+        })
+        .catch((err) => {
+          toast.error(`Xoá khoá học thất bại: ${err?.response?.data?.message || err.message || 'Lỗi không xác định'}`);
+        })
+        .finally(() => {
+          setShowDeleteDialog(false);
+          setCourseToDelete(null);
+        });
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {loading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
+      {isLoading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
       {error && <div className="text-center text-red-500 py-8">{error}</div>}
       <PageHeader
         icon={<BookOpen className="w-8 h-8" />}
@@ -146,41 +168,55 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       </div>
 
       {/* Course List */}
-      <div className="space-y-4">
-        {paginatedCourses.length > 0 ? (
-          paginatedCourses.map(course => (
-            <CourseListCard
-              key={course.id}
-              course={course}
-              onClick={() => {
-                setSelectedCourse(course);
-                navigateTo('course-detail');
-              }}
-              action={
-                <Button
-                  size="sm"
-                  className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCourseToDelete(course);
-                    setShowDeleteDialog(true);
-                  }}
-                  title="Xóa khóa học"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Xóa
-                </Button>
-              }
-            />
-          ))
-        ) : (
-          <div className="p-12 text-center bg-white rounded-lg shadow-sm">
-            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="mb-2">Không tìm thấy khóa học</h3>
-            <p className="text-gray-600">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
-          </div>
-        )}
-      </div>
+      {error ? (
+        <div className="p-12 text-center bg-white rounded-lg shadow-sm">
+          <BookOpen className="w-16 h-16 text-red-300 mx-auto mb-4" />
+          <h3 className="mb-2 text-red-600">Lỗi tải dữ liệu</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={fetchCourses}>Thử lại</Button>
+        </div>
+      ) : isLoading ? (
+        <div className="p-12 text-center bg-white rounded-lg shadow-sm">
+          <div className="w-16 h-16 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải khóa học...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {paginatedCourses.length > 0 ? (
+            paginatedCourses.map(course => (
+              <CourseListCard
+                key={course.id}
+                course={course}
+                onClick={() => {
+                  setSelectedCourse(course);
+                  navigateTo('course-detail');
+                }}
+                action={
+                  <Button
+                    size="sm"
+                    className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCourseToDelete(course);
+                      setShowDeleteDialog(true);
+                    }}
+                    title="Xóa khóa học"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Xóa
+                  </Button>
+                }
+              />
+            ))
+          ) : (
+            <div className="p-12 text-center bg-white rounded-lg shadow-sm">
+              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="mb-2">Không tìm thấy khóa học</h3>
+              <p className="text-gray-600">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pagination */}
       <DataPagination
