@@ -99,7 +99,7 @@ export interface Enrollment {
   id: string;
   user_id: string;
   course_id: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'left';
   request_message?: string;
   rejection_reason?: string;
   approved_by?: string;

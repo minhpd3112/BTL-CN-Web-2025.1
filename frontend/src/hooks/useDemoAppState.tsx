@@ -108,6 +108,7 @@ export function useDemoAppState() {
   const canAccessCourse = useCallback((course: Course) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
+    if (course.visibility === 'public') return true;
     return course.ownerId === currentUser.id || course.enrolledUsers?.includes(currentUser.id);
   }, [currentUser]);
 

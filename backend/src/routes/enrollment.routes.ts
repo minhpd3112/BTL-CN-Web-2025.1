@@ -13,6 +13,8 @@ router.post('/', EnrollmentController.create);
 router.post('/invite-by-email', EnrollmentController.inviteByEmail);
 router.patch('/:id/status', EnrollmentController.updateStatus);
 router.delete('/:id', EnrollmentController.delete);
+router.patch('/:id/leave', EnrollmentController.leaveCourse);
+router.delete('/:id/leave-test', EnrollmentController.leaveCourse);
 router.get('/:id/progress', EnrollmentController.getProgress);
 router.get('/course/:courseId/average-progress', EnrollmentController.getCourseAverageProgress);
 

@@ -56,6 +56,29 @@ export const courseService = {
         if (visibility) {
           query = query.eq('visibility', visibility);
         }
+        // Lọc theo tag (theo tên hoặc id)
+        if (filters.tag && filters.tag !== 'all') {
+          // Lấy danh sách course_id có tag phù hợp
+          const { data: courseTagData, error: courseTagError } = await supabase
+            .from('course_tags')
+            .select('course_id, tags!inner(name)')
+            .eq('tags.name', filters.tag);
+          if (courseTagError) {
+            throw new Error('Failed to fetch course_tags for tag filter: ' + courseTagError.message);
+          }
+          const courseIds = (courseTagData || []).map((ct: any) => ct.course_id);
+          // Nếu không có course nào thuộc tag này, trả về rỗng luôn
+          if (!courseIds.length) {
+            return {
+              data: [],
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            };
+          }
+          query = query.in('id', courseIds);
+        }
       }
 
       // Apply filters
@@ -78,6 +101,9 @@ export const courseService = {
       // Transform data
       const courses = (data || []).map((course: any) => ({
         ...course,
+        visibility: typeof course.visibility === 'string'
+          ? course.visibility.trim().toLowerCase() === 'private' ? 'private' : 'public'
+          : 'public',
         tags: course.course_tags?.map((ct: any) => ct.tags).filter(Boolean) || [],
         enrollmentCount: 0,
       }));

@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Course } from '@/types';
-import { Eye, Globe, Lock, ArrowUpRight } from 'lucide-react';
+import { Eye, Globe, Lock, ArrowUpRight, Clock } from 'lucide-react';
 import { ReactNode } from 'react';
 
 interface CourseListCardProps {
@@ -10,12 +10,14 @@ interface CourseListCardProps {
     onClick: () => void;
     action?: ReactNode;
     showProgress?: boolean;
+    disableInvite?: boolean;
 }
 
-export function CourseListCard({ course, onClick, action, showProgress = false }: CourseListCardProps) {
+export function CourseListCard({ course, onClick, action, showProgress = false, disableInvite }: CourseListCardProps) {
+    const isPending = course.status === 'pending';
     return (
         <Card
-            className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white"
+            className={`group overflow-hidden border-none shadow-sm transition-all duration-300 bg-white hover:shadow-xl`}
             onClick={onClick}
         >
             <CardContent className="p-0">
@@ -41,6 +43,12 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                                     Công khai
                                 </Badge>
                             )}
+                            {isPending && (
+                                <Badge className="bg-yellow-500/90 text-white border-none shadow-lg text-xs">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Chờ duyệt
+                                </Badge>
+                            )}
                         </div>
                     </div>
 
@@ -59,8 +67,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
 
                                 {/* Top Right Actions - Moved View Details Here */}
                                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-
-                                    {action}
+                                    {!disableInvite && action}
                                 </div>
                             </div>
 

@@ -17,8 +17,18 @@ export function useCoursesQuery({ searchQuery, selectedTag, sortBy, page, pageSi
 
   useEffect(() => {
     setLoading(true);
+    // Build params object for API
+    const params: any = {
+      search: searchQuery,
+      sort: sortBy,
+      page,
+      pageSize,
+    };
+    if (selectedTag && selectedTag !== 'all') {
+      params.tag = selectedTag;
+    }
     coursesAPI
-      .getAllCourses()
+      .getAllCourses(params)
       .then((res) => {
         setCourses(res.data || []);
         setTotal(res.total || 0);

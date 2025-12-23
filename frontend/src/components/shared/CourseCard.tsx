@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Course } from '@/types';
 import { useState } from 'react';
+import { supabase } from '@/services/api';
 
 interface CourseCardProps {
   course: Course;
@@ -11,6 +12,13 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, onClick }: CourseCardProps) {
+  // Ưu tiên lấy image_url, sau đó image
+  let imageUrl = course.image_url || course.image;
+  // Nếu là tên file hoặc path ngắn, build public URL từ bucket
+  if (imageUrl && !/^https?:\/\//.test(imageUrl)) {
+    imageUrl = supabase.storage.from('course-images').getPublicUrl(imageUrl).data.publicUrl || '/placeholder-course.jpg';
+  }
+  if (!imageUrl) imageUrl = '/placeholder-course.jpg';
   return (
     <>
       <style>{`
@@ -35,7 +43,7 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
         >
           <div className="relative aspect-video overflow-hidden">
             <img
-              src={course.image}
+              src={imageUrl}
               alt={course.title}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />

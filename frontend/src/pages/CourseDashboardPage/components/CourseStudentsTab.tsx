@@ -273,67 +273,72 @@ export function CourseStudentsTab({
                                 <CardTitle className="text-lg font-bold text-[#1E88E5]">Học viên đã tham gia</CardTitle>
                                 <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
                                     <DialogTrigger asChild>
-                                        <Button className="bg-[#1E88E5] hover:bg-[#1565C0] text-white">
+                                        <Button
+                                            className="bg-[#1E88E5] hover:bg-[#1565C0] text-white"
+                                            disabled={course.status !== 'approved'}
+                                            title={course.status !== 'approved' ? 'Chỉ mời học viên khi khoá học đã được duyệt' : ''}
+                                        >
                                             <UserPlus className="w-4 h-4 mr-2" />
                                             Thêm học viên
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-md">
-                                        <DialogHeader>
-                                            <DialogTitle>Mời học viên vào khóa học</DialogTitle>
-                                            <DialogDescription>
-                                                Nhập email của học viên để thêm vào khóa học riêng tư
-                                            </DialogDescription>
-                                        </DialogHeader>
+                                    {course.status === 'approved' && (
+                                        <DialogContent className="max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle>Mời học viên vào khóa học</DialogTitle>
+                                                <DialogDescription>
+                                                    Nhập email của học viên để thêm vào khóa học riêng tư
+                                                </DialogDescription>
+                                            </DialogHeader>
 
-                                        <div className="space-y-4">
-                                            <div>
-                                                <Label htmlFor="invitee-email">Email học viên *</Label>
-                                                <Input
-                                                    id="invitee-email"
-                                                    type="email"
-                                                    placeholder="student@example.com"
-                                                    value={inviteeEmail}
-                                                    onChange={(e) => setInviteeEmail(e.target.value)}
-                                                    className="mt-2"
-                                                    disabled={isInviting}
-                                                />
-                                                <p className="text-xs text-gray-500 mt-2">
-                                                    💡 Học viên cần đã có tài khoản trong hệ thống
-                                                </p>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <Label htmlFor="invitee-email">Email học viên *</Label>
+                                                    <Input
+                                                        id="invitee-email"
+                                                        type="email"
+                                                        placeholder="student@example.com"
+                                                        value={inviteeEmail}
+                                                        onChange={(e) => setInviteeEmail(e.target.value)}
+                                                        className="mt-2"
+                                                        disabled={isInviting}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        <div className="flex justify-end gap-2 mt-6">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setAddStudentOpen(false);
-                                                    setInviteeEmail('');
-                                                }}
-                                                disabled={isInviting}
-                                            >
-                                                Hủy
-                                            </Button>
-                                            <Button
-                                                className="bg-[#1E88E5] hover:bg-[#1565C0]"
-                                                onClick={handleInviteStudent}
-                                                disabled={isInviting}
-                                            >
-                                                {isInviting ? (
-                                                    <>
-                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                                        Đang thêm...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <UserPlus className="w-4 h-4 mr-2" />
-                                                        Thêm học viên
-                                                    </>
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </DialogContent>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                💡 Học viên cần đã có tài khoản trong hệ thống
+                                            </p>
+                                            <div className="flex justify-end gap-2 mt-6">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setAddStudentOpen(false);
+                                                        setInviteeEmail('');
+                                                    }}
+                                                    disabled={isInviting}
+                                                >
+                                                    Hủy
+                                                </Button>
+                                                <Button
+                                                    className="bg-[#1E88E5] hover:bg-[#1565C0]"
+                                                    onClick={handleInviteStudent}
+                                                    disabled={isInviting}
+                                                >
+                                                    {isInviting ? (
+                                                        <>
+                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                            Đang thêm...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserPlus className="w-4 h-4 mr-2" />
+                                                            Mời
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    )}
                                 </Dialog>
                             </div>
                         </CardHeader>

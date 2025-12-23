@@ -12,6 +12,8 @@ import { DataPagination } from '@/components/shared/DataPagination';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { SearchFilterCard } from '@/components/shared/SearchFilterCard';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface ManageCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -30,6 +32,11 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [tags, setTags] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewCourse, setReviewCourse] = useState<Course | null>(null);
+  const [reviewAction, setReviewAction] = useState<'approved' | 'rejected' | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   // Chuẩn hoá fetchCourses duy nhất
   const fetchCourses = async () => {
@@ -115,6 +122,46 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     }
   };
 
+  const handleReviewCourse = async (course: Course, action: 'approved' | 'rejected') => {
+    setReviewCourse(course);
+    setReviewAction(action);
+    if (action === 'rejected') {
+      setShowReviewDialog(true);
+    } else {
+      // Approve directly
+      setReviewLoading(true);
+      try {
+        await coursesAPI.reviewCourse(course.id, 'approved');
+        toast.success(`Đã duyệt khóa học "${course.title}"`);
+        fetchCourses();
+      } catch (err: any) {
+        toast.error(`Duyệt khóa học thất bại: ${err?.message || 'Lỗi không xác định'}`);
+      } finally {
+        setReviewLoading(false);
+        setReviewCourse(null);
+        setReviewAction(null);
+      }
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!reviewCourse) return;
+    setReviewLoading(true);
+    try {
+      await coursesAPI.reviewCourse(reviewCourse.id, 'rejected', rejectionReason);
+      toast.success(`Đã từ chối khóa học "${reviewCourse.title}"`);
+      fetchCourses();
+    } catch (err: any) {
+      toast.error(`Từ chối khóa học thất bại: ${err?.message || 'Lỗi không xác định'}`);
+    } finally {
+      setReviewLoading(false);
+      setShowReviewDialog(false);
+      setReviewCourse(null);
+      setReviewAction(null);
+      setRejectionReason('');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {isLoading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
@@ -192,19 +239,48 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
                   navigateTo('course-detail');
                 }}
                 action={
-                  <Button
-                    size="sm"
-                    className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCourseToDelete(course);
-                      setShowDeleteDialog(true);
-                    }}
-                    title="Xóa khóa học"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Xóa
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCourseToDelete(course);
+                        setShowDeleteDialog(true);
+                      }}
+                      title="Xóa khóa học"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Xóa
+                    </Button>
+                    {/* Admin review actions for pending courses */}
+                    {course.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-8 w-max px-3 bg-green-600 text-white border border-green-200 hover:bg-green-700 hover:border-green-300 shadow-sm transition-all"
+                          disabled={reviewLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReviewCourse(course, 'approved');
+                          }}
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 w-max px-3 bg-yellow-600 text-white border border-yellow-200 hover:bg-yellow-700 hover:border-yellow-300 shadow-sm transition-all"
+                          disabled={reviewLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReviewCourse(course, 'rejected');
+                          }}
+                        >
+                          Từ chối
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 }
               />
             ))
@@ -246,6 +322,29 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           </div>
         )}
       </DeleteConfirmDialog>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lý do từ chối khóa học</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Nhập lý do từ chối..."
+            value={rejectionReason}
+            onChange={e => setRejectionReason(e.target.value)}
+            disabled={reviewLoading}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReviewDialog(false)} disabled={reviewLoading}>
+              Hủy
+            </Button>
+            <Button onClick={handleRejectSubmit} loading={reviewLoading} disabled={reviewLoading || !rejectionReason}>
+              Xác nhận từ chối
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

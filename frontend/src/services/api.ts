@@ -216,6 +216,14 @@ export const coursesAPI = {
   updateCourse: (id: string, data: any) => api.patch(`/courses/${id}`, data).then(res => res.data),
   deleteCourse: (id: string) => api.delete(`/courses/${id}`).then(res => res.data),
   addCourseTags: (courseId: string, tags: string[]) => api.post(`/courses/${courseId}/tags`, { tags }).then(res => res.data),
+  /**
+   * Admin approve/reject course
+   * @param id Course ID
+   * @param status 'approved' | 'rejected'
+   * @param rejection_reason Optional reason for rejection
+   */
+  reviewCourse: (id: string, status: 'approved' | 'rejected', rejection_reason?: string) =>
+    api.patch(`/courses/${id}/review`, { status, rejection_reason }).then(res => res.data),
 };
 
 // -----------------------------
@@ -256,6 +264,7 @@ export const lessonsAPI = {
 // Enrollments API
 // -----------------------------
 export const enrollmentsAPI = {
+    leaveCourse: (id: string) => api.delete(`/enrollments/${id}/leave-test`).then(res => res.data),
   getMyEnrollments: () => api.get('/enrollments/my-enrollments').then(res => res.data),
   getByCourseId: (courseId: string, status?: string) => {
     const params = status ? `?status=${status}` : '';
