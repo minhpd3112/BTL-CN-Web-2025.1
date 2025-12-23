@@ -168,15 +168,27 @@ export const EnrollmentController = {
         });
       }
 
+      // Check if course is public to auto-approve enrollment
+      const { data: course } = await supabaseAdmin
+        .from('courses')
+        .select('visibility')
+        .eq('id', course_id)
+        .single();
+
+      const isPublicCourse = course?.visibility === 'public';
+
       const enrollment = await EnrollmentModel.create({
         user_id: userId,
         course_id,
         request_message,
+        status: isPublicCourse ? 'approved' : 'pending',
+        approved_by: isPublicCourse ? userId : undefined,
       });
 
       res.status(httpStatus.CREATED).json({
         success: true,
         data: enrollment,
+        message: isPublicCourse ? 'Bạn đã tham gia khóa học thành công!' : 'Đã gửi yêu cầu đăng ký khóa học',
       });
     } catch (error: any) {
       console.error('Create enrollment error:', error);

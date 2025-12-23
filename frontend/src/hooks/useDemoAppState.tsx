@@ -5,6 +5,14 @@ import {
   mockCourses,
   mockEnrollmentRequests,
 } from '@/services/mocks';
+
+// Helper to update enrolledUsers in mockCourses
+function addUserToCourseEnrolledUsers(courseId: number, userId: number) {
+  const course = mockCourses.find(c => c.id === courseId);
+  if (course && !course.enrolledUsers.includes(userId)) {
+    course.enrolledUsers.push(userId);
+  }
+}
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
 
 // --- MOCK DATA (Giữ bên ngoài Hook) ---
@@ -146,8 +154,19 @@ export function useDemoAppState() {
   }, []);
 
   const handleEnrollRequest = useCallback((request: any) => {
-    const newRequest = { ...request, id: Date.now(), status: 'pending', requestedAt: new Date().toLocaleString() };
+    // Nếu là public thì duyệt luôn
+    const isPublic = request.isPublic;
+    const status = isPublic ? 'approved' : 'pending';
+    const newRequest = { ...request, id: Date.now(), status, requestedAt: new Date().toLocaleString() };
     setEnrollmentRequests(prev => [...prev, newRequest]);
+    // Nếu là public, cập nhật enrolledUsers trong mockCourses
+    if (isPublic && request.courseId && request.userId) {
+      addUserToCourseEnrolledUsers(Number(request.courseId), Number(request.userId));
+    }
+    // Gọi callback nếu có (để cập nhật UI ngay)
+    if (request.onSuccess && typeof request.onSuccess === 'function') {
+      request.onSuccess();
+    }
   }, []);
 
   // 4. COMPUTED VALUES

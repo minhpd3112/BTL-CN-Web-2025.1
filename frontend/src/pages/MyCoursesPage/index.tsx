@@ -22,67 +22,19 @@ interface MyCoursesPageProps {
 }
 
 export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: MyCoursesPageProps) {
-  // Khóa học đang học - Fetch from API
-  // Store enrollmentId for each enrolled course
+
+  // All state declarations at the top
+  const [activeTab, setActiveTab] = useState<'created' | 'enrolled'>('created');
+  const [createdPage, setCreatedPage] = useState(1);
+  const [enrolledPage, setEnrolledPage] = useState(1);
   const [enrolledCourses, setEnrolledCourses] = useState<(
     Course & { progress: number; completedLessons: number; enrollmentId: string }
   )[]>([]);
   const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
-
-  // Khóa học tôi tạo - Fetch from API
   const [myCreatedCourses, setMyCreatedCourses] = useState<Course[]>([]);
   const [isLoadingCreated, setIsLoadingCreated] = useState(true);
-
-  // Fetch courses created by current user
-  useEffect(() => {
-    const fetchMyCreatedCourses = async () => {
-      try {
-        setIsLoadingCreated(true);
-        // Truyền owner_id để backend trả về tất cả khoá học của user này
-        const response = await coursesAPI.getAllCourses({ owner_id: currentUser.id });
-
-        if (response.success) {
-          // Defensive: ensure response.data is an array (API trả về data: Array)
-          const courseList = Array.isArray(response.data) ? response.data : [];
-          // Ẩn khoá học bị từ chối khỏi danh sách chính, nhưng lưu lại rejected để hiển thị lý do
-          const rejectedCourses = courseList.filter((course: any) => course.status === 'rejected');
-          const mappedCourses = courseList
-            .filter((course: any) => course.status !== 'rejected')
-            .map((course: any) => ({
-              id: course.id,
-              title: course.title,
-              description: course.description || '',
-              image: course.image_url || '/placeholder-course.jpg',
-              ownerId: course.owner_id,
-              ownerName: course.owner?.full_name || currentUser.name,
-              ownerAvatar: course.owner?.avatar_url || currentUser.avatar,
-              tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
-              visibility: course.visibility as 'public' | 'private',
-              status: course.status,
-              studentsCount: 0,
-              lessonsCount: 0,
-              rejectionReason: course.rejection_reason || '',
-            }));
-          setMyCreatedCourses(mappedCourses);
-          setRejectedCourses(rejectedCourses.map((course: any) => ({
-            id: course.id,
-            title: course.title,
-            rejectionReason: course.rejection_reason || '',
-          })));
-        }
-      } catch (error) {
-        console.error('Failed to fetch created courses:', error);
-        toast.error('Không thể tải khóa học của bạn');
-      } finally {
-        setIsLoadingCreated(false);
-      }
-    };
-
-    fetchMyCreatedCourses();
-  }, [currentUser.id, currentUser.name, currentUser.avatar]);
-
-  // State cho rejected courses
   const [rejectedCourses, setRejectedCourses] = useState<{id: string, title: string, rejectionReason: string}[]>([]);
+  const [reloadEnrolled, setReloadEnrolled] = useState(0);
 
   // Fetch courses created by current user
   useEffect(() => {
@@ -172,14 +124,22 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
     };
 
     fetchEnrolledCourses();
-  }, [currentUser.id]);
+  }, [currentUser.id, reloadEnrolled]);
+
+  // Khi chuyển sang tab "enrolled" thì reload danh sách
+  useEffect(() => {
+    if (activeTab === 'enrolled') {
+      setReloadEnrolled(r => r + 1);
+    }
+  }, [activeTab]);
 
   // Active tab state for animations
-  const [activeTab, setActiveTab] = useState<'created' | 'enrolled'>('created');
+  // (Removed duplicate declaration of activeTab)
 
   // Pagination states
-  const [createdPage, setCreatedPage] = useState(1);
-  const [enrolledPage, setEnrolledPage] = useState(1);
+  // (Removed duplicate declaration of createdPage)
+  // (Removed duplicate declaration of enrolledPage)
+
 
   // Pagination logic for created courses
   const createdTotalPages = Math.ceil(myCreatedCourses.length / ITEMS_PER_PAGE);
@@ -197,6 +157,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
       await enrollmentsAPI.leaveCourse(enrollmentId);
       setEnrolledCourses(prev => prev.filter(c => c.enrollmentId !== enrollmentId));
       toast.success(`Đã rời khỏi khóa học "${courseTitle}"`);
+      setReloadEnrolled(r => r + 1); // reload lại danh sách
     } catch (error) {
       toast.error('Rời khoá học thất bại. Vui lòng thử lại!');
     }

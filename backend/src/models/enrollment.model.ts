@@ -53,11 +53,14 @@ export const EnrollmentModel = {
   },
 
   async create(enrollmentData: Partial<Enrollment>) {
-    const { data, error } = await supabase
+    // Nếu là public và status=approved thì dùng supabaseAdmin để bypass RLS
+    const isPublicApproved = enrollmentData.status === 'approved';
+    const client = isPublicApproved ? supabaseAdmin : supabase;
+    const { data, error } = await client
       .from('enrollments')
       .insert([{
         ...enrollmentData,
-        status: 'pending'
+        status: enrollmentData.status || 'pending'
       }])
       .select()
       .single();
