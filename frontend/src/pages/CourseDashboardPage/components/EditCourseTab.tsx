@@ -11,8 +11,8 @@ import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { coursesAPI, sectionsAPI, lessonsAPI, tagsAPI, supabase } from '@/services/api';
-import { Course, Page, User } from '@/types';
+import { coursesAPI, sectionsAPI, lessonsAPI, tagsAPI, quizAPI, supabase } from '@/services/api';
+import { Course, Page, User, QuizSettings } from '@/types';
 import { QuizEditor } from '@/components/shared/QuizEditor';
 
 interface Section {
@@ -43,6 +43,7 @@ interface Lesson {
     section_id: string;
     order_index: number;
     quizQuestions?: QuizQuestion[];
+    quizSettings?: QuizSettings;
 }
 
 interface EditCourseTabProps {
@@ -251,11 +252,12 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         }
     };
 
-    const handleEditLesson = (lesson: Lesson, sectionId: string) => {
+    const handleEditLesson = async (lesson: Lesson, sectionId: string) => {
         setEditingLesson(lesson);
         setCurrentSectionId(sectionId);
         setLessonType(lesson.content_type === 'article' ? 'text' : lesson.content_type);
         setLessonTitle(lesson.title);
+
         // Load content based on type
         if (lesson.content_type === 'video') {
             setYoutubeUrl(lesson.content_url || '');
@@ -263,8 +265,62 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             setLessonContent(lesson.content_text || '');
         } else if (lesson.content_type === 'pdf') {
             setPdfUrl(lesson.content_url || '');
+        } else if (lesson.content_type === 'quiz') {
+            // Load quiz data from backend
+            try {
+                const response = await quizAPI.getQuiz(lesson.id);
+                console.log('🔍 Loading quiz data for edit:', response);
+
+                if (response.success && response.data) {
+                    const { questions, lesson: quizLesson } = response.data;
+
+                    console.log('📝 Quiz questions from backend:', questions);
+
+                    // Convert backend format to QuizEditor format
+                    const formattedQuestions: QuizQuestion[] = questions.map((q: any, qIdx: number) => {
+                        console.log(`\n🔍 Processing question ${qIdx}:`, q);
+                        console.log('  Answers:', q.answers);
+
+                        const correctAnswerIndices = q.answers
+                            .map((a: any, idx: number) => {
+                                console.log(`    Answer ${idx}:`, {
+                                    text: a.answer_text,
+                                    is_correct: a.is_correct,
+                                    willBeMarked: a.is_correct ? idx : -1
+                                });
+                                return a.is_correct ? idx : -1;
+                            })
+                            .filter((idx: number) => idx !== -1);
+
+                        console.log(`  ✅ Correct answer indices:`, correctAnswerIndices);
+
+                        const formatted = {
+                            question: q.question,
+                            type: q.type === 'single_choice' ? 'single' : 'multiple',
+                            options: q.answers.map((a: any) => a.answer_text),
+                            correctAnswers: correctAnswerIndices,
+                            explanation: q.explanation || ''
+                        };
+
+                        console.log('✅ Formatted question:', formatted);
+                        return formatted;
+                    });
+
+                    console.log('📦 All formatted questions:', formattedQuestions);
+                    setQuizQuestions(formattedQuestions);
+
+                    // Store quiz settings for later use
+                    if (quizLesson.quiz_settings) {
+                        // Will be used when opening QuizEditor
+                        (lesson as any).quizSettings = quizLesson.quiz_settings;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading quiz:', error);
+                toast.error('Không thể tải nội dung quiz');
+            }
         }
-        setQuizQuestions(lesson.quizQuestions || []);
+
         setShowAddLesson(true);
     };
 
@@ -346,18 +402,112 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     };
 
     const handleSaveQuiz = async (questions: QuizQuestion[], settings: any) => {
-        if (!currentSectionId) return;
+        if (!currentSectionId || !lessonTitle.trim()) {
+            toast.error('Vui lòng nhập tiêu đề và chọn mục');
+            return;
+        }
 
-        // Note: Quiz functionality would need additional implementation on backend
-        // For now, just save as a quiz lesson without the questions
-        toast.warning('Lưu quiz nhưng câu hỏi chưa được lưu vào database. Tính năng đang phát triển.');
+        try {
+            setIsSaving(true);
 
-        setLessonTitle('');
-        setQuizQuestions([]);
-        setEditingLesson(null);
-        setShowAddLesson(false);
-        setShowQuizEditor(false);
+            if (editingLesson && editingLesson.content_type === 'quiz') {
+                // UPDATE existing quiz
+                const lessonId = editingLesson.id;
+
+                // Update quiz content using quiz API
+                const quizResponse = await quizAPI.createQuiz(lessonId, questions, settings);
+
+                if (quizResponse.success) {
+                    // Also update lesson title if changed
+                    if (editingLesson.title !== lessonTitle) {
+                        await lessonsAPI.update(lessonId, { title: lessonTitle });
+                    }
+
+                    // Update local state
+                    setSections(sections.map(section =>
+                        section.id === currentSectionId
+                            ? {
+                                ...section,
+                                lessons: section.lessons.map(l =>
+                                    l.id === lessonId ? { ...l, title: lessonTitle } : l
+                                )
+                            }
+                            : section
+                    ));
+
+                    // IMPORTANT: Reload quiz data to get fresh data for next edit
+                    try {
+                        const reloadResponse = await quizAPI.getQuiz(lessonId);
+                        if (reloadResponse.success && reloadResponse.data) {
+                            const { questions } = reloadResponse.data;
+                            const formattedQuestions: QuizQuestion[] = questions.map((q: any) => {
+                                const correctAnswerIndices = q.answers
+                                    .map((a: any, idx: number) => a.is_correct ? idx : -1)
+                                    .filter((idx: number) => idx !== -1);
+
+                                return {
+                                    question: q.question,
+                                    type: q.type === 'single_choice' ? 'single' : 'multiple',
+                                    options: q.answers.map((a: any) => a.answer_text),
+                                    correctAnswers: correctAnswerIndices,
+                                    explanation: q.explanation || ''
+                                };
+                            });
+                            setQuizQuestions(formattedQuestions);
+                        }
+                    } catch (reloadError) {
+                        console.error('Failed to reload quiz data:', reloadError);
+                    }
+
+                    toast.success(`Đã cập nhật quiz với ${questions.length} câu hỏi!`);
+                } else {
+                    toast.error('Không thể cập nhật quiz');
+                }
+            } else {
+                // CREATE new quiz
+                const currentSection = sections.find(s => s.id === currentSectionId);
+                const newLessonData: any = {
+                    section_id: currentSectionId,
+                    title: lessonTitle,
+                    description: '',
+                    content_type: 'quiz',
+                    order_index: currentSection?.lessons.length || 0,
+                    is_free: false,
+                    quiz_settings: settings
+                };
+
+                const response = await lessonsAPI.create(newLessonData);
+
+                if (response.success && response.data) {
+                    const lessonId = response.data.id;
+                    const quizResponse = await quizAPI.createQuiz(lessonId, questions, settings);
+
+                    if (quizResponse.success) {
+                        setSections(sections.map(section =>
+                            section.id === currentSectionId
+                                ? { ...section, lessons: [...section.lessons, response.data] }
+                                : section
+                        ));
+                        toast.success(`Đã tạo quiz với ${questions.length} câu hỏi!`);
+                    } else {
+                        toast.error('Đã tạo lesson nhưng không thể lưu câu hỏi quiz');
+                    }
+                }
+            }
+
+            setLessonTitle('');
+            setQuizQuestions([]);
+            setEditingLesson(null);
+            setShowAddLesson(false);
+            setShowQuizEditor(false);
+        } catch (error: any) {
+            console.error('Error saving quiz:', error);
+            toast.error('Không thể lưu quiz. Vui lòng thử lại.');
+        } finally {
+            setIsSaving(false);
+        }
     };
+
 
     // Inline edit handlers
     const handleSaveSectionEdit = async () => {
@@ -826,6 +976,24 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                     </div>
                                                 )}
 
+                                                {/* Edit Quiz Content Button for existing quiz lessons */}
+                                                {lessonType === 'quiz' && editingLesson && (
+                                                    <div className="border-t pt-4">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className="w-full"
+                                                            onClick={() => {
+                                                                setShowQuizEditor(true);
+                                                                setShowAddLesson(false);
+                                                            }}
+                                                        >
+                                                            <Award className="w-4 h-4 mr-2" />
+                                                            Chỉnh sửa nội dung Quiz ({quizQuestions.length} câu hỏi)
+                                                        </Button>
+                                                    </div>
+                                                )}
+
 
                                             </div>
                                             <DialogFooter>
@@ -1059,16 +1227,19 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
             {/* Quiz Editor Dialog */}
             <Dialog open={showQuizEditor} onOpenChange={setShowQuizEditor}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Tạo Quiz: {lessonTitle}</DialogTitle>
+                        <DialogTitle className="text-2xl font-bold text-[#1E88E5]">
+                            {editingLesson ? 'Chỉnh sửa Quiz' : 'Tạo Quiz Mới'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Nhập câu hỏi theo format đặc biệt
+                            {editingLesson ? `Chỉnh sửa nội dung quiz cho bài học "${lessonTitle}"` : `Tạo quiz cho bài học "${lessonTitle}"`}
                         </DialogDescription>
                     </DialogHeader>
                     <QuizEditor
                         onSave={handleSaveQuiz}
                         initialQuestions={quizQuestions}
+                        initialSettings={editingLesson?.quizSettings}
                     />
                 </DialogContent>
             </Dialog>

@@ -254,3 +254,19 @@ export const lessonProgressAPI = {
     api.get(`/lesson-progress/course/${courseId}`).then(res => res.data),
 };
 
+// -----------------------------
+// Quiz API
+// -----------------------------
+export const quizAPI = {
+  createQuiz: (lessonId: string, questions: any[], settings: any) =>
+    api.post(`/quiz/${lessonId}`, { questions, settings }).then(res => res.data),
+
+  getQuiz: (lessonId: string) =>
+    api.get(`/quiz/${lessonId}`).then(res => res.data),
+
+  submitQuiz: (lessonId: string, answers: any, timeSpent?: number) =>
+    api.post(`/quiz/${lessonId}/submit`, { answers, timeSpent }).then(res => res.data),
+
+  getAttempts: (lessonId: string) =>
+    api.get(`/quiz/${lessonId}/attempts`).then(res => res.data),
+};

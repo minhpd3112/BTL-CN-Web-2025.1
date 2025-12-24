@@ -2,77 +2,17 @@ import { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award } from 'lucide-react';
 import { LearningHeader } from './components/LearningHeader';
 import { CourseSidebar } from './components/CourseSidebar';
+import { QuizTaker } from '@/components/shared/QuizTaker';
+import { QuizResults } from '@/components/shared/QuizResults';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import CustomYouTubePlayer from '@/components/shared/CustomYouTubePlayer';
 import { Course, Page } from '@/types';
-import { sectionsAPI, lessonsAPI, lessonProgressAPI } from '@/services/api';
+import { sectionsAPI, lessonsAPI, lessonProgressAPI, quizAPI } from '@/services/api';
 
-// Mock quiz questions
-const mockQuizQuestions = [
-  {
-    id: 1,
-    question: 'React là gì?',
-    options: [
-      'Một thư viện JavaScript để xây dựng giao diện người dùng',
-      'Một framework backend',
-      'Một ngôn ngữ lập trình mới',
-      'Một database'
-    ],
-    correctAnswer: 0,
-    explanation: 'React là một thư viện JavaScript mã nguồn mở được phát triển bởi Facebook, chuyên dùng để xây dựng giao diện người dùng.'
-  },
-  {
-    id: 2,
-    question: 'JSX là viết tắt của gì?',
-    options: [
-      'JavaScript XML',
-      'Java Syntax Extension',
-      'JavaScript Extension',
-      'JSON XML'
-    ],
-    correctAnswer: 0,
-    explanation: 'JSX là viết tắt của JavaScript XML, cho phép viết cú pháp giống HTML trong JavaScript.'
-  },
-  {
-    id: 3,
-    question: 'Hook nào được dùng để quản lý state trong function component?',
-    options: [
-      'useEffect',
-      'useState',
-      'useContext',
-      'useReducer'
-    ],
-    correctAnswer: 1,
-    explanation: 'useState là hook cơ bản nhất để quản lý state trong React function component.'
-  },
-  {
-    id: 4,
-    question: 'Virtual DOM trong React có tác dụng gì?',
-    options: [
-      'Lưu trữ dữ liệu người dùng',
-      'Tối ưu hiệu suất render',
-      'Kết nối với database',
-      'Quản lý routing'
-    ],
-    correctAnswer: 1,
-    explanation: 'Virtual DOM giúp React tối ưu hiệu suất bằng cách so sánh và chỉ cập nhật những phần thay đổi trên DOM thật.'
-  },
-  {
-    id: 5,
-    question: 'Props trong React được dùng để làm gì?',
-    options: [
-      'Lưu trữ state',
-      'Truyền dữ liệu từ component cha sang component con',
-      'Kết nối API',
-      'Tạo event handler'
-    ],
-    correctAnswer: 1,
-    explanation: 'Props (properties) là cách để truyền dữ liệu từ component cha xuống component con trong React.'
-  }
-];
 
 interface LearningPageProps {
   course: Course;
@@ -91,9 +31,11 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
   // Lesson progress tracking
   const [lessonsProgress, setLessonsProgress] = useState<Record<string, boolean>>({});
 
-  // Quiz state
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [showResults, setShowResults] = useState(false);
+  // Quiz state - UPDATED to use real quiz data
+  const [quizData, setQuizData] = useState<any>(null);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
+  const [quizResults, setQuizResults] = useState<any>(null);
+  const [showQuizResults, setShowQuizResults] = useState(false);
 
   // Fetch real course sections and lessons
   const fetchCourseSections = useCallback(async () => {
@@ -191,6 +133,34 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
+  // Load quiz data when a quiz lesson is selected
+  useEffect(() => {
+    const loadQuizData = async () => {
+      if (selectedLesson?.type === 'quiz' && selectedLesson?.id) {
+        setIsLoadingQuiz(true);
+        setQuizData(null);
+        setQuizResults(null);
+        setShowQuizResults(false);
+
+        try {
+          const response = await quizAPI.getQuiz(selectedLesson.id);
+          if (response.success) {
+            setQuizData(response.data);
+          } else {
+            toast.error('Không thể tải quiz');
+          }
+        } catch (error) {
+          console.error('Error loading quiz:', error);
+          toast.error('Không thể tải quiz');
+        } finally {
+          setIsLoadingQuiz(false);
+        }
+      }
+    };
+
+    loadQuizData();
+  }, [selectedLesson?.id, selectedLesson?.type]);
+
   // Toggle lesson completion
   const handleToggleLessonCompletion = async (lessonId: string) => {
     try {
@@ -256,49 +226,86 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
   const handlePrevious = () => {
     if (canGoPrevious) {
       setSelectedLesson(allLessons[currentIndex - 1]);
-      setShowResults(false);
-      setQuizAnswers({});
+      setQuizResults(null);
+      setShowQuizResults(false);
     }
   };
 
   const handleNext = () => {
     if (canGoNext) {
       setSelectedLesson(allLessons[currentIndex + 1]);
-      setShowResults(false);
-      setQuizAnswers({});
+      setQuizResults(null);
+      setShowQuizResults(false);
     }
   };
 
-  const handleQuizAnswerChange = (questionId: number, answerIndex: number) => {
-    setQuizAnswers(prev => ({
-      ...prev,
-      [questionId]: answerIndex
-    }));
+  // Function to fetch and update progress from backend
+  const fetchProgress = async () => {
+    try {
+      const progressResponse = await lessonProgressAPI.getUserProgress(course.id.toString());
+      const progressMap: { [key: string]: boolean } = {};
+
+      if (progressResponse.success && progressResponse.data) {
+        progressResponse.data.forEach((p: any) => {
+          progressMap[p.lesson_id] = p.completed;
+        });
+        setLessonsProgress(progressMap);
+
+        // Also update sections with new progress
+        const updatedSections = sections.map((section: any) => ({
+          ...section,
+          lessons: section.lessons.map((lesson: any) => ({
+            ...lesson,
+            completed: progressMap[lesson.id] || false,
+            isCompleted: progressMap[lesson.id] || false
+          }))
+        }));
+        setSections(updatedSections);
+
+        // IMPORTANT: Update allLessons to trigger progress bar recalculation
+        const flatLessons = updatedSections.flatMap((s: any) => s.lessons);
+        setAllLessons(flatLessons);
+
+        console.log('✅ Progress reloaded from backend:', progressMap);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch progress:', error);
+    }
   };
 
-  const handleSubmitQuiz = () => {
-    if (Object.keys(quizAnswers).length < mockQuizQuestions.length) {
-      toast.error('Vui lòng trả lời tất cả các câu hỏi!');
-      return;
-    }
-    setShowResults(true);
+  // Quiz submission handler
+  const handleQuizSubmit = async (answers: Record<string, string[]>, timeSpent: number) => {
+    try {
+      const response = await quizAPI.submitQuiz(selectedLesson.id, answers, timeSpent);
+      if (response.success) {
+        setQuizResults(response.data);
+        setShowQuizResults(true);
 
-    const correctCount = mockQuizQuestions.filter(q => quizAnswers[q.id] === q.correctAnswer).length;
-    const percentage = (correctCount / mockQuizQuestions.length) * 100;
+        // If passed, reload progress from backend (backend already updated it)
+        if (response.data.passed) {
+          // Backend already updated lesson_progress, just reload it
+          await fetchProgress();
+        }
 
-    if (percentage >= 80) {
-      toast.success(`Xuất sắc! Bạn đạt ${correctCount}/${mockQuizQuestions.length} câu đúng (${percentage.toFixed(0)}%)`);
-    } else if (percentage >= 50) {
-      toast.success(`Khá tốt! Bạn đạt ${correctCount}/${mockQuizQuestions.length} câu đúng (${percentage.toFixed(0)}%)`);
-    } else {
-      toast.error(`Bạn cần cố gắng thêm. Điểm: ${correctCount}/${mockQuizQuestions.length} (${percentage.toFixed(0)}%)`);
+        return response;
+      }
+    } catch (error) {
+      console.error('Quiz submission error:', error);
+      throw error;
     }
   };
 
-  const handleResetQuiz = () => {
-    setQuizAnswers({});
-    setShowResults(false);
-    toast.success('Đã làm mới quiz!');
+  const handleQuizRetry = () => {
+    setQuizResults(null);
+    setShowQuizResults(false);
+    setQuizData(null);
+
+    // Reload quiz
+    quizAPI.getQuiz(selectedLesson.id).then((response) => {
+      if (response.success) {
+        setQuizData(response.data);
+      }
+    });
   };
 
   // Transform sections data for Sidebar
@@ -355,22 +362,12 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* 2. Main Content Area */}
         <div className="flex-1 flex flex-col relative overflow-y-auto custom-scrollbar">
-          {/* Video Stage - Height-first approach */}
+          {/* Video Stage with Custom Controls */}
           {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
-            <div className="flex flex-col transition-all duration-300 overflow-hidden">
-              <div className="w-full flex items-center justify-center bg-gray-100 p-2 md:p-4">
-                <div className="h-[calc(100vh-380px)] w-auto aspect-video max-w-[95%] xl:max-w-[90%] mx-auto shadow-xl rounded-lg overflow-hidden relative group">
-                  <iframe
-                    src={getYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
-                    className="w-full h-full"
-                    title={selectedLesson.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              </div>
-            </div>
+            <CustomYouTubePlayer
+              videoUrl={selectedLesson.youtubeUrl}
+              title={selectedLesson.title}
+            />
           )}
 
           {/* PDF/Quiz Stage - Original flex-1 approach */}
@@ -402,96 +399,42 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
 
               {selectedLesson.type === 'quiz' && (
                 <div className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-8 flex justify-center">
-                  <div className="w-full max-w-3xl">
-                    <Card className="border-0 shadow-xl bg-white/95 backdrop-blur">
-                      <CardContent className="p-8">
-                        {/* Quiz Header */}
-                        <div className="text-center mb-8">
-                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Award className="w-8 h-8 text-[#1E88E5]" />
-                          </div>
-                          <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedLesson.title}</h1>
-                          <p className="text-gray-500">
-                            {showResults ? 'Kết quả bài kiểm tra' : 'Trả lời các câu hỏi sau để hoàn thành bài học'}
-                          </p>
-                        </div>
-
-                        {/* Quiz Questions */}
-                        <div className="space-y-6">
-                          {mockQuizQuestions.map((question, qIndex) => {
-                            const userAnswer = quizAnswers[question.id];
-                            const isCorrect = userAnswer === question.correctAnswer;
-
-                            return (
-                              <div key={question.id} className={`p-6 rounded-xl border-2 transition-all ${showResults
-                                ? (isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50')
-                                : 'border-gray-100 bg-white hover:border-blue-100'
-                                }`}>
-                                <div className="flex gap-3 mb-4">
-                                  <Badge variant={showResults && isCorrect ? "default" : "secondary"} className={showResults && isCorrect ? "bg-green-500 hover:bg-green-600 h-6" : "h-6"}>
-                                    Câu {qIndex + 1}
-                                  </Badge>
-                                  <h3 className="font-semibold text-gray-800 text-lg">{question.question}</h3>
-                                </div>
-
-                                <div className="space-y-3 pl-2">
-                                  {question.options.map((option, optIndex) => {
-                                    const isThisCorrect = optIndex === question.correctAnswer;
-                                    const isUserSelection = userAnswer === optIndex;
-
-                                    let btnColor = "border-gray-200 hover:bg-gray-50 hover:border-gray-300";
-                                    if (showResults) {
-                                      if (isThisCorrect) btnColor = "bg-green-600 border-green-600 text-white";
-                                      else if (isUserSelection) btnColor = "bg-red-500 border-red-500 text-white";
-                                    } else {
-                                      if (isUserSelection) btnColor = "bg-[#1E88E5] border-[#1E88E5] text-white shadow-md";
-                                    }
-
-                                    return (
-                                      <button
-                                        key={optIndex}
-                                        disabled={showResults}
-                                        onClick={() => !showResults && handleQuizAnswerChange(question.id, optIndex)}
-                                        className={`w-full text-left p-3.5 rounded-lg border transition-all flex items-center justify-between group ${btnColor}`}
-                                      >
-                                        <span className={isUserSelection || (showResults && isThisCorrect) ? "font-medium" : "text-gray-600"}>
-                                          {option}
-                                        </span>
-                                        {showResults && isThisCorrect && <CheckCircle className="w-5 h-5 text-white" />}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-
-                                {showResults && !isCorrect && userAnswer !== undefined && (
-                                  <div className="mt-4 text-sm text-red-600 bg-red-100/50 p-3 rounded">
-                                    <p>Đáp án đúng là: <strong>{question.options[question.correctAnswer]}</strong></p>
-                                  </div>
-                                )}
-                                {showResults && (
-                                  <div className="mt-3 text-sm text-gray-600 italic border-l-2 border-gray-300 pl-3">
-                                    Giải thích: {question.explanation}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-
-                        {/* Quiz Actions */}
-                        <div className="mt-10 flex justify-center pb-4">
-                          {!showResults ? (
-                            <Button size="lg" onClick={handleSubmitQuiz} className="bg-[#1E88E5] hover:bg-[#1565C0] text-white px-8 h-12 text-lg shadow-blue-200 shadow-lg">
-                              Nộp bài
-                            </Button>
-                          ) : (
-                            <Button size="lg" variant="outline" onClick={handleResetQuiz} className="px-8 h-12">
-                              Làm lại
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <div className="w-full max-w-4xl">
+                    {isLoadingQuiz ? (
+                      <Card>
+                        <CardContent className="p-12 text-center">
+                          <div className="w-16 h-16 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-gray-600">Đang tải quiz...</p>
+                        </CardContent>
+                      </Card>
+                    ) : showQuizResults && quizResults ? (
+                      <QuizResults
+                        results={quizResults}
+                        quizType={quizData?.lesson?.quiz_settings?.quizType || 'practice'}
+                        onRetry={handleQuizRetry}
+                        onClose={() => {
+                          setShowQuizResults(false);
+                          setQuizResults(null);
+                        }}
+                      />
+                    ) : quizData ? (
+                      <QuizTaker
+                        lessonId={selectedLesson.id}
+                        quizData={quizData}
+                        onSubmit={handleQuizSubmit}
+                        onClose={() => {
+                          handlePrevious();
+                        }}
+                      />
+                    ) : (
+                      <Card>
+                        <CardContent className="p-12 text-center">
+                          <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="mb-2">Quiz chưa sẵn sàng</h3>
+                          <p className="text-gray-600">Quiz này đang được cập nhật</p>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </div>
               )}
@@ -549,8 +492,8 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
               const lesson = allLessons.find(l => l.id === id);
               if (lesson) {
                 setSelectedLesson(lesson);
-                setShowResults(false);
-                setQuizAnswers({});
+                setShowQuizResults(false);
+                setQuizResults(null);
               }
             }}
             onToggleCompletion={handleToggleLessonCompletion}
