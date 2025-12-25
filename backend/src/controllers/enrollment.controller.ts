@@ -73,19 +73,54 @@ export const EnrollmentController = {
         .eq('id', courseId)
         .single();
 
-      if (!course || course.owner_id !== userId) {
-        return res.status(httpStatus.FORBIDDEN).json({
+      if (!course) {
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
-          message: 'You do not have permission to view enrollments',
+          message: 'Course not found',
         });
       }
 
+      const isOwner = course.owner_id === userId;
+      // If not owner, check if user is enrolled
+      if (!isOwner) {
+        const { data: enrollment } = await supabaseAdmin
+          .from('enrollments')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('course_id', courseId)
+          .single();
+
+        // Students who are enrolled can only see count, not details
+        if (!enrollment || enrollment.status !== 'approved') {
+          return res.status(httpStatus.FORBIDDEN).json({
+            success: false,
+            message: 'You do not have permission to view enrollments',
+          });
+        }
+
+        // Return only count for enrolled students
+        const enrollments = await EnrollmentModel.findByCourseId(
+          courseId,
+          status as string
+        );
+
+        return res.json({
+          success: true,
+          data: enrollments.map((e: any) => ({
+            id: e.id,
+            status: e.status,
+            enrolled_at: e.enrolled_at
+          })), // Return minimal info for students
+        });
+      }
+
+      // Owner can see full details
       const enrollments = await EnrollmentModel.findByCourseId(
         courseId,
         status as string
       );
 
-      // Fetch progress and user email for each enrollment
+      // Fetch progress and user email for each enrollment (only for owner)
       for (const enrollment of enrollments) {
         try {
           const progress = await EnrollmentModel.getProgress(enrollment.user_id, courseId);

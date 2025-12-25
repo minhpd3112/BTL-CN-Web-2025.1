@@ -170,13 +170,16 @@ export function CourseDetailPage({
   // Student count
   const [studentCount, setStudentCount] = useState<number>(0);
 
+  // Actual access control based on enrollment
+  const [actualCanAccess, setActualCanAccess] = useState<boolean>(canAccess);
+
   // Check if user has pending request
   const hasPendingRequest = enrollmentRequests?.some(
     (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
   );
 
-  // Check if user is already enrolled
-  const isEnrolled = course.enrolledUsers?.includes(currentUser?.id);
+  // Check if user is already enrolled (will be updated via API)
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   // Check if user is owner or admin
   const canManage = isOwner || currentUser?.role === 'admin';
@@ -273,22 +276,64 @@ export function CourseDetailPage({
   // Fetch student count
   useEffect(() => {
     const fetchStudentCount = async () => {
-      if (!course.id) return;
+      if (!course.id || !currentUser) return;
 
       try {
-        const response = await enrollmentsAPI.getByCourseId(course.id.toString(), 'approved');
+        // Backend now allows enrolled students to view count
+        const response = await enrollmentsAPI.getByCourseId(course.id.toString());
+        console.log('Enrollments API response:', response);
+
         if (response.success && response.data) {
-          setStudentCount(response.data.length);
-          console.log('Student count:', response.data.length);
+          // Filter for approved enrollments
+          const approvedEnrollments = Array.isArray(response.data)
+            ? response.data.filter((e: any) => e.status === 'approved')
+            : [];
+
+          setStudentCount(approvedEnrollments.length);
+          console.log('Approved student count:', approvedEnrollments.length);
+        } else {
+          console.log('No enrollment data returned');
         }
       } catch (error: any) {
         console.error('Error fetching student count:', error);
+        // If error (e.g., not enrolled), set to 0
+        setStudentCount(0);
       }
     };
 
     fetchStudentCount();
-  }, [course.id]);
-  
+  }, [course.id, currentUser]);
+
+  // Check actual enrollment status for non-owners
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!currentUser || isOwner || currentUser.role === 'admin') {
+        setActualCanAccess(true);
+        return;
+      }
+
+      try {
+        const response = await enrollmentsAPI.getMyEnrollments();
+        if (response.success && response.data) {
+          const isEnrolledInCourse = response.data.some(
+            (enrollment: any) =>
+              enrollment.course_id === course.id &&
+              enrollment.status === 'approved'
+          );
+          setIsEnrolled(isEnrolledInCourse);
+          setActualCanAccess(isEnrolledInCourse || course.visibility === 'public');
+        } else {
+          setActualCanAccess(course.visibility === 'public');
+        }
+      } catch (error: any) {
+        console.error('Error checking enrollment:', error);
+        setActualCanAccess(course.visibility === 'public');
+      }
+    };
+
+    checkEnrollment();
+  }, [course.id, currentUser, isOwner, course.visibility]);
+
   // Calculate total course duration based on lesson types
   const calculateCourseDuration = () => {
     let totalMinutes = 0;
@@ -329,7 +374,7 @@ export function CourseDetailPage({
     return `https://www.youtube.com/embed/${videoId}`;
   };
 
-  if (!canAccess) {
+  if (!actualCanAccess) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <Card>
@@ -453,7 +498,7 @@ export function CourseDetailPage({
                         onClick={() => navigateTo('learning')}
                       >
                         <PlayCircle className="w-4 h-4 mr-2" />
-                        Bắt đầu học
+                        Vào học
                       </Button>
                     ) : hasPendingRequest ? (
                       <Button

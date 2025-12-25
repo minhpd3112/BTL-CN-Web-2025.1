@@ -36,12 +36,12 @@ export function useDemoAppState() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && event === 'SIGNED_IN' && !currentUser) {
         const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-      const metadata = session.user.user_metadata;
+        const metadata = session.user.user_metadata;
         const user = {
           id: session.user.id,
           email: session.user.email || '',
@@ -94,13 +94,17 @@ export function useDemoAppState() {
     localStorage.setItem('user_data', JSON.stringify(updatedUser));
   }, []);
 
-  const isOwner = useCallback((course: Course) => 
+  const isOwner = useCallback((course: Course) =>
     currentUser ? course.ownerId === currentUser.id : false, [currentUser]);
 
+  // Note: This returns true by default for enrolled students
+  // The actual enrollment check is done in CourseDetailPage via API
   const canAccessCourse = useCallback((course: Course) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
-    return course.ownerId === currentUser.id || course.enrolledUsers?.includes(currentUser.id);
+    if (course.ownerId === currentUser.id) return true;
+    // For students, we'll let them access and do the check in CourseDetailPage
+    return course.visibility === 'public' || true; // Allow access, will check enrollment in detail page
   }, [currentUser]);
 
   const markAsRead = useCallback((id: number) => {
@@ -143,7 +147,7 @@ export function useDemoAppState() {
 
   // 4. COMPUTED VALUES
   const currentRole = currentUser?.role || 'user';
-  const userNotifications = useMemo(() => 
+  const userNotifications = useMemo(() =>
     currentRole === 'admin' ? notifications : notifications.filter(n => n.userId === currentUser?.id),
     [currentRole, notifications, currentUser?.id]
   );

@@ -96,7 +96,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               completedLessons: enrollment.progress?.completed || 0,
             }));
           setEnrolledCourses(courses);
-          console.log('Enrolled courses with progress:', courses.map(c => ({ title: c.title, progress: c.progress })));
+          console.log('Enrolled courses with progress:', courses.map((c: any) => ({ title: c.title, progress: c.progress })));
         }
       } catch (error) {
         console.error('Failed to fetch enrolled courses:', error);
@@ -287,7 +287,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                       showProgress={true}
                       onClick={() => {
                         setSelectedCourse(course);
-                        navigateTo('learning');
+                        navigateTo('course-detail');
                       }}
                       action={
                         <AlertDialog>
