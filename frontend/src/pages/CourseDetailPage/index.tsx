@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Star, Users, Clock, Lock, BarChart3, UserPlus, CheckCircle,
   Play, FileText, Award, Video, PlayCircle, Eye, ChevronDown, ChevronUp,
-  Share2, MoreVertical, ArrowLeft
+  Share2, MoreVertical, ArrowLeft, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,29 @@ import { toast } from 'sonner';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { mockUsers } from '@/services/mocks';
+import { sectionsAPI, coursesAPI, enrollmentsAPI } from '@/services/api';
+
+// Interfaces for curriculum data
+interface Lesson {
+  id: string;
+  title: string;
+  description?: string;
+  content_type: 'video' | 'text' | 'pdf' | 'quiz' | 'article';
+  duration?: number;
+  content_url?: string;
+  content_text?: string;
+  section_id: string;
+  order_index: number;
+}
+
+interface Section {
+  id: string;
+  title: string;
+  description: string;
+  order_index: number;
+  course_id: string;
+  lessons: Lesson[];
+}
 
 // Mock lessons for curriculum display
 const mockLessons = [
@@ -136,6 +159,17 @@ export function CourseDetailPage({
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
 
+  // Curriculum state
+  const [sections, setSections] = useState<Section[]>([]);
+  const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(false);
+  const [curriculumExpandedSections, setCurriculumExpandedSections] = useState<string[]>([]);
+
+  // Full course data with overview
+  const [fullCourse, setFullCourse] = useState<any>(course);
+
+  // Student count
+  const [studentCount, setStudentCount] = useState<number>(0);
+
   // Check if user has pending request
   const hasPendingRequest = enrollmentRequests?.some(
     (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
@@ -185,6 +219,109 @@ export function CourseDetailPage({
         ? prev.filter(id => id !== sectionId)
         : [...prev, sectionId]
     );
+  };
+
+  const toggleCurriculumSection = (sectionId: string) => {
+    setCurriculumExpandedSections(prev =>
+      prev.includes(sectionId)
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
+
+  // Fetch curriculum data
+  useEffect(() => {
+    const fetchCurriculum = async () => {
+      if (!course.id) return;
+
+      setIsLoadingCurriculum(true);
+      try {
+        const response = await sectionsAPI.getByCourseId(course.id.toString());
+        if (response.success && response.data) {
+          setSections(response.data);
+          console.log('Loaded curriculum:', response.data);
+        }
+      } catch (error: any) {
+        console.error('Error fetching curriculum:', error);
+      } finally {
+        setIsLoadingCurriculum(false);
+      }
+    };
+
+    fetchCurriculum();
+  }, [course.id]);
+
+  // Fetch complete course data including overview
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      if (!course.id) return;
+
+      try {
+        const response = await coursesAPI.getCourseById(course.id.toString());
+        if (response.success && response.data) {
+          setFullCourse(response.data);
+          console.log('Loaded complete course data:', response.data);
+        }
+      } catch (error: any) {
+        console.error('Error fetching course details:', error);
+      }
+    };
+
+    fetchCourseDetails();
+  }, [course.id]);
+
+  // Fetch student count
+  useEffect(() => {
+    const fetchStudentCount = async () => {
+      if (!course.id) return;
+
+      try {
+        const response = await enrollmentsAPI.getByCourseId(course.id.toString(), 'approved');
+        if (response.success && response.data) {
+          setStudentCount(response.data.length);
+          console.log('Student count:', response.data.length);
+        }
+      } catch (error: any) {
+        console.error('Error fetching student count:', error);
+      }
+    };
+
+    fetchStudentCount();
+  }, [course.id]);
+  
+  // Calculate total course duration based on lesson types
+  const calculateCourseDuration = () => {
+    let totalMinutes = 0;
+    sections.forEach(section => {
+      section.lessons?.forEach(lesson => {
+        switch (lesson.content_type) {
+          case 'text':
+          case 'article':
+            totalMinutes += 3;
+            break;
+          case 'quiz':
+            totalMinutes += 5;
+            break;
+          case 'video':
+            totalMinutes += 20;
+            break;
+          case 'pdf':
+            totalMinutes += 5;
+            break;
+          default:
+            totalMinutes += 5;
+        }
+      });
+    });
+
+    // Convert to hours and minutes
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours} giờ${minutes > 0 ? ` ${minutes} phút` : ''}`;
+    }
+    return `${minutes} phút`;
   };
 
   const getYouTubeEmbedUrl = (url: string) => {
@@ -268,17 +405,17 @@ export function CourseDetailPage({
 
                   <div className="flex items-center gap-1.5">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-bold">{course.rating || 4.9}</span>
+                    <span className="font-bold">{course.rating || 0}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
                     <Users className="w-4 h-4" />
-                    <span>{course.students} học viên</span>
+                    <span>{studentCount} học viên</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-4 h-4" />
-                    <span>{course.duration || "8 tuần"}</span>
+                    <span>{sections.length > 0 ? calculateCourseDuration() : (course.duration || "8 tuần")}</span>
                   </div>
                 </div>
               </div>
@@ -429,14 +566,15 @@ export function CourseDetailPage({
           </TabsList>
 
           <TabsContent value="overview">
-            <Card className="hover:shadow-lg transition-shadow duration-300">
+            {/* Course Overview */}
+            <Card className="hover:shadow-lg transition-shadow duration-300 mb-6">
               <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
                 <CardTitle className="text-lg font-bold text-[#1E88E5]">Tổng quan khóa học</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                {course.overview ? (
+                {fullCourse.overview ? (
                   <div className="prose max-w-none">
-                    {course.overview.split('\n').map((line, index) => {
+                    {fullCourse.overview.split('\n').map((line: string, index: number) => {
                       if (line.startsWith('## ')) {
                         return <h2 key={index} className="text-xl font-semibold mt-6 mb-4 first:mt-0">{line.replace('## ', '')}</h2>;
                       } else if (line.startsWith('- ')) {
@@ -456,6 +594,116 @@ export function CourseDetailPage({
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <p>Chưa có thông tin tổng quan cho khóa học này</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Curriculum */}
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <CardTitle className="text-lg font-bold text-[#1E88E5] flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Nội dung khóa học
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isLoadingCurriculum ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E88E5] mx-auto"></div>
+                    <p className="text-gray-500 mt-4">Đang tải nội dung...</p>
+                  </div>
+                ) : sections.length > 0 ? (
+                  <div className="space-y-3">
+                    {sections.map((section, sectionIdx) => {
+                      const isExpanded = curriculumExpandedSections.includes(section.id);
+                      const lessonCount = section.lessons?.length || 0;
+
+                      return (
+                        <Card key={section.id} className="border-2 hover:border-[#1E88E5]/30 transition-colors">
+                          <Collapsible
+                            open={isExpanded}
+                            onOpenChange={() => toggleCurriculumSection(section.id)}
+                          >
+                            <CollapsibleTrigger asChild>
+                              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-3 flex-1">
+                                  <div className="w-8 h-8 rounded-full bg-[#1E88E5] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                    {sectionIdx + 1}
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900">{section.title}</h4>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      {lessonCount} bài học
+                                    </p>
+                                  </div>
+                                </div>
+                                {isExpanded ? (
+                                  <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                )}
+                              </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="px-4 pb-4 space-y-2 border-t">
+                                {section.lessons && section.lessons.length > 0 ? (
+                                  section.lessons.map((lesson, lessonIdx) => {
+                                    const getIcon = () => {
+                                      switch (lesson.content_type) {
+                                        case 'video':
+                                          return <Video className="w-4 h-4 text-[#1E88E5]" />;
+                                        case 'text':
+                                        case 'article':
+                                          return <FileText className="w-4 h-4 text-green-600" />;
+                                        case 'pdf':
+                                          return <FileText className="w-4 h-4 text-red-600" />;
+                                        case 'quiz':
+                                          return <Award className="w-4 h-4 text-orange-600" />;
+                                        default:
+                                          return <Play className="w-4 h-4 text-gray-600" />;
+                                      }
+                                    };
+
+                                    return (
+                                      <div
+                                        key={lesson.id}
+                                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors mt-2"
+                                      >
+                                        <div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-xs flex-shrink-0 font-medium">
+                                          {lessonIdx + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            {getIcon()}
+                                            <span className="text-sm text-gray-700 truncate">{lesson.title}</span>
+                                          </div>
+                                          {lesson.duration && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              <Clock className="w-3 h-3 inline mr-1" />
+                                              {lesson.duration} phút
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="text-center py-6 text-gray-500 text-sm">
+                                    Chưa có bài học nào trong mục này
+                                  </div>
+                                )}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                    <p>Chưa có nội dung khóa học</p>
                   </div>
                 )}
               </CardContent>
