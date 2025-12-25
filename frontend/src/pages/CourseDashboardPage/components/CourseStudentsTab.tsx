@@ -11,14 +11,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Course } from '@/types';
 import { enrollmentsAPI, supabase } from '@/services/api';
-
 interface CourseStudentsTabProps {
     course: Course;
     enrollmentRequests?: any[];
     onApproveRequest?: (id: number) => void;
     onRejectRequest?: (id: number) => void;
 }
-
 export function CourseStudentsTab({
     course,
 }: CourseStudentsTabProps) {
@@ -27,12 +25,10 @@ export function CourseStudentsTab({
     const [inviteeEmail, setInviteeEmail] = useState('');
     const [isInviting, setIsInviting] = useState(false);
     const [activeStudentTab, setActiveStudentTab] = useState<'enrolled' | 'pending'>('enrolled');
-
     // Fetch real enrollments from API
     const [enrollments, setEnrollments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [averageProgress, setAverageProgress] = useState<number>(0);
-
     const fetchEnrollments = useCallback(async () => {
         try {
             setIsLoading(true);
@@ -42,28 +38,34 @@ export function CourseStudentsTab({
             if (response.success) {
                 console.log('Enrollments data:', response.data);
                 const enrollmentsWithUsers = response.data || [];
-
                 // Fetch user profiles for each enrollment  
                 for (const enrollment of enrollmentsWithUsers) {
                     try {
                         console.log('Fetching profile for user:', enrollment.user_id);
-                        // Use supabase to fetch user profile (don't use .single() to avoid error on missing row)
-                        const { data: profiles, error } = await supabase
+                        // Fetch user profile
+                        const { data: profiles, error: profileError } = await supabase
                             .from('user_profiles')
                             .select('full_name, avatar_url')
                             .eq('id', enrollment.user_id)
                             .limit(1);
 
-                        console.log('Profile fetch result:', { user_id: enrollment.user_id, profiles, error });
+                        console.log('Profile fetch result:', { user_id: enrollment.user_id, profiles, error: profileError });
 
                         if (profiles && profiles.length > 0) {
                             enrollment.user = profiles[0];
                             console.log('Set user profile:', profiles[0]);
                         } else {
                             console.log('No profile found for user:', enrollment.user_id);
+                            enrollment.user = {};
+                        }
+
+                        // Use email from backend response
+                        if (enrollment.user_email) {
+                            enrollment.user.email = enrollment.user_email;
+                            console.log('Set user email from backend:', enrollment.user_email);
                         }
                     } catch (err) {
-                        console.error('Could not fetch profile for user:', enrollment.user_id, err);
+                        console.error('Could not fetch user data for:', enrollment.user_id, err);
                     }
                 }
 
@@ -360,7 +362,9 @@ export function CourseStudentsTab({
                                                 </Avatar>
                                                 <div>
                                                     <div className="font-medium">{userName}</div>
-                                                    <div className="text-sm text-gray-600">ID: {enrollment.user_id.substring(0, 13)}...</div>
+                                                    <div className="text-sm text-gray-600">
+                                                        {enrollment.user?.email || 'Email không có sẵn'}
+                                                    </div>
                                                     <div className="text-xs text-gray-500 mt-1">
                                                         Tham gia: {enrolledDate}
                                                     </div>

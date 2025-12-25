@@ -85,7 +85,7 @@ export const EnrollmentController = {
         status as string
       );
 
-      // Fetch progress for each enrollment
+      // Fetch progress and user email for each enrollment
       for (const enrollment of enrollments) {
         try {
           const progress = await EnrollmentModel.getProgress(enrollment.user_id, courseId);
@@ -93,6 +93,16 @@ export const EnrollmentController = {
         } catch (err) {
           console.error('Failed to get progress for enrollment:', enrollment.id, err);
           (enrollment as any).progress = { total: 0, completed: 0, percentage: 0 };
+        }
+
+        // Fetch user email from auth.users
+        try {
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(enrollment.user_id);
+          if (authData?.user?.email) {
+            (enrollment as any).user_email = authData.user.email;
+          }
+        } catch (err) {
+          console.error('Failed to get email for user:', enrollment.user_id, err);
         }
       }
 

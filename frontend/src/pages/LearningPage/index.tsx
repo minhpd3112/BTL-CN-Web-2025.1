@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award, ChevronDown, GripVertical } from 'lucide-react';
 import { LearningHeader } from './components/LearningHeader';
 import { CourseSidebar } from './components/CourseSidebar';
 import { QuizTaker } from '@/components/shared/QuizTaker';
@@ -27,6 +27,13 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<number[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(350);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+  const [descriptionHeight, setDescriptionHeight] = useState(300);
+  const [isResizingDescription, setIsResizingDescription] = useState(false);
+  const [resizeStartY, setResizeStartY] = useState(0);
+  const [resizeStartHeight, setResizeStartHeight] = useState(0);
 
   // Lesson progress tracking
   const [lessonsProgress, setLessonsProgress] = useState<Record<string, boolean>>({});
@@ -76,7 +83,8 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                 ...lesson,
                 type: lesson.content_type || lesson.type || 'video',
                 youtubeUrl: lesson.content_url || '',
-                pdfUrl: lesson.content_type === 'document' ? lesson.content_url || '' : '',
+                pdfUrl: lesson.content_type === 'pdf' ? lesson.content_url || '' : '',
+                content_text: lesson.content_text || '',
                 completed: progressMap[lesson.id] || false, // Use loaded progress
                 isCompleted: progressMap[lesson.id] || false,
                 isLocked: false,
@@ -210,9 +218,95 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
     }
   };
 
+  // Sidebar resize handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 250 && newWidth <= 600) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  // Description resize handlers
+  const handleDescriptionMouseDown = (e: React.MouseEvent) => {
+    setIsResizingDescription(true);
+    setResizeStartY(e.clientY);
+    setResizeStartHeight(descriptionHeight);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingDescription) return;
+
+      // Calculate delta: negative when dragging up, positive when dragging down
+      const delta = resizeStartY - e.clientY;
+      const newHeight = resizeStartHeight + delta;
+
+      if (newHeight >= 200 && newHeight <= 800) {
+        setDescriptionHeight(newHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingDescription(false);
+    };
+
+    if (isResizingDescription) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingDescription, resizeStartY, resizeStartHeight]);
+
   const getYouTubeEmbedUrl = (url: string) => {
     const videoId = url.split('v=')[1] || url.split('/').pop();
     return `https://www.youtube.com/embed/${videoId}`;
+  };
+
+  // Convert Google Drive URL to preview format for embedding
+  const convertGoogleDriveUrl = (url: string) => {
+    if (!url) return url;
+
+    // Check if it's a Google Drive link
+    if (url.includes('drive.google.com')) {
+      // Extract file ID from various Google Drive URL formats
+      const fileIdMatch = url.match(/\/file\/d\/([^\/]+)/);
+      if (fileIdMatch && fileIdMatch[1]) {
+        const fileId = fileIdMatch[1];
+        // Return preview URL format
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+    }
+
+    // Return original URL if not a Google Drive link or can't extract ID
+    return url;
   };
 
   // Calculate progress from state
@@ -330,7 +424,6 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       </div>
     );
   }
-
   // Show empty state if no lessons
   if (!selectedLesson) {
     return (
@@ -345,7 +438,6 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       </div>
     );
   }
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
       {/* 1. Header */}
@@ -361,13 +453,37 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* 2. Main Content Area */}
-        <div className="flex-1 flex flex-col relative overflow-y-auto custom-scrollbar">
+        <div className="flex-1 flex flex-col relative overflow-hidden">
           {/* Video Stage with Custom Controls */}
           {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
             <CustomYouTubePlayer
               videoUrl={selectedLesson.youtubeUrl}
               title={selectedLesson.title}
             />
+          )}
+
+          {/* Text/Article Content */}
+          {(selectedLesson.type === 'article' || selectedLesson.type === 'text') && (
+            <div className="flex-1 bg-white overflow-y-auto p-4 md:p-8">
+              <div className="max-w-4xl mx-auto">
+                <Card>
+                  <CardContent className="p-6 md:p-8">
+                    {selectedLesson.content_text ? (
+                      <div className="prose max-w-none">
+                        <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700">
+                          {selectedLesson.content_text}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                        <FileText className="w-16 h-16 mb-4 opacity-50" />
+                        <p>Nội dung đang được cập nhật</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           )}
 
           {/* PDF/Quiz Stage - Original flex-1 approach */}
@@ -379,13 +495,11 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                     {selectedLesson.pdfUrl && selectedLesson.pdfUrl !== '#' ? (
                       <>
                         <iframe
-                          src={selectedLesson.pdfUrl}
+                          src={convertGoogleDriveUrl(selectedLesson.pdfUrl)}
                           className="w-full h-full"
                           title={selectedLesson.title}
                           allow="autoplay"
                         />
-                        {/* Overlay trong suốt để chặn click nút "Open in new window" */}
-                        <div className="absolute top-0 right-0 w-20 h-14 z-10 cursor-default" />
                       </>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -441,8 +555,25 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
             </div>
           )}
           {/* Lesson Info & Navigation (Below Player) */}
-          <div className="bg-white text-gray-700 p-2 md:p-4 min-h-[300px] border-t border-gray-200">
-            <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto">
+          <div
+            style={{
+              height: `${descriptionHeight}px`,
+              maxHeight: '800px'
+            }}
+            className="bg-white text-gray-700 border-t border-gray-200 relative overflow-auto flex-shrink-0"
+          >
+            {/* Resize Handle */}
+            <div
+              onMouseDown={handleDescriptionMouseDown}
+              className={`absolute top-0 left-0 right-0 h-1 hover:h-1.5 bg-gray-300 hover:bg-[#1E88E5] cursor-row-resize z-50 group transition-all ${isResizingDescription ? 'h-1.5 bg-[#1E88E5]' : ''
+                }`}
+            >
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rotate-90">
+                <GripVertical className="w-4 h-4 text-[#1E88E5]" />
+              </div>
+            </div>
+
+            <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto p-2 md:p-4 pt-4">
               <div className="flex items-start justify-between mb-8 pb-8 border-b border-gray-200">
                 <div>
                   <h2 className="text-2xl font-semibold text-gray-800 mb-2">{selectedLesson.title}</h2>
@@ -468,13 +599,29 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
               </div>
 
               {/* Description / Content placeholder */}
-              <div className="prose max-w-none">
-                <h3 className="text-gray-800">Giới thiệu bài học</h3>
-                <p className="text-gray-600">
-                  Chào mừng bạn đến với bài học <strong>"{selectedLesson.title}"</strong>.
-                  Trong phần này, chúng ta sẽ đi sâu vào các kiến thức quan trọng, đảm bảo bạn nắm vững nền tảng trước khi bước sang các module nâng cao.
-                </p>
-                <p className="text-gray-600">Hãy chú ý theo dõi video và ghi chú lại những điểm chính nhé!</p>
+              <div className="border-t border-gray-200">
+                <button
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800">Giới thiệu bài học</h3>
+                  <ChevronDown
+                    className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${isDescriptionExpanded ? 'rotate-180' : ''
+                      }`}
+                  />
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${isDescriptionExpanded ? 'max-h-96' : 'max-h-0'
+                    }`}
+                >
+                  <div className="prose max-w-none p-4 pt-0">
+                    <p className="text-gray-600">
+                      Chào mừng bạn đến với bài học <strong>"{selectedLesson.title}"</strong>.
+                      Trong phần này, chúng ta sẽ đi sâu vào các kiến thức quan trọng, đảm bảo bạn nắm vững nền tảng trước khi bước sang các module nâng cao.
+                    </p>
+                    <p className="text-gray-600">Hãy chú ý theo dõi video và ghi chú lại những điểm chính nhé!</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -482,9 +629,22 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
 
         {/* 3. Right Sidebar */}
         <div
-          className={`hidden md:block flex-shrink-0 h-full transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[350px] opacity-100' : 'w-0 opacity-0 overflow-hidden'
+          style={{ width: isSidebarOpen ? `${sidebarWidth}px` : 0 }}
+          className={`hidden md:block flex-shrink-0 h-full transition-opacity duration-300 ease-in-out relative ${isSidebarOpen ? 'opacity-100' : 'opacity-0 overflow-hidden'
             }`}
         >
+          {/* Resize Handle */}
+          {isSidebarOpen && (
+            <div
+              onMouseDown={handleMouseDown}
+              className={`absolute left-0 top-0 bottom-0 w-1 hover:w-1.5 bg-gray-300 hover:bg-[#1E88E5] cursor-col-resize z-50 group transition-all ${isResizing ? 'w-1.5 bg-[#1E88E5]' : ''
+                }`}
+            >
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <GripVertical className="w-4 h-4 text-[#1E88E5]" />
+              </div>
+            </div>
+          )}
           <CourseSidebar
             sections={sidebarSections}
             currentLessonId={selectedLesson.id}

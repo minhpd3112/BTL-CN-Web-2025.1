@@ -206,6 +206,8 @@ export const sectionsAPI = {
   update: (id: string, data: any) => api.patch(`/sections/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/sections/${id}`).then(res => res.data),
   reorder: (data: any) => api.post('/sections/reorder', data).then(res => res.data),
+  reorderSections: (courseId: string, sections: { id: string; order_index: number }[]) =>
+    api.post('/sections/reorder', { course_id: courseId, sections }).then(res => res.data),
 };
 
 // -----------------------------
@@ -217,6 +219,8 @@ export const lessonsAPI = {
   create: (data: any) => api.post('/lessons', data).then(res => res.data),
   update: (id: string, data: any) => api.patch(`/lessons/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/lessons/${id}`).then(res => res.data),
+  reorderLessons: (sectionId: string, lessons: { id: string; order_index: number }[]) =>
+    api.post('/lessons/reorder', { section_id: sectionId, lessons }).then(res => res.data),
 };
 
 // -----------------------------
