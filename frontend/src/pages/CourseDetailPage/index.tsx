@@ -477,28 +477,30 @@ export function CourseDetailPage({
       <div className="bg-[#1E88E5] -mt-6 pt-8 pb-12 mb-8 text-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6">
-
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               {/* Left Column: Course Info */}
               <div className="lg:col-span-2 space-y-6">
                 <div className="flex flex-wrap gap-2">
-                  {course.tags && course.tags.length > 0 ? (
-                    course.tags.slice(0, 3).map((tag, index) => (
-                      <Badge key={index} className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <>
-                      <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
-                        Thiết kế
-                      </Badge>
-                      <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
-                        UI/UX
-                      </Badge>
-                    </>
-                  )}
+                  {(() => {
+                    const tags = fullCourse.tags || course.tags || [];
+
+                    return tags.slice(0, 3).map((item: any, index: number) => {
+                      // Handle nested structure: {tag: {name: 'React'}} or direct {name: 'React'} or string
+                      const tagName = typeof item === 'string'
+                        ? item
+                        : (item.tag?.name || item.name || item.tag_name || '');
+
+                      if (!tagName) return null;
+
+                      return (
+                        <Badge key={index} className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
+                          {tagName}
+                        </Badge>
+                      );
+                    });
+                  })()}
+
                   {course.visibility === 'private' && (
                     <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal gap-1">
                       <Lock className="w-3 h-3" />
