@@ -7,6 +7,7 @@ import lessonRoutes from './lesson.routes';
 import enrollmentRoutes from './enrollment.routes';
 import lessonProgressRoutes from './lesson-progress.routes';
 import quizRoutes from './quiz.routes';
+import reviewRoutes from './review.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/lessons', lessonRoutes);
 router.use('/enrollments', enrollmentRoutes);
 router.use('/lesson-progress', lessonProgressRoutes);
 router.use('/quiz', quizRoutes);
+router.use('/reviews', reviewRoutes);
 
 export default router;

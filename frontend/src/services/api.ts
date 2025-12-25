@@ -274,3 +274,20 @@ export const quizAPI = {
   getAttempts: (lessonId: string) =>
     api.get(`/quiz/${lessonId}/attempts`).then(res => res.data),
 };
+
+// -----------------------------
+// Reviews API
+// -----------------------------
+export const reviewsAPI = {
+  create: (data: { course_id: string; rating: number; comment: string }) =>
+    api.post('/reviews', data).then(res => res.data),
+
+  getByCourseId: (courseId: string) =>
+    api.get(`/reviews/course/${courseId}`).then(res => res.data),
+
+  getUserReview: (userId: string, courseId: string) =>
+    api.get(`/reviews/user/${userId}/course/${courseId}`).then(res => res.data),
+
+  delete: (id: string) =>
+    api.delete(`/reviews/${id}`).then(res => res.data),
+};

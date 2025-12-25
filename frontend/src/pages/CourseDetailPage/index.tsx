@@ -26,7 +26,9 @@ import { toast } from 'sonner';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { mockUsers } from '@/services/mocks';
-import { sectionsAPI, coursesAPI, enrollmentsAPI } from '@/services/api';
+import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI } from '@/services/api';
+import { ReviewForm } from '@/components/shared/ReviewForm';
+import { StarRating } from '@/components/shared/StarRating';
 
 // Interfaces for curriculum data
 interface Lesson {
@@ -59,29 +61,6 @@ const mockLessons = [
   { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false }
 ];
 
-const mockReviews = [
-  {
-    id: 1,
-    user: { name: 'Nguyễn Văn A', avatar: 'A' },
-    rating: 5,
-    date: '2 ngày trước',
-    content: 'Khóa học rất hay, giảng viên nhiệt tình. Nội dung đi từ cơ bản đến nâng cao rất dễ hiểu.'
-  },
-  {
-    id: 2,
-    user: { name: 'Trần Thị B', avatar: 'B' },
-    rating: 4,
-    date: '1 tuần trước',
-    content: 'Kiến thức bổ ích, tuy nhiên phần âm thanh của video số 3 hơi nhỏ. Mong giảng viên sớm khắc phục.'
-  },
-  {
-    id: 3,
-    user: { name: 'Lê Văn C', avatar: 'C' },
-    rating: 5,
-    date: '2 tuần trước',
-    content: 'Tuyệt vời! Đã áp dụng được ngay vào dự án thực tế của công ty. Rất đáng tiền.'
-  }
-];
 
 // Mock course sections with full content for admin preview
 const mockCourseSections = [
@@ -169,6 +148,15 @@ export function CourseDetailPage({
 
   // Student count
   const [studentCount, setStudentCount] = useState<number>(0);
+
+  // Reviews state
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [myReview, setMyReview] = useState<any>(null);
+  const [courseProgress, setCourseProgress] = useState<number>(0);
+  const [canReview, setCanReview] = useState(false);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [reviewCount, setReviewCount] = useState<number>(0);
 
   // Actual access control based on enrollment
   const [actualCanAccess, setActualCanAccess] = useState<boolean>(canAccess);
@@ -334,6 +322,96 @@ export function CourseDetailPage({
     checkEnrollment();
   }, [course.id, currentUser, isOwner, course.visibility]);
 
+  // Fetch course reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setIsLoadingReviews(true);
+      try {
+        const response = await reviewsAPI.getByCourseId(course.id.toString());
+        if (response.success) {
+          setReviews(response.data.reviews || []);
+          // Save rating stats
+          if (response.data.stats) {
+            setAverageRating(response.data.stats.average || 0);
+            setReviewCount(response.data.stats.count || 0);
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setIsLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+  }, [course.id]);
+
+  // Fetch user's review and check if they can review
+  useEffect(() => {
+    const checkReviewEligibility = async () => {
+      console.log('=== Check Review Eligibility ===');
+      console.log('currentUser:', currentUser);
+      console.log('isEnrolled:', isEnrolled);
+
+      if (!currentUser || !isEnrolled) {
+        console.log('Early return: no user or not enrolled');
+        setCanReview(false);
+        return;
+      }
+
+      // Get user's existing review (don't let errors block progress check)
+      try {
+        const reviewResponse = await reviewsAPI.getUserReview(
+          currentUser.id.toString(),
+          course.id.toString()
+        );
+        if (reviewResponse.success && reviewResponse.data) {
+          setMyReview(reviewResponse.data);
+          console.log('Found existing review:', reviewResponse.data);
+        }
+      } catch (error: any) {
+        console.log('No existing review (this is OK):', error.message);
+        setMyReview(null);
+      }
+
+      // Get course progress (separate try-catch to ensure it always runs)
+      try {
+        const progressResponse = await enrollmentsAPI.getMyEnrollments();
+        if (progressResponse.success && progressResponse.data) {
+          console.log('All enrollments:', progressResponse.data);
+          console.log('Looking for course_id:', course.id, 'type:', typeof course.id);
+
+          const enrollment = progressResponse.data.find(
+            (e: any) => {
+              console.log('Checking enrollment:', e.course_id, 'type:', typeof e.course_id, 'progress:', e.progress);
+              return e.course_id === course.id || e.course_id.toString() === course.id.toString();
+            }
+          );
+
+          console.log('Found enrollment:', enrollment);
+
+          if (enrollment?.progress) {
+            const percentage = enrollment.progress.percentage || 0;
+            console.log('Setting course progress to:', percentage);
+            setCourseProgress(percentage);
+            // Can review if 100% complete
+            setCanReview(percentage >= 100);
+          } else {
+            console.log('No progress found in enrollment');
+            setCourseProgress(0);
+            setCanReview(false);
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching progress:', error);
+        setCourseProgress(0);
+        setCanReview(false);
+      }
+    };
+
+    checkReviewEligibility();
+  }, [currentUser, isEnrolled, course.id]);
+
   // Calculate total course duration based on lesson types
   const calculateCourseDuration = () => {
     let totalMinutes = 0;
@@ -450,7 +528,8 @@ export function CourseDetailPage({
 
                   <div className="flex items-center gap-1.5">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-bold">{course.rating || 0}</span>
+                    <span className="font-bold">{averageRating.toFixed(1)}</span>
+                    <span className="text-sm opacity-75">({reviewCount} đánh giá)</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -755,6 +834,145 @@ export function CourseDetailPage({
             </Card>
           </TabsContent>
 
+          {/* Reviews Tab */}
+          <TabsContent value="reviews">
+            {/* Review Form - Only show if user can review */}
+            {canReview && !myReview && (
+              <ReviewForm
+                courseId={course.id.toString()}
+                onSuccess={() => {
+                  // Refresh reviews after submission
+                  reviewsAPI.getByCourseId(course.id.toString()).then(response => {
+                    if (response.success) {
+                      setReviews(response.data.reviews || []);
+                    }
+                  });
+                  // Reload user review
+                  reviewsAPI.getUserReview(currentUser!.id.toString(), course.id.toString()).then(response => {
+                    if (response.success && response.data) {
+                      setMyReview(response.data);
+                    }
+                  });
+                }}
+              />
+            )}
+
+            {/* Edit existing review */}
+            {myReview && (
+              <ReviewForm
+                courseId={course.id.toString()}
+                existingReview={myReview}
+                onSuccess={() => {
+                  // Refresh reviews after edit
+                  reviewsAPI.getByCourseId(course.id.toString()).then(response => {
+                    if (response.success) {
+                      setReviews(response.data.reviews || []);
+                    }
+                  });
+                  // Reload user review
+                  reviewsAPI.getUserReview(currentUser!.id.toString(), course.id.toString()).then(response => {
+                    if (response.success && response.data) {
+                      setMyReview(response.data);
+                    }
+                  });
+                }}
+              />
+            )}
+
+            {/* Message for non-eligible users */}
+            {isEnrolled && !canReview && (
+              <Alert className="mb-6">
+                <AlertDescription>
+                  Bạn cần hoàn thành 100% khóa học để có thể đánh giá.
+                  Tiến độ hiện tại: <strong>{courseProgress.toFixed(0)}%</strong>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Reviews List */}
+            <Card>
+              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                <CardTitle className="text-lg font-bold text-[#1E88E5]">
+                  Đánh giá từ học viên
+                  {reviews.length > 0 && ` (${reviews.length})`}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isLoadingReviews ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E88E5] mx-auto"></div>
+                    <p className="text-gray-500 mt-4">Đang tải đánh giá...</p>
+                  </div>
+                ) : reviews.length > 0 ? (
+                  <div className="space-y-6">
+                    {reviews.map((review: any) => (
+                      <div key={review.id} className="border-b last:border-0 pb-6 last:pb-0">
+                        <div className="flex items-start gap-4">
+                          {/* Avatar */}
+                          <Avatar className="w-12 h-12">
+                            <AvatarImage src={review.user?.avatar_url} />
+                            <AvatarFallback className="bg-[#1E88E5] text-white">
+                              {review.user?.full_name?.[0] || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          {/* Review Content */}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-900">
+                                  {review.user?.full_name || 'Anonymous'}
+                                </h4>
+                                <p className="text-sm text-gray-500">
+                                  {new Date(review.created_at).toLocaleDateString('vi-VN')}
+                                </p>
+                              </div>
+                              <StarRating rating={review.rating} readonly size="sm" />
+                            </div>
+                            <p className="text-gray-700 whitespace-pre-wrap">{review.comment}</p>
+
+                            {/* Delete button for own review or admin */}
+                            {(review.user_id === currentUser?.id || currentUser?.role === 'admin') && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('Bạn có chắc muốn xóa đánh giá này?')) {
+                                    try {
+                                      await reviewsAPI.delete(review.id);
+                                      toast.success('Xóa đánh giá thành công');
+                                      // Refresh reviews
+                                      const response = await reviewsAPI.getByCourseId(course.id.toString());
+                                      if (response.success) {
+                                        setReviews(response.data.reviews || []);
+                                      }
+                                      if (review.user_id === currentUser?.id) {
+                                        setMyReview(null);
+                                      }
+                                    } catch (error: any) {
+                                      toast.error('Không thể xóa đánh giá');
+                                    }
+                                  }
+                                }}
+                                className="text-sm text-red-600 hover:text-red-700 mt-2"
+                              >
+                                Xóa đánh giá
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Star className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                    <p>Chưa có đánh giá nào cho khóa học này</p>
+                    {canReview && <p className="text-sm mt-2">Hãy là người đầu tiên đánh giá!</p>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Admin Content Preview Tab */}
           {currentUser?.role === 'admin' && (
             <TabsContent value="content-preview">
@@ -952,55 +1170,6 @@ export function CourseDetailPage({
               </div>
             </TabsContent>
           )}
-
-          <TabsContent value="reviews">
-            <Card className="hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
-                <CardTitle className="text-lg font-bold text-[#1E88E5]">Đánh giá từ học viên</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {mockReviews.length > 0 ? (
-                  <div className="space-y-6 pt-6">
-                    {mockReviews.map((review) => (
-                      <div key={review.id} className="border-b last:border-0 pb-6 last:pb-0">
-                        <div className="flex items-start gap-4">
-                          <Avatar>
-                            <AvatarFallback className="bg-[#1E88E5] text-white">
-                              {review.user.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-semibold text-gray-900">{review.user.name}</h4>
-                              <span className="text-sm text-gray-500">{review.date}</span>
-                            </div>
-                            <div className="flex items-center gap-1 mb-2">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-4 h-4 ${i < review.rating
-                                    ? 'fill-yellow-400 text-yellow-400'
-                                    : 'fill-gray-200 text-gray-200'
-                                    }`}
-                                />
-                              ))}
-                            </div>
-                            <p className="text-gray-600 leading-relaxed">
-                              {review.content}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    Chưa có đánh giá nào
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
