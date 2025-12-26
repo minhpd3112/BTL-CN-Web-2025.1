@@ -11,6 +11,7 @@ router.get('/:id', LessonController.getById);
 router.post('/', LessonController.create);
 router.patch('/:id', LessonController.update);
 router.delete('/:id', LessonController.delete);
+router.post('/reorder', LessonController.reorder);
 
 // Quiz routes
 router.post('/:id/quiz', LessonController.addQuizQuestions);

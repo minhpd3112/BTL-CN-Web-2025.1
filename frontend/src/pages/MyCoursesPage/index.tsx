@@ -333,7 +333,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                       showProgress={true}
                       onClick={() => {
                         setSelectedCourse(course);
-                        navigateTo('learning');
+                        navigateTo('course-detail');
                       }}
                       action={
                         <AlertDialog>

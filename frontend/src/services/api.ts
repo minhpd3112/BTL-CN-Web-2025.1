@@ -247,6 +247,8 @@ export const sectionsAPI = {
   update: (id: string, data: any) => api.patch(`/sections/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/sections/${id}`).then(res => res.data),
   reorder: (data: any) => api.post('/sections/reorder', data).then(res => res.data),
+  reorderSections: (courseId: string, sections: { id: string; order_index: number }[]) =>
+    api.post('/sections/reorder', { course_id: courseId, sections }).then(res => res.data),
 };
 
 // -----------------------------
@@ -258,6 +260,8 @@ export const lessonsAPI = {
   create: (data: any) => api.post('/lessons', data).then(res => res.data),
   update: (id: string, data: any) => api.patch(`/lessons/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/lessons/${id}`).then(res => res.data),
+  reorderLessons: (sectionId: string, lessons: { id: string; order_index: number }[]) =>
+    api.post('/lessons/reorder', { section_id: sectionId, lessons }).then(res => res.data),
 };
 
 // -----------------------------
@@ -296,3 +300,36 @@ export const lessonProgressAPI = {
     api.get(`/lesson-progress/course/${courseId}`).then(res => res.data),
 };
 
+// -----------------------------
+// Quiz API
+// -----------------------------
+export const quizAPI = {
+  createQuiz: (lessonId: string, questions: any[], settings: any) =>
+    api.post(`/quiz/${lessonId}`, { questions, settings }).then(res => res.data),
+
+  getQuiz: (lessonId: string) =>
+    api.get(`/quiz/${lessonId}`).then(res => res.data),
+
+  submitQuiz: (lessonId: string, answers: any, timeSpent?: number) =>
+    api.post(`/quiz/${lessonId}/submit`, { answers, timeSpent }).then(res => res.data),
+
+  getAttempts: (lessonId: string) =>
+    api.get(`/quiz/${lessonId}/attempts`).then(res => res.data),
+};
+
+// -----------------------------
+// Reviews API
+// -----------------------------
+export const reviewsAPI = {
+  create: (data: { course_id: string; rating: number; comment: string }) =>
+    api.post('/reviews', data).then(res => res.data),
+
+  getByCourseId: (courseId: string) =>
+    api.get(`/reviews/course/${courseId}`).then(res => res.data),
+
+  getUserReview: (userId: string, courseId: string) =>
+    api.get(`/reviews/user/${userId}/course/${courseId}`).then(res => res.data),
+
+  delete: (id: string) =>
+    api.delete(`/reviews/${id}`).then(res => res.data),
+};

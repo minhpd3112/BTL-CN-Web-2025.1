@@ -110,9 +110,11 @@ export function useDemoAppState() {
     localStorage.setItem('user_data', JSON.stringify(updatedUser));
   }, []);
 
-  const isOwner = useCallback((course: Course) => 
+  const isOwner = useCallback((course: Course) =>
     currentUser ? course.ownerId === currentUser.id : false, [currentUser]);
 
+  // Note: This returns true by default for enrolled students
+  // The actual enrollment check is done in CourseDetailPage via API
   const canAccessCourse = useCallback((course: Course) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
@@ -171,7 +173,7 @@ export function useDemoAppState() {
 
   // 4. COMPUTED VALUES
   const currentRole = currentUser?.role || 'user';
-  const userNotifications = useMemo(() => 
+  const userNotifications = useMemo(() =>
     currentRole === 'admin' ? notifications : notifications.filter(n => n.userId === currentUser?.id),
     [currentRole, notifications, currentUser?.id]
   );
