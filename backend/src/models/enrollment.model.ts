@@ -2,6 +2,16 @@ import { supabase, supabaseAdmin } from '@config/supabase';
 import { Enrollment } from '../types';
 
 export const EnrollmentModel = {
+  async deleteByUser(id: string, userId: string) {
+    // Only allow delete if the enrollment belongs to the user
+    const { error } = await supabaseAdmin
+      .from('enrollments')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+    return { success: true };
+  },
   async findByUserId(userId: string) {
     const { data, error } = await supabaseAdmin
       .from('enrollments')
@@ -43,11 +53,14 @@ export const EnrollmentModel = {
   },
 
   async create(enrollmentData: Partial<Enrollment>) {
-    const { data, error } = await supabase
+    // Nếu là public và status=approved thì dùng supabaseAdmin để bypass RLS
+    const isPublicApproved = enrollmentData.status === 'approved';
+    const client = isPublicApproved ? supabaseAdmin : supabase;
+    const { data, error } = await client
       .from('enrollments')
       .insert([{
         ...enrollmentData,
-        status: 'pending'
+        status: enrollmentData.status || 'pending'
       }])
       .select()
       .single();
@@ -78,15 +91,6 @@ export const EnrollmentModel = {
     return data;
   },
 
-  async delete(id: string) {
-    const { error } = await supabase
-      .from('enrollments')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-    return { success: true };
-  },
 
   async getProgress(userId: string, courseId: string) {
     const { data: sections } = await supabaseAdmin

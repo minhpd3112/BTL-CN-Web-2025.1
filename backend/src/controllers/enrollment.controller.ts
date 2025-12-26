@@ -4,6 +4,44 @@ import { supabase, supabaseAdmin } from '@config/supabase';
 import { httpStatus } from '@utils/httpStatus';
 
 export const EnrollmentController = {
+  async leaveCourse(req: Request, res: Response) {
+      console.log('==> [leaveCourse] Controller called', req.method, req.originalUrl);
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
+
+      const enrollment = await EnrollmentModel.findById(id);
+      console.log('[leaveCourse] userId:', userId, '| enrollmentId:', id, '| enrollment.user_id:', enrollment?.user_id);
+      if (!enrollment) {
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'Enrollment not found',
+        });
+      }
+
+      // Only enrollment owner can leave
+      if (enrollment.user_id !== userId) {
+        console.warn('[leaveCourse] Permission denied. userId:', userId, '| enrollment.user_id:', enrollment.user_id);
+        return res.status(httpStatus.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to leave this enrollment',
+        });
+      }
+
+      // Delete enrollment
+      const deleteResult = await EnrollmentModel.deleteByUser(id, userId);
+      console.log('[leaveCourse] Delete result:', deleteResult);
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Leave course error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to leave course',
+        error: error.message,
+      });
+    }
+  },
   async getMyEnrollments(req: Request, res: Response) {
     try {
       const userId = req.user!.id;
@@ -175,15 +213,27 @@ export const EnrollmentController = {
         });
       }
 
+      // Check if course is public to auto-approve enrollment
+      const { data: course } = await supabaseAdmin
+        .from('courses')
+        .select('visibility')
+        .eq('id', course_id)
+        .single();
+
+      const isPublicCourse = course?.visibility === 'public';
+
       const enrollment = await EnrollmentModel.create({
         user_id: userId,
         course_id,
         request_message,
+        status: isPublicCourse ? 'approved' : 'pending',
+        approved_by: isPublicCourse ? userId : undefined,
       });
 
       res.status(httpStatus.CREATED).json({
         success: true,
         data: enrollment,
+        message: isPublicCourse ? 'Bạn đã tham gia khóa học thành công!' : 'Đã gửi yêu cầu đăng ký khóa học',
       });
     } catch (error: any) {
       console.error('Create enrollment error:', error);

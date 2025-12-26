@@ -1,4 +1,6 @@
+
 import { useState, useMemo, useEffect } from 'react';
+
 import { Search, TrendingUp, Star, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +12,9 @@ import { usePagination } from '@/hooks/usePagination';
 import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { useCoursesQuery } from '@/hooks/useCoursesQuery';
+import { tagsAPI, enrollmentsAPI } from '@/services/api';
+
 
 interface ExplorePageProps {
   navigateTo: (page: Page) => void;
@@ -17,51 +22,72 @@ interface ExplorePageProps {
   currentUser: any;
 }
 
-export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps) {
+export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: ExplorePageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allTags, setAllTags] = useState<string[]>(['all']);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
-  // Get unique tags from courses
-  const allTags = ['all', ...Array.from(new Set(mockCourses.flatMap(c => c.tags)))];
+  const ITEMS_PER_PAGE = 9;
 
-  // Chỉ hiển thị khóa public đã approved
-  const availableCourses = mockCourses.filter(c => c.visibility === 'public' && c.status === 'approved');
+  // Fetch user's enrolled courses on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        const enrollments = Array.isArray(res) ? res : res.data;
+        if (enrollments && Array.isArray(enrollments)) {
+          const courseIds = enrollments.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  }, [currentUser?.id]);
 
-  const filteredAndSortedCourses = useMemo(() => {
-    // Filter courses
-    let filtered = availableCourses.filter(c => {
-      const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesTag = selectedTag === 'all' || c.tags.includes(selectedTag);
-      return matchesSearch && matchesTag;
-    });
-
-    // Sort courses
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'popular':
-          return b.students - a.students;
-        case 'rating':
-          return (b.rating || 0) - (a.rating || 0);
-        case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        default:
-          return 0;
+  // Fetch tags from backend
+  useEffect(() => {
+    tagsAPI.getAllTags().then((res) => {
+      if (Array.isArray(res.data)) {
+        setAllTags(['all', ...res.data.map((t: any) => t.name)]);
       }
     });
+  }, []);
 
-    return sorted;
-  }, [searchQuery, selectedTag, sortBy, availableCourses]);
+  // Fetch courses from backend
+  const { courses, total, loading, error } = useCoursesQuery({
+    searchQuery,
+    selectedTag,
+    sortBy,
+    page: currentPage,
+    pageSize: ITEMS_PER_PAGE,
+  });
 
-  // Use pagination hook
-  const { currentPage, setCurrentPage, totalPages, paginatedItems: currentCourses, resetPage } =
-    usePagination(filteredAndSortedCourses, { itemsPerPage: 9 });
+  const totalPages = Math.ceil((total || 0) / ITEMS_PER_PAGE);
+  const currentCourses = courses;
 
-  // Reset page when filters change
-  useEffect(() => {
-    resetPage();
-  }, [searchQuery, selectedTag, sortBy, resetPage]);
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleTagChange = (value: string) => {
+    setSelectedTag(value);
+    setCurrentPage(1);
+  };
+
+  const handleJoinSuccess = () => {
+    // Refresh enrolled courses
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          const courseIds = res.data.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -133,16 +159,20 @@ export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps)
 
           <div className="mt-4 text-sm text-gray-600 flex items-center gap-2">
             <div className="w-2 h-2 bg-[#1E88E5] rounded-full"></div>
-            Tìm thấy {filteredAndSortedCourses.length} khóa học
+            Tìm thấy {courses.length} khóa học
           </div>
         </div>
       </AnimatedSection>
 
       {/* Course Grid */}
-      {filteredAndSortedCourses.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-16">Đang tải dữ liệu...</div>
+      ) : error ? (
+        <div className="text-center py-16 text-red-500">{error}</div>
+      ) : courses && courses.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 explore-course-grid">
-            {currentCourses.map((course, index) => (
+            {currentCourses.map((course: any, index: number) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 50}>
                 <CourseCard
                   course={course}
@@ -150,6 +180,9 @@ export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps)
                     setSelectedCourse(course);
                     navigateTo('course-detail');
                   }}
+                  currentUserId={currentUser?.id}
+                  isEnrolled={enrolledCourseIds.includes(course.id) || enrolledCourseIds.includes(String(course.id))}
+                  onJoinSuccess={handleJoinSuccess}
                 />
               </AnimatedSection>
             ))}

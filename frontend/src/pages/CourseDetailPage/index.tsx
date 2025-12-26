@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Star, Users, Clock, Lock, BarChart3, UserPlus, CheckCircle,
   Play, FileText, Award, Video, PlayCircle, Eye, ChevronDown, ChevronUp,
@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogFooter as ConfirmDialogFooter } from '@/components/ui/dialog';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { mockUsers } from '@/services/mocks';
@@ -122,6 +123,7 @@ interface CourseDetailPageProps {
   setSelectedUser?: (user: User) => void;
 }
 
+
 export function CourseDetailPage({
   course,
   navigateTo,
@@ -172,24 +174,58 @@ export function CourseDetailPage({
   // Check if user is owner or admin
   const canManage = isOwner || currentUser?.role === 'admin';
 
-  const handleEnrollRequest = () => {
-    if (!enrollMessage.trim()) {
+  // Fetch enrollments from backend on mount and after join
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    enrollmentsAPI.getMyEnrollments().then((data: any) => {
+      const enrollments = Array.isArray(data) ? data : data.data;
+      const found = enrollments && Array.isArray(enrollments)
+        ? enrollments.find(
+            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
+          )
+        : undefined;
+      setIsEnrolled(!!found);
+    });
+    // Only update hasPendingRequest from prop
+    setHasPendingRequest(
+      enrollmentRequests?.some(
+        (req: any) => req.courseId === course.id && req.userId === Number(currentUser?.id) && req.status === 'pending'
+      ) || false
+    );
+  }, [course.id, currentUser?.id]);
+
+  const handleEnrollRequest = async () => {
+    // For public courses, no message required
+    if (course.visibility === 'private' && !enrollMessage.trim()) {
       toast.error('Vui lòng nhập lời nhắn');
       return;
     }
 
-    if (onEnrollRequest) {
-      onEnrollRequest({
-        courseId: course.id,
-        userId: currentUser.id,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        userEmail: currentUser.email,
-        message: enrollMessage
+    // Gọi API enroll thực tế
+    try {
+      await enrollmentsAPI.create({
+        course_id: course.id,
+        request_message: enrollMessage
       });
+      // Sau khi join, fetch lại enrollments để cập nhật trạng thái
+      const data = await enrollmentsAPI.getMyEnrollments();
+      const enrollments = Array.isArray(data) ? data : data.data;
+      const found = enrollments && Array.isArray(enrollments)
+        ? enrollments.find(
+            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
+          )
+        : undefined;
+      setIsEnrolled(!!found);
+      setHasPendingRequest(false);
+      toast.success('Bạn đã tham gia khóa học thành công!');
+    } catch (err: any) {
+      if (err?.response?.status === 400 && err?.response?.data?.message?.includes('Already enrolled')) {
+        toast.error('Bạn đã tham gia khoá học này!');
+        setIsEnrolled(true);
+      } else {
+        toast.error('Đăng ký thất bại!');
+      }
     }
-
-    toast.success('Đã gửi yêu cầu đăng ký! Giảng viên sẽ xem xét và phản hồi sớm.');
     setShowEnrollDialog(false);
     setEnrollMessage('');
   };
@@ -471,6 +507,37 @@ export function CourseDetailPage({
     );
   }
 
+  // Handler for leaving the course
+  // Find enrollment id for this user & course
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    enrollmentsAPI.getMyEnrollments().then((data: any) => {
+      const enrollments = Array.isArray(data) ? data : data.data;
+      const found = enrollments && Array.isArray(enrollments)
+        ? enrollments.find(
+            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
+          )
+        : undefined;
+      setEnrollmentId(found?.id || null);
+    });
+  }, [course.id, currentUser?.id, isEnrolled]);
+
+  const handleLeaveCourse = async () => {
+    if (!enrollmentId) {
+      toast.error('Không tìm thấy thông tin tham gia khoá học!');
+      return;
+    }
+    try {
+      await enrollmentsAPI.leaveCourse(enrollmentId);
+      setIsEnrolled(false);
+      toast.success('Bạn đã rời khỏi khoá học.');
+    } catch (err) {
+      toast.error('Rời khoá học thất bại!');
+    }
+    setShowLeaveDialog(false);
+  };
+
   return (
     <div>
       {/* Hero Header */}
@@ -574,13 +641,34 @@ export function CourseDetailPage({
                         Xem nội dung
                       </Button>
                     ) : isEnrolled ? (
-                      <Button
-                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
-                        onClick={() => navigateTo('learning')}
-                      >
-                        <PlayCircle className="w-4 h-4 mr-2" />
-                        Vào học
-                      </Button>
+                      <>
+                        <Button
+                          className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
+                          onClick={() => navigateTo('learning')}
+                        >
+                          <PlayCircle className="w-4 h-4 mr-2" />
+                          Đã tham gia
+                        </Button>
+                        <Button
+                          className="w-full mt-2 bg-gray-200 text-gray-700 hover:bg-gray-300 h-10"
+                          variant="outline"
+                          onClick={() => setShowLeaveDialog(true)}
+                        >
+                          Rời khóa học
+                        </Button>
+                        <ConfirmDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+                          <ConfirmDialogContent>
+                            <ConfirmDialogHeader>
+                              <ConfirmDialogTitle>Bạn có chắc chắn muốn rời khoá học này?</ConfirmDialogTitle>
+                            </ConfirmDialogHeader>
+                            <div className="py-4 text-gray-700">Sau khi rời, bạn sẽ không thể truy cập nội dung khoá học này nữa.</div>
+                            <ConfirmDialogFooter>
+                              <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>Huỷ</Button>
+                              <Button className="bg-red-600 text-white hover:bg-red-700" onClick={handleLeaveCourse}>Xác nhận rời khoá</Button>
+                            </ConfirmDialogFooter>
+                          </ConfirmDialogContent>
+                        </ConfirmDialog>
+                      </>
                     ) : hasPendingRequest ? (
                       <Button
                         className="w-full h-11"
@@ -595,14 +683,18 @@ export function CourseDetailPage({
                         <DialogTrigger asChild>
                           <Button className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300">
                             <UserPlus className="w-4 h-4 mr-2" />
-                            Đăng ký học
+                            {course.visibility === 'public' ? 'Tham gia học' : 'Đăng ký học'}
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Đăng ký học khóa học</DialogTitle>
+                            <DialogTitle>
+                              {course.visibility === 'public' ? 'Tham gia khóa học' : 'Đăng ký học khóa học'}
+                            </DialogTitle>
                             <DialogDescription>
-                              Gửi yêu cầu tham gia khóa học đến người tạo
+                              {course.visibility === 'public' 
+                                ? 'Nhấn xác nhận để tham gia khóa học ngay'
+                                : 'Gửi yêu cầu tham gia khóa học đến người tạo'}
                             </DialogDescription>
                           </DialogHeader>
 
@@ -625,19 +717,21 @@ export function CourseDetailPage({
                                 className="mt-2"
                               />
                             </div>
-                            <div>
-                              <Label htmlFor="enroll-message">
-                                Lời nhắn đến giảng viên <span className="text-red-500">*</span>
-                              </Label>
-                              <Textarea
-                                id="enroll-message"
-                                placeholder="Ví dụ: Tôi rất quan tâm đến khóa học này vì..."
-                                value={enrollMessage}
-                                onChange={(e) => setEnrollMessage(e.target.value)}
-                                className="mt-2"
-                                rows={4}
-                              />
-                            </div>
+                            {course.visibility === 'private' && (
+                              <div>
+                                <Label htmlFor="enroll-message">
+                                  Lời nhắn đến giảng viên <span className="text-red-500">*</span>
+                                </Label>
+                                <Textarea
+                                  id="enroll-message"
+                                  placeholder="Ví dụ: Tôi rất quan tâm đến khóa học này vì..."
+                                  value={enrollMessage}
+                                  onChange={(e) => setEnrollMessage(e.target.value)}
+                                  className="mt-2"
+                                  rows={4}
+                                />
+                              </div>
+                            )}
                           </div>
 
                           <DialogFooter>
@@ -648,7 +742,7 @@ export function CourseDetailPage({
                               className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
                               onClick={handleEnrollRequest}
                             >
-                              Gửi yêu cầu
+                              {course.visibility === 'public' ? 'Xác nhận' : 'Gửi yêu cầu'}
                             </Button>
                           </DialogFooter>
                         </DialogContent>

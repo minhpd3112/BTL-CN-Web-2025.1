@@ -2,7 +2,8 @@ import { Search, Plus, TrendingUp, BookOpen, Users, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/shared/CourseCard';
-import { mockCourses, mockTags } from '@/services/mocks';
+// import { mockCourses, mockTags } from '@/services/mocks';
+import { coursesAPI, tagsAPI } from '@/services/api';
 import { Course, User, Page, Tag as TagType } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { StatsCounter } from '@/components/shared/StatsCounter';
@@ -12,6 +13,8 @@ import { ChristmasHeroSection } from '@/components/christmas/ChristmasHeroSectio
 import './styles.css';
 import Lottie from 'lottie-react';
 import hatAnimation from '@/components/christmas/Christmas hat.json';
+import { useState, useEffect } from 'react';
+import { enrollmentsAPI } from '@/services/api';
 
 interface HomePageProps {
   navigateTo: (page: Page) => void;
@@ -21,8 +24,74 @@ interface HomePageProps {
 }
 
 export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelectedTag }: HomePageProps) {
-  // Chỉ hiển thị khóa public đã approved
-  const publicCourses = mockCourses.filter(c => c.visibility === 'public' && c.status === 'approved');
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+
+
+  // State for real courses and tags
+  const [publicCourses, setPublicCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [allTags, setAllTags] = useState<TagType[]>([]);
+  const [loadingTags, setLoadingTags] = useState(true);
+  // Fetch all tags from backend
+  useEffect(() => {
+    setLoadingTags(true);
+    tagsAPI.getAllTags()
+      .then((res: any) => {
+        if (Array.isArray(res.data)) {
+          setAllTags(res.data);
+        } else if (Array.isArray(res)) {
+          setAllTags(res);
+        } else {
+          setAllTags([]);
+        }
+      })
+      .catch(() => setAllTags([]))
+      .finally(() => setLoadingTags(false));
+  }, []);
+
+  // Fetch public, approved courses from backend
+  useEffect(() => {
+    setLoadingCourses(true);
+    coursesAPI.getAllCourses()
+      .then((res: any) => {
+        if (Array.isArray(res.data)) {
+          const filtered = res.data.filter((c: Course) => c.visibility === 'public' && c.status === 'approved');
+          setPublicCourses(filtered);
+        } else if (Array.isArray(res)) {
+          // fallback if API returns array directly
+          const filtered = res.filter((c: Course) => c.visibility === 'public' && c.status === 'approved');
+          setPublicCourses(filtered);
+        } else {
+          setPublicCourses([]);
+        }
+      })
+      .catch(() => setPublicCourses([]))
+      .finally(() => setLoadingCourses(false));
+  }, []);
+
+  // Fetch user's enrolled courses on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          const courseIds = res.data.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  }, [currentUser?.id]);
+
+  const handleJoinSuccess = () => {
+    // Refresh enrolled courses
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          const courseIds = res.data.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  };
 
   return (
     <div>
@@ -114,22 +183,28 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
           </div>
         </AnimatedSection>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 home-course-grid">
-          {publicCourses.slice(0, 6).map((course, index) => (
-            <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
-
-              <ChristmasCardWrapper>
-
-
-                <CourseCard
-                  course={course}
-                  onClick={() => {
-                    setSelectedCourse(course);
-                    navigateTo('course-detail');
-                  }}
-                />
-              </ChristmasCardWrapper>
-            </AnimatedSection>
-          ))}
+          {loadingCourses ? (
+            <div className="col-span-3 text-center py-8 text-gray-500">Đang tải khoá học...</div>
+          ) : publicCourses.length === 0 ? (
+            <div className="col-span-3 text-center py-8 text-gray-500">Không có khoá học nổi bật nào.</div>
+          ) : (
+            publicCourses.slice(0, 6).map((course, index) => (
+              <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
+                <ChristmasCardWrapper>
+                  <CourseCard
+                    course={course}
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      navigateTo('course-detail');
+                    }}
+                    currentUserId={currentUser?.id}
+                    isEnrolled={enrolledCourseIds.includes(course.id)}
+                    onJoinSuccess={handleJoinSuccess}
+                  />
+                </ChristmasCardWrapper>
+              </AnimatedSection>
+            ))
+          )}
         </div>
       </div >
 
@@ -148,27 +223,28 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             </div>
           </AnimatedSection>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Lập trình', 'Thiết kế', 'Data Science', 'Marketing', 'Kinh doanh', 'Python', 'UI/UX', 'Mobile'].map((category, index) => {
-              const tag = mockTags.find(t => t.name === category);
-              return (
-                <AnimatedSection key={category} animation="fade-up" delay={index * 50}>
+            {loadingTags ? (
+              <div className="col-span-4 text-center py-8 text-gray-500">Đang tải chủ đề...</div>
+            ) : allTags.length === 0 ? (
+              <div className="col-span-4 text-center py-8 text-gray-500">Không có chủ đề nào.</div>
+            ) : (
+              allTags.slice(0, 8).map((tag, index) => (
+                <AnimatedSection key={tag.id} animation="fade-up" delay={index * 50}>
                   <Card
                     className="home-category-card cursor-pointer"
                     onClick={() => {
-                      if (tag) {
-                        setSelectedTag(tag);
-                        navigateTo('tag-detail');
-                      }
+                      setSelectedTag(tag);
+                      navigateTo('tag-detail');
                     }}
                   >
                     <CardContent className="p-6 text-center">
                       <Tag className="home-category-icon w-8 h-8 text-[#1E88E5] mx-auto mb-3" />
-                      <div className="home-category-text">{category}</div>
+                      <div className="home-category-text">{tag.name}</div>
                     </CardContent>
                   </Card>
                 </AnimatedSection>
-              );
-            })}
+              ))
+            )}
           </div>
         </div>
       </div >

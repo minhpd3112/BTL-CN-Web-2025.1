@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Course } from '@/types';
-import { Eye, Globe, Lock, ArrowUpRight } from 'lucide-react';
+import { Eye, Globe, Lock, ArrowUpRight, Clock } from 'lucide-react';
 import { ReactNode } from 'react';
 
 interface CourseListCardProps {
@@ -10,12 +10,14 @@ interface CourseListCardProps {
     onClick: () => void;
     action?: ReactNode;
     showProgress?: boolean;
+    disableInvite?: boolean;
 }
 
-export function CourseListCard({ course, onClick, action, showProgress = false }: CourseListCardProps) {
+export function CourseListCard({ course, onClick, action, showProgress = false, disableInvite }: CourseListCardProps) {
+    const isPending = course.status === 'pending';
     return (
         <Card
-            className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white"
+            className={`group overflow-hidden border-none shadow-sm transition-all duration-300 bg-white hover:shadow-xl`}
             onClick={onClick}
         >
             <CardContent className="p-0">
@@ -23,7 +25,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                     {/* Image Section - Reduced Width */}
                     <div className="relative w-full md:w-56 h-40 md:h-44 overflow-hidden shrink-0">
                         <img
-                            src={course.image}
+                            src={course.image_url || course.image}
                             alt={course.title}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
@@ -39,6 +41,12 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                                 <Badge className="bg-[#1E88E5]/90 hover:bg-[#1E88E5] text-white backdrop-blur-md border-none shadow-lg text-xs">
                                     <Globe className="w-3 h-3 mr-1" />
                                     Công khai
+                                </Badge>
+                            )}
+                            {isPending && (
+                                <Badge className="bg-yellow-500/90 text-white border-none shadow-lg text-xs">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Chờ duyệt
                                 </Badge>
                             )}
                         </div>
@@ -59,8 +67,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
 
                                 {/* Top Right Actions - Moved View Details Here */}
                                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-
-                                    {action}
+                                    {!disableInvite && action}
                                 </div>
                             </div>
 
@@ -69,16 +76,19 @@ export function CourseListCard({ course, onClick, action, showProgress = false }
                             </p>
 
                             <div className="flex flex-wrap gap-2">
-                                {course.tags.slice(0, 3).map(tag => (
-                                    <Badge
-                                        key={tag}
-                                        variant="secondary"
-                                        className="bg-gray-100 text-gray-600 hover:bg-[#1E88E5]/10 hover:text-[#1E88E5] transition-colors text-xs"
-                                    >
-                                        {tag}
-                                    </Badge>
-                                ))}
-                                {course.tags.length > 3 && (
+                                {(Array.isArray(course.tags) ? course.tags : []).slice(0, 3).map((tag: any, idx) => {
+                                    const tagName = typeof tag === 'string' ? tag : tag?.name;
+                                    return (
+                                        <Badge
+                                            key={tagName || idx}
+                                            variant="secondary"
+                                            className="bg-gray-100 text-gray-600 hover:bg-[#1E88E5]/10 hover:text-[#1E88E5] transition-colors text-xs"
+                                        >
+                                            {tagName}
+                                        </Badge>
+                                    );
+                                })}
+                                {Array.isArray(course.tags) && course.tags.length > 3 && (
                                     <Badge variant="secondary" className="bg-gray-50 text-gray-500 text-xs">
                                         +{course.tags.length - 3}
                                     </Badge>

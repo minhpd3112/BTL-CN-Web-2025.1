@@ -5,6 +5,14 @@ import {
   mockCourses,
   mockEnrollmentRequests,
 } from '@/services/mocks';
+
+// Helper to update enrolledUsers in mockCourses
+function addUserToCourseEnrolledUsers(courseId: number, userId: number) {
+  const course = mockCourses.find(c => c.id === courseId);
+  if (course && !course.enrolledUsers.includes(userId)) {
+    course.enrolledUsers.push(userId);
+  }
+}
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
 
 // --- MOCK DATA (Giữ bên ngoài Hook) ---
@@ -35,6 +43,7 @@ export function useDemoAppState() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && event === 'SIGNED_IN' && !currentUser) {
+        // Lấy profile từ user_profiles
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
@@ -42,6 +51,13 @@ export function useDemoAppState() {
           .single();
 
         const metadata = session.user.user_metadata;
+        // Lấy ngày tạo tài khoản từ profile (ưu tiên created_at), fallback về ngày hiện tại nếu không có
+        let joinedDate = '';
+        if (profile?.created_at) {
+          joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
+        } else {
+          joinedDate = new Date().toISOString();
+        }
         const user = {
           id: session.user.id,
           email: session.user.email || '',
@@ -51,7 +67,7 @@ export function useDemoAppState() {
           location: profile?.address || '',
           bio: profile?.bio || '',
           role: 'user',
-          joinedDate: new Date().toLocaleDateString('vi-VN'),
+          joinedDate,
           status: 'active',
           coursesCreated: 0,
           totalStudents: 0
@@ -102,9 +118,8 @@ export function useDemoAppState() {
   const canAccessCourse = useCallback((course: Course) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
-    if (course.ownerId === currentUser.id) return true;
-    // For students, we'll let them access and do the check in CourseDetailPage
-    return course.visibility === 'public' || true; // Allow access, will check enrollment in detail page
+    if (course.visibility === 'public') return true;
+    return course.ownerId === currentUser.id || course.enrolledUsers?.includes(currentUser.id);
   }, [currentUser]);
 
   const markAsRead = useCallback((id: number) => {
@@ -141,8 +156,19 @@ export function useDemoAppState() {
   }, []);
 
   const handleEnrollRequest = useCallback((request: any) => {
-    const newRequest = { ...request, id: Date.now(), status: 'pending', requestedAt: new Date().toLocaleString() };
+    // Nếu là public thì duyệt luôn
+    const isPublic = request.isPublic;
+    const status = isPublic ? 'approved' : 'pending';
+    const newRequest = { ...request, id: Date.now(), status, requestedAt: new Date().toLocaleString() };
     setEnrollmentRequests(prev => [...prev, newRequest]);
+    // Nếu là public, cập nhật enrolledUsers trong mockCourses
+    if (isPublic && request.courseId && request.userId) {
+      addUserToCourseEnrolledUsers(Number(request.courseId), Number(request.userId));
+    }
+    // Gọi callback nếu có (để cập nhật UI ngay)
+    if (request.onSuccess && typeof request.onSuccess === 'function') {
+      request.onSuccess();
+    }
   }, []);
 
   // 4. COMPUTED VALUES

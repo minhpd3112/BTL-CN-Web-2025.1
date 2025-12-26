@@ -1,3 +1,9 @@
+// -----------------------------
+// Users API
+// -----------------------------
+export const usersAPI = {
+  getAllUsers: () => api.get('/users').then(res => res.data),
+};
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
@@ -157,7 +163,18 @@ export const authAPI = {
 
   getStoredUser() {
     const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) {
+      console.log('[getStoredUser] user_data not found in localStorage');
+      return null;
+    }
+    try {
+      const user = JSON.parse(userData);
+      console.log('[getStoredUser] user loaded from localStorage:', user);
+      return user;
+    } catch (e) {
+      console.error('[getStoredUser] Failed to parse user_data:', e, userData);
+      return null;
+    }
   },
 
   getStoredToken() {
@@ -174,15 +191,39 @@ export const authAPI = {
 };
 
 // -----------------------------
+// Admin API
+// -----------------------------
+export const adminAPI = {
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/admin/login', data);
+    if (response.data.success) {
+      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      if (response.data.data.token) {
+        localStorage.setItem('auth_token', response.data.data.token);
+      }
+    }
+    return response.data;
+  },
+};
+
+// -----------------------------
 // Courses API
 // -----------------------------
 export const coursesAPI = {
-  getAllCourses: () => api.get('/courses?limit=1000').then(res => res.data), // Request all courses without pagination
+  getAllCourses: (params?: any) => api.get('/courses', { params }).then(res => res.data),
   getCourseById: (id: string) => api.get(`/courses/${id}`).then(res => res.data),
   createCourse: (data: any) => api.post('/courses', data).then(res => res.data),
   updateCourse: (id: string, data: any) => api.patch(`/courses/${id}`, data).then(res => res.data),
   deleteCourse: (id: string) => api.delete(`/courses/${id}`).then(res => res.data),
   addCourseTags: (courseId: string, tags: string[]) => api.post(`/courses/${courseId}/tags`, { tags }).then(res => res.data),
+  /**
+   * Admin approve/reject course
+   * @param id Course ID
+   * @param status 'approved' | 'rejected'
+   * @param rejection_reason Optional reason for rejection
+   */
+  reviewCourse: (id: string, status: 'approved' | 'rejected', rejection_reason?: string) =>
+    api.patch(`/courses/${id}/review`, { status, rejection_reason }).then(res => res.data),
 };
 
 // -----------------------------
@@ -227,6 +268,7 @@ export const lessonsAPI = {
 // Enrollments API
 // -----------------------------
 export const enrollmentsAPI = {
+    leaveCourse: (id: string) => api.delete(`/enrollments/${id}/leave-test`).then(res => res.data),
   getMyEnrollments: () => api.get('/enrollments/my-enrollments').then(res => res.data),
   getByCourseId: (courseId: string, status?: string) => {
     const params = status ? `?status=${status}` : '';

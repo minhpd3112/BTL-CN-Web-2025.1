@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Tag, BookOpen, ArrowLeft, Users, GraduationCap, Filter, TrendingUp, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CourseCard } from '@/components/shared/CourseCard';
-import { mockCourses } from '@/services/mocks';
+import { coursesAPI } from '@/services/api';
 import { Course, User, Page, Tag as TagType } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { enrollmentsAPI } from '@/services/api';
 import './styles.css';
 
 interface TagDetailPageProps {
@@ -18,29 +19,68 @@ interface TagDetailPageProps {
 
 export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, selectedTag }: TagDetailPageProps) {
   const [sortBy, setSortBy] = useState<string>('popular');
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
-  // Filter courses by tag
-  const tagCourses = useMemo(() => {
-    if (!selectedTag) return [];
-
-    let filtered = mockCourses.filter(course =>
-      course.visibility === 'public' &&
-      course.status === 'approved' &&
-      course.tags.includes(selectedTag.name)
-    );
-
-    // Sort courses
-    switch (sortBy) {
-      case 'popular':
-        return filtered.sort((a, b) => b.students - a.students);
-      case 'rating':
-        return filtered.sort((a, b) => b.rating - a.rating);
-      case 'newest':
-        return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      default:
-        return filtered;
+  // Fetch user's enrolled courses on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          const courseIds = res.data.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
     }
+  }, [currentUser?.id]);
+
+  // State for real courses
+  const [tagCourses, setTagCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+
+  useEffect(() => {
+    if (!selectedTag) {
+      setTagCourses([]);
+      setLoadingCourses(false);
+      return;
+    }
+    setLoadingCourses(true);
+    coursesAPI.getAllCourses({ tag: selectedTag.name })
+      .then((res: any) => {
+        let courses: Course[] = Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : [];
+        // Lọc thêm nếu cần (public, approved)
+        let filtered = courses.filter(course =>
+          course.visibility === 'public' &&
+          course.status === 'approved'
+        );
+        // Sort courses
+        switch (sortBy) {
+          case 'popular':
+            filtered = filtered.sort((a, b) => b.students - a.students);
+            break;
+          case 'rating':
+            filtered = filtered.sort((a, b) => b.rating - a.rating);
+            break;
+          case 'newest':
+            filtered = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            break;
+        }
+        setTagCourses(filtered);
+      })
+      .catch(() => setTagCourses([]))
+      .finally(() => setLoadingCourses(false));
   }, [selectedTag, sortBy]);
+
+  const handleJoinSuccess = () => {
+    // Refresh enrolled courses
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          const courseIds = res.data.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  };
 
   if (!selectedTag) {
     return (
@@ -195,7 +235,9 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
         </AnimatedSection>
 
         {/* Courses Grid */}
-        {tagCourses.length > 0 ? (
+        {loadingCourses ? (
+          <div className="col-span-3 text-center py-8 text-gray-500">Đang tải khoá học...</div>
+        ) : tagCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tagCourses.map((course, index) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
@@ -206,6 +248,9 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
                       setSelectedCourse(course);
                       navigateTo('course-detail');
                     }}
+                    currentUserId={currentUser?.id}
+                    isEnrolled={enrolledCourseIds.includes(course.id)}
+                    onJoinSuccess={handleJoinSuccess}
                   />
                 </div>
               </AnimatedSection>
