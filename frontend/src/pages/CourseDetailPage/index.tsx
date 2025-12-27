@@ -137,7 +137,6 @@ export function CourseDetailPage({
   const [expandedSections, setExpandedSections] = useState<number[]>([1]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
-
   // Curriculum state
   const [sections, setSections] = useState<Section[]>([]);
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(false);
