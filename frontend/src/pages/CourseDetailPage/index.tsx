@@ -53,64 +53,7 @@ interface Section {
   lessons: Lesson[];
 }
 
-// Mock lessons for curriculum display
-const mockLessons = [
-  { id: 1, title: 'Giới thiệu khóa học', type: 'video', duration: '10:00', completed: true },
-  { id: 2, title: 'Cài đặt môi trường', type: 'video', duration: '15:00', completed: true },
-  { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', completed: false },
-  { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', completed: false },
-  { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false }
-];
 
-
-// Mock course sections with full content for admin preview
-const mockCourseSections = [
-  {
-    id: 1,
-    title: 'Giới thiệu',
-    lessons: [
-      { id: 1, title: 'Chào mừng đến với khóa học', type: 'video' as const, duration: '10:00', youtubeUrl: 'dQw4w9WgXcQ' },
-      { id: 2, title: 'Tổng quan nội dung', type: 'text' as const, duration: '5:00', content: '# Tổng quan khóa học\n\nTrong khóa học này, bạn sẽ học được:\n\n- Các khái niệm cơ bản\n- Cách áp dụng vào thực tế\n- Best practices trong ngành\n\nHãy cùng bắt đầu nhé!' },
-    ]
-  },
-  {
-    id: 2,
-    title: 'Kiến thức cơ bản',
-    lessons: [
-      { id: 3, title: 'Video hướng dẫn chi tiết', type: 'video' as const, duration: '15:00', youtubeUrl: 'dQw4w9WgXcQ' },
-      { id: 4, title: 'Tài liệu PDF tham khảo', type: 'pdf' as const, duration: '10:00', pdfUrl: 'sample-document.pdf' },
-      {
-        id: 5,
-        title: 'Bài kiểm tra kiến thức',
-        type: 'quiz' as const,
-        duration: '10 phút',
-        quizQuestions: [
-          {
-            question: 'React là gì?',
-            type: 'single' as const,
-            options: ['Library JavaScript', 'Framework', 'Ngôn ngữ lập trình', 'Database'],
-            correctAnswers: [0],
-            explanation: 'React là một JavaScript library để xây dựng giao diện người dùng (UI).'
-          },
-          {
-            question: 'Chọn các hooks cơ bản của React:',
-            type: 'multiple' as const,
-            options: ['useState', 'useEffect', 'useContext', 'useDatabase'],
-            correctAnswers: [0, 1, 2],
-            explanation: 'useState, useEffect và useContext là các hooks cơ bản được tích hợp sẵn trong React. useDatabase không phải là hook của React.'
-          },
-          {
-            question: 'JSX là viết tắt của gì?',
-            type: 'single' as const,
-            options: ['JavaScript XML', 'Java Syntax Extension', 'JSON XML', 'JavaScript Extension'],
-            correctAnswers: [0],
-            explanation: 'JSX là viết tắt của JavaScript XML, là một cú pháp mở rộng cho JavaScript.'
-          }
-        ]
-      },
-    ]
-  }
-];
 
 interface CourseDetailPageProps {
   course: Course;
@@ -134,6 +77,10 @@ export function CourseDetailPage({
   onEnrollRequest,
   setSelectedUser
 }: CourseDetailPageProps) {
+  // Loading state for access check
+  const [isLoadingAccess, setIsLoadingAccess] = useState(true);
+  // Dialog state for leaving course
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState('');
   const [expandedSections, setExpandedSections] = useState<number[]>([1]);
@@ -164,15 +111,22 @@ export function CourseDetailPage({
   const [actualCanAccess, setActualCanAccess] = useState<boolean>(canAccess);
 
   // Check if user has pending request
-  const hasPendingRequest = enrollmentRequests?.some(
-    (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
+  const [hasPendingRequest, setHasPendingRequest] = useState(() =>
+    enrollmentRequests?.some(
+      (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
+    ) || false
   );
 
   // Check if user is already enrolled (will be updated via API)
   const [isEnrolled, setIsEnrolled] = useState(false);
 
+
   // Check if user is owner or admin
   const canManage = isOwner || currentUser?.role === 'admin';
+
+  // Handler for leaving the course
+  // Find enrollment id for this user & course
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
 
   // Fetch enrollments from backend on mount and after join
   useEffect(() => {
@@ -184,6 +138,7 @@ export function CourseDetailPage({
             (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
           )
         : undefined;
+      setEnrollmentId(found?.id || null);
       setIsEnrolled(!!found);
     });
     // Only update hasPendingRequest from prop
@@ -192,7 +147,7 @@ export function CourseDetailPage({
         (req: any) => req.courseId === course.id && req.userId === Number(currentUser?.id) && req.status === 'pending'
       ) || false
     );
-  }, [course.id, currentUser?.id]);
+  }, [course.id, currentUser?.id, isEnrolled]);
 
   const handleEnrollRequest = async () => {
     // For public courses, no message required
@@ -216,6 +171,7 @@ export function CourseDetailPage({
           )
         : undefined;
       setIsEnrolled(!!found);
+      if (!!found) setActualCanAccess(true);
       setHasPendingRequest(false);
       toast.success('Bạn đã tham gia khóa học thành công!');
     } catch (err: any) {
@@ -333,6 +289,7 @@ export function CourseDetailPage({
     const checkEnrollment = async () => {
       if (!currentUser || isOwner || currentUser.role === 'admin') {
         setActualCanAccess(true);
+        setIsLoadingAccess(false);
         return;
       }
 
@@ -352,6 +309,8 @@ export function CourseDetailPage({
       } catch (error: any) {
         console.error('Error checking enrollment:', error);
         setActualCanAccess(course.visibility === 'public');
+      } finally {
+        setIsLoadingAccess(false);
       }
     };
 
@@ -488,6 +447,14 @@ export function CourseDetailPage({
     return `https://www.youtube.com/embed/${videoId}`;
   };
 
+  if (isLoadingAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E88E5] mr-4" />
+        <span className="text-[#1E88E5] text-lg font-medium">Đang kiểm tra quyền truy cập...</span>
+      </div>
+    );
+  }
   if (!actualCanAccess) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -506,22 +473,6 @@ export function CourseDetailPage({
       </div>
     );
   }
-
-  // Handler for leaving the course
-  // Find enrollment id for this user & course
-  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    enrollmentsAPI.getMyEnrollments().then((data: any) => {
-      const enrollments = Array.isArray(data) ? data : data.data;
-      const found = enrollments && Array.isArray(enrollments)
-        ? enrollments.find(
-            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
-          )
-        : undefined;
-      setEnrollmentId(found?.id || null);
-    });
-  }, [course.id, currentUser?.id, isEnrolled]);
 
   const handleLeaveCourse = async () => {
     if (!enrollmentId) {
@@ -589,10 +540,17 @@ export function CourseDetailPage({
                     onClick={handleOwnerClick}
                   >
                     <Avatar className="w-8 h-8 border-2 border-white/20">
-                      <AvatarImage src={course.ownerAvatar} />
-                      <AvatarFallback className="bg-white text-[#1E88E5] font-bold">{course.ownerName?.[0]}</AvatarFallback>
+                      {fullCourse?.owner?.avatar_url ? (
+                        <img
+                          src={fullCourse.owner.avatar_url}
+                          alt={fullCourse.owner.full_name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-white text-[#1E88E5] font-bold">{fullCourse?.owner?.full_name?.[0] || 'G'}</AvatarFallback>
+                      )}
                     </Avatar>
-                    <span className="font-medium hover:underline decoration-1 underline-offset-2">{course.ownerName}</span>
+                    <span className="font-medium hover:underline decoration-1 underline-offset-2">{fullCourse?.owner?.full_name || 'Giảng viên'}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -1069,8 +1027,8 @@ export function CourseDetailPage({
             </Card>
           </TabsContent>
 
-          {/* Admin Content Preview Tab */}
-          {currentUser?.role === 'admin' && (
+          {/* Admin Content Preview Tab - Disabled: Requires proper mock data or real implementation */}
+          {false && currentUser?.role === 'admin' && (
             <TabsContent value="content-preview">
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 {/* Left: Lesson List (2 columns) */}
@@ -1082,7 +1040,7 @@ export function CourseDetailPage({
                     <CardContent className="p-4">
                       <ScrollArea className="h-[600px] pr-4">
                         <div className="space-y-3">
-                          {mockCourseSections.map((section) => (
+                          {sections.map((section) => (
                             <Card key={section.id} className="border">
                               <Collapsible
                                 open={expandedSections.includes(section.id)}
@@ -1115,10 +1073,10 @@ export function CourseDetailPage({
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 text-sm">
-                                              {lesson.type === 'video' && <Video className="w-4 h-4 text-[#1E88E5]" />}
-                                              {lesson.type === 'text' && <FileText className="w-4 h-4 text-green-600" />}
-                                              {lesson.type === 'pdf' && <FileText className="w-4 h-4 text-red-600" />}
-                                              {lesson.type === 'quiz' && <Award className="w-4 h-4 text-orange-600" />}
+                                              {lesson.content_type === 'video' && <Video className="w-4 h-4 text-[#1E88E5]" />}
+                                              {lesson.content_type === 'text' && <FileText className="w-4 h-4 text-green-600" />}
+                                              {lesson.content_type === 'pdf' && <FileText className="w-4 h-4 text-red-600" />}
+                                              {lesson.content_type === 'quiz' && <Award className="w-4 h-4 text-orange-600" />}
                                               <span className="truncate">{lesson.title}</span>
                                             </div>
                                             <div className="text-xs text-gray-500">{lesson.duration}</div>
@@ -1154,12 +1112,12 @@ export function CourseDetailPage({
                   ) : (
                     <div className="space-y-4">
                       {/* Video Preview */}
-                      {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
+                      {selectedLesson.content_type === 'video' && selectedLesson.content_url && (
                         <Card>
                           <CardContent className="p-0">
                             <div className="aspect-video rounded-lg overflow-hidden bg-black">
                               <iframe
-                                src={getYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
+                                src={getYouTubeEmbedUrl(selectedLesson.content_url)}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
@@ -1170,12 +1128,12 @@ export function CourseDetailPage({
                       )}
 
                       {/* Text Preview */}
-                      {selectedLesson.type === 'text' && selectedLesson.content && (
+                      {selectedLesson.content_type === 'text' && selectedLesson.content_text && (
                         <Card>
                           <CardContent className="p-6">
                             <div className="prose max-w-none">
                               <div className="p-6 bg-gray-50 rounded-lg border">
-                                <pre className="whitespace-pre-wrap text-sm">{selectedLesson.content}</pre>
+                                <pre className="whitespace-pre-wrap text-sm">{selectedLesson.content_text}</pre>
                               </div>
                             </div>
                           </CardContent>
@@ -1183,20 +1141,20 @@ export function CourseDetailPage({
                       )}
 
                       {/* PDF Preview */}
-                      {selectedLesson.type === 'pdf' && (
+                      {selectedLesson.content_type === 'pdf' && (
                         <Card>
                           <CardContent className="p-6">
                             <div className="space-y-4">
                               <Alert className="bg-blue-50 border-blue-200">
                                 <AlertDescription className="text-blue-800 text-sm">
-                                  📄 <strong>Tài liệu PDF:</strong> {selectedLesson.pdfUrl}
+                                  📄 <strong>Tài liệu PDF:</strong> {selectedLesson.content_url}
                                 </AlertDescription>
                               </Alert>
                               <div className="aspect-[3/4] rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
                                 <div className="text-center text-gray-500">
                                   <FileText className="w-20 h-20 text-gray-300 mx-auto mb-3" />
                                   <p className="text-sm">PDF Preview</p>
-                                  <p className="text-xs mt-1">{selectedLesson.pdfUrl}</p>
+                                  <p className="text-xs mt-1">{selectedLesson.content_url}</p>
                                 </div>
                               </div>
                             </div>
@@ -1205,7 +1163,7 @@ export function CourseDetailPage({
                       )}
 
                       {/* Quiz Preview */}
-                      {selectedLesson.type === 'quiz' && selectedLesson.quizQuestions && (
+                      {selectedLesson.content_type === 'quiz' && selectedLesson.quizQuestions && (
                         <div className="space-y-6">
                           {selectedLesson.quizQuestions.map((q: any, qIdx: number) => (
                             <Card key={qIdx} className="border-2">

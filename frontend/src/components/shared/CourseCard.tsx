@@ -19,13 +19,27 @@ interface CourseCardProps {
 export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinSuccess }: CourseCardProps) {
   const [isJoining, setIsJoining] = useState(false);
 
-  // Ưu tiên lấy image_url, sau đó image
+  // Ưu tiên lấy image_url (chuẩn DB), fallback sang image (cũ)
   let imageUrl = course.image_url || course.image;
-  // Nếu là tên file hoặc path ngắn, build public URL từ bucket
   if (imageUrl && !/^https?:\/\//.test(imageUrl)) {
     imageUrl = supabase.storage.from('course-images').getPublicUrl(imageUrl).data.publicUrl || '/placeholder-course.jpg';
   }
   if (!imageUrl) imageUrl = '/placeholder-course.jpg';
+
+  // Lấy thông tin owner từ API mới (object owner)
+  const ownerName = course.owner?.full_name || 'Giảng viên';
+  const ownerAvatar = course.owner?.avatar_url
+    ? (
+        <img
+          src={course.owner.avatar_url}
+          alt={ownerName}
+          className="w-6 h-6 rounded-full object-cover border border-gray-100"
+        />
+      )
+    : (ownerName?.[0] || 'G');
+  const rating = typeof course.rating === 'number' ? course.rating : 0;
+  const students = typeof course.students === 'number' ? course.students : 0;
+  const description = course.description || 'Chưa có mô tả cho khoá học này.';
 
   const handleJoinCourse = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,34 +138,42 @@ export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinS
               className="font-bold text-lg leading-snug line-clamp-2 group-hover:text-[#1E88E5] transition-colors duration-200"
               title={course.title}
             >
-              {course.title}
+              {course.title || 'Khoá học không tên'}
             </h3>
 
             {/* Description */}
             <p className="text-gray-500 text-sm line-clamp-2 flex-grow">
-              {course.description}
+              {description}
             </p>
 
             {/* Author */}
             <div className="flex items-center gap-2 mt-1">
               <Avatar className="w-6 h-6 border border-gray-100">
-                <AvatarFallback className="text-[10px] bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white">
-                  {course.ownerAvatar}
-                </AvatarFallback>
+                {course.owner?.avatar_url ? (
+                  <img
+                    src={course.owner.avatar_url}
+                    alt={ownerName}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <AvatarFallback className="text-[10px] bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white">
+                    {ownerName?.[0] || 'G'}
+                  </AvatarFallback>
+                )}
               </Avatar>
-              <span className="text-xs text-gray-500 font-medium truncate max-w-[150px]">{course.ownerName}</span>
+              <span className="text-xs text-gray-500 font-medium truncate max-w-[150px]">{ownerName}</span>
             </div>
 
             {/* Footer */}
             <div className="mt-3 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1 font-semibold text-gray-700">
-                  {course.rating}
+                  {rating}
                   <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                 </span>
                 <span className="flex items-center gap-1 text-gray-400 text-xs">
                   <Users className="w-3.5 h-3.5" />
-                  {course.students}
+                  {students}
                 </span>
               </div>
 

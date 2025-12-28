@@ -142,15 +142,17 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                 <Search className="w-5 h-5 mr-2" />
                 Khám phá khóa học
               </Button>
-              <Button
-                size="lg"
-                className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
-                style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
-                onClick={() => navigateTo('create-course')}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Tạo khóa học
-              </Button>
+              {currentUser?.role !== 'admin' && (
+                <Button
+                  size="lg"
+                  className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
+                  onClick={() => navigateTo('create-course')}
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Tạo khóa học
+                </Button>
+              )}
             </div>
           </div >
         </div >

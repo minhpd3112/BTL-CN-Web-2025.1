@@ -37,14 +37,19 @@ export interface Tag {
   image?: string;
 }
 
+export interface CourseOwner {
+  id: string;
+  full_name: string;
+  avatar_url: string;
+}
+
 export interface Course {
   id: string; // uuid
   title: string;
   description: string;
   overview?: string;
-  ownerName: string;
   ownerId: string; // uuid
-  ownerAvatar: string;
+  owner?: CourseOwner; // Thông tin owner trả về từ API mới
   rating: number;
   students: number;
   duration: string;
