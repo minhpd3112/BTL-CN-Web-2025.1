@@ -1,14 +1,42 @@
 import { supabase, supabaseAdmin } from '@config/supabase';
-import type { 
-  Course, 
-  CourseFilters, 
-  PaginatedResponse,
-  CourseWithDetails
-} from 'types/index';
+
+// Import types using relative path since @types alias points to .d.ts files
+import { Course, CourseFilters, PaginatedResponse } from '../types';
+
+// CourseWithDetails type for extended course data (standalone to avoid type conflicts)
+export interface CourseWithDetails {
+  id?: string | number;
+  title?: string;
+  description?: string;
+  overview?: string;
+  ownerName?: string;
+  ownerId?: string | number;
+  owner_id?: string;
+  ownerAvatar?: string;
+  rating?: number;
+  students?: number;
+  duration?: string;
+  image?: string;
+  image_url?: string;
+  tags?: any[];
+  status?: 'pending' | 'approved' | 'rejected' | 'draft';
+  visibility?: 'public' | 'private';
+  lessons?: number;
+  enrolledUsers?: number[];
+  createdAt?: string;
+  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
+  enrollmentCount?: number;
+  sections?: any[];
+  course_tags?: any[];
+}
 
 // Extend CourseFilters to include isAdmin property
 interface ExtendedCourseFilters extends CourseFilters {
   isAdmin?: boolean;
+  owner_id?: string;
+  tag?: string;
 }
 
 export const courseService = {

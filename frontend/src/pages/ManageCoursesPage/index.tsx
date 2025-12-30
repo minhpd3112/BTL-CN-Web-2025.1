@@ -339,7 +339,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
             <Button variant="outline" onClick={() => setShowReviewDialog(false)} disabled={reviewLoading}>
               Hủy
             </Button>
-            <Button onClick={handleRejectSubmit} loading={reviewLoading} disabled={reviewLoading || !rejectionReason}>
+            <Button onClick={handleRejectSubmit} disabled={reviewLoading || !rejectionReason}>
               Xác nhận từ chối
             </Button>
           </DialogFooter>

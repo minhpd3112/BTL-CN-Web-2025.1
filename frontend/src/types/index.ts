@@ -13,6 +13,8 @@ export interface User {
   avatar: string;
   email: string;
   fullName?: string;
+  full_name?: string; // API field
+  avatar_url?: string; // API field
   phone?: string;
   bio?: string;
   joinedDate: string;
@@ -22,9 +24,12 @@ export interface User {
   status: 'active' | 'inactive';
   lastLogin: string;
   location?: string;
+  address?: string; // API field
   googleId?: string;
   createdAt?: string;
+  created_at?: string; // API field
   updatedAt?: string;
+  updated_at?: string; // API field
 }
 
 export interface Tag {
@@ -44,11 +49,13 @@ export interface Course {
   overview?: string;
   ownerName: string;
   ownerId: string; // uuid
+  owner_id?: string; // API field
   ownerAvatar: string;
   rating: number;
   students: number;
   duration: string;
   image: string;
+  image_url?: string; // for Supabase storage URLs
   tags: string[];
   status: 'pending' | 'approved' | 'rejected';
   visibility: 'public' | 'private';

@@ -162,13 +162,21 @@ export function CourseDetailPage({
   // Actual access control based on enrollment
   const [actualCanAccess, setActualCanAccess] = useState<boolean>(canAccess);
 
-  // Check if user has pending request
-  const hasPendingRequest = enrollmentRequests?.some(
-    (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
+  // Check if user has pending request (initialized from props, updated via state)
+  const [hasPendingRequest, setHasPendingRequest] = useState(
+    enrollmentRequests?.some(
+      (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
+    ) || false
   );
+
+  // Leave course dialog state
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
   // Check if user is already enrolled (will be updated via API)
   const [isEnrolled, setIsEnrolled] = useState(false);
+
+  // Enrollment ID for leaving course
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
 
   // Check if user is owner or admin
   const canManage = isOwner || currentUser?.role === 'admin';
@@ -180,8 +188,8 @@ export function CourseDetailPage({
       const enrollments = Array.isArray(data) ? data : data.data;
       const found = enrollments && Array.isArray(enrollments)
         ? enrollments.find(
-            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
-          )
+          (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
+        )
         : undefined;
       setIsEnrolled(!!found);
     });
@@ -211,8 +219,8 @@ export function CourseDetailPage({
       const enrollments = Array.isArray(data) ? data : data.data;
       const found = enrollments && Array.isArray(enrollments)
         ? enrollments.find(
-            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
-          )
+          (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
+        )
         : undefined;
       setIsEnrolled(!!found);
       setHasPendingRequest(false);
@@ -447,6 +455,20 @@ export function CourseDetailPage({
     checkReviewEligibility();
   }, [currentUser, isEnrolled, course.id]);
 
+  // Fetch enrollment ID for leaving course
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    enrollmentsAPI.getMyEnrollments().then((data: any) => {
+      const enrollments = Array.isArray(data) ? data : data.data;
+      const found = enrollments && Array.isArray(enrollments)
+        ? enrollments.find(
+          (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
+        )
+        : undefined;
+      setEnrollmentId(found?.id || null);
+    });
+  }, [course.id, currentUser?.id, isEnrolled]);
+
   // Calculate total course duration based on lesson types
   const calculateCourseDuration = () => {
     let totalMinutes = 0;
@@ -507,20 +529,7 @@ export function CourseDetailPage({
   }
 
   // Handler for leaving the course
-  // Find enrollment id for this user & course
-  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    enrollmentsAPI.getMyEnrollments().then((data: any) => {
-      const enrollments = Array.isArray(data) ? data : data.data;
-      const found = enrollments && Array.isArray(enrollments)
-        ? enrollments.find(
-            (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
-          )
-        : undefined;
-      setEnrollmentId(found?.id || null);
-    });
-  }, [course.id, currentUser?.id, isEnrolled]);
+  // Note: enrollmentId state is declared at top of component with other useState hooks
 
   const handleLeaveCourse = async () => {
     if (!enrollmentId) {
@@ -691,7 +700,7 @@ export function CourseDetailPage({
                               {course.visibility === 'public' ? 'Tham gia khóa học' : 'Đăng ký học khóa học'}
                             </DialogTitle>
                             <DialogDescription>
-                              {course.visibility === 'public' 
+                              {course.visibility === 'public'
                                 ? 'Nhấn xác nhận để tham gia khóa học ngay'
                                 : 'Gửi yêu cầu tham gia khóa học đến người tạo'}
                             </DialogDescription>

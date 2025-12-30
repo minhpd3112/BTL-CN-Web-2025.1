@@ -2,7 +2,7 @@ import { User } from "@/types";
 
 export const mockUsers: User[] = [
   {
-    id: 1,
+    id: "1",
     username: "admin",
     role: "admin",
     name: "Quản trị viên",
@@ -22,7 +22,7 @@ export const mockUsers: User[] = [
     updatedAt: "2025-01-13T17:00:00Z",
   },
   {
-    id: 2,
+    id: "2",
     username: "user1",
     role: "user",
     name: "Nguyễn Văn A",
@@ -42,7 +42,7 @@ export const mockUsers: User[] = [
     updatedAt: "2025-01-13T14:30:00Z",
   },
   {
-    id: 3,
+    id: "3",
     username: "user2",
     role: "user",
     name: "Trần Thị B",
@@ -62,7 +62,7 @@ export const mockUsers: User[] = [
     updatedAt: "2025-01-12T09:15:00Z",
   },
   {
-    id: 4,
+    id: "4",
     username: "user3",
     role: "user",
     name: "Lê Văn C",

@@ -33,7 +33,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
   const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
   const [myCreatedCourses, setMyCreatedCourses] = useState<Course[]>([]);
   const [isLoadingCreated, setIsLoadingCreated] = useState(true);
-  const [rejectedCourses, setRejectedCourses] = useState<{id: string, title: string, rejectionReason: string}[]>([]);
+  const [rejectedCourses, setRejectedCourses] = useState<{ id: string, title: string, rejectionReason: string }[]>([]);
   const [reloadEnrolled, setReloadEnrolled] = useState(0);
 
   // Fetch courses created by current user
@@ -113,7 +113,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               enrollmentId: enrollment.id, // Store enrollmentId
             }));
           setEnrolledCourses(courses);
-          console.log('Enrolled courses with progress:', courses.map(c => ({ title: c.title, progress: c.progress, enrollmentId: c.enrollmentId })));
+          console.log('Enrolled courses with progress:', courses.map((c: any) => ({ title: c.title, progress: c.progress, enrollmentId: c.enrollmentId })));
         }
       } catch (error) {
         console.error('Failed to fetch enrolled courses:', error);

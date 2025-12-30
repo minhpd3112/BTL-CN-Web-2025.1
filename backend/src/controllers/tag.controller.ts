@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Tag as TagModel } from '@models/tag.model';
+import { TagModel } from '@models/tag.model';
 import { httpStatus } from '@utils/httpStatus';
 
 export const tagController = {

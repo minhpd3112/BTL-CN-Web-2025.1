@@ -1,9 +1,3 @@
-// -----------------------------
-// Users API
-// -----------------------------
-export const usersAPI = {
-  getAllUsers: () => api.get('/users').then(res => res.data),
-};
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
@@ -198,8 +192,8 @@ export const adminAPI = {
     const response = await api.post<AuthResponse>('/auth/admin/login', data);
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
-      if (response.data.data.token) {
-        localStorage.setItem('auth_token', response.data.data.token);
+      if (response.data.data.session?.access_token) {
+        localStorage.setItem('auth_token', response.data.data.session.access_token);
       }
     }
     return response.data;
@@ -268,7 +262,7 @@ export const lessonsAPI = {
 // Enrollments API
 // -----------------------------
 export const enrollmentsAPI = {
-    leaveCourse: (id: string) => api.delete(`/enrollments/${id}/leave-test`).then(res => res.data),
+  leaveCourse: (id: string) => api.delete(`/enrollments/${id}/leave-test`).then(res => res.data),
   getMyEnrollments: () => api.get('/enrollments/my-enrollments').then(res => res.data),
   getByCourseId: (courseId: string, status?: string) => {
     const params = status ? `?status=${status}` : '';
@@ -332,4 +326,11 @@ export const reviewsAPI = {
 
   delete: (id: string) =>
     api.delete(`/reviews/${id}`).then(res => res.data),
+};
+
+// -----------------------------
+// Users API
+// -----------------------------
+export const usersAPI = {
+  getAllUsers: () => api.get('/users').then(res => res.data),
 };
