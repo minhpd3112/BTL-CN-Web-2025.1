@@ -3,8 +3,7 @@ import { Trash2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { mockTags } from '@/services/mocks';
-import { coursesAPI } from '@/services/api';
+import { coursesAPI, tagsAPI } from '@/services/api';
 import { Course, Page } from '@/types';
 import { CourseListCard } from '@/components/shared/CourseListCard';
 import { Combobox } from '@/components/ui/combobox';
@@ -13,6 +12,8 @@ import { DataPagination } from '@/components/shared/DataPagination';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { SearchFilterCard } from '@/components/shared/SearchFilterCard';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface ManageCoursesPageProps {
   navigateTo: (page: Page) => void;
@@ -28,21 +29,24 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewCourse, setReviewCourse] = useState<Course | null>(null);
+  const [reviewAction, setReviewAction] = useState<'approved' | 'rejected' | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
 
-  // Fetch courses on mount
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
+  // Chuẩn hoá fetchCourses duy nhất
   const fetchCourses = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await coursesAPI.getAllCourses();
-
+      const response = await coursesAPI.getAllCourses({ isAdmin: true });
       if (response.success) {
-        // Map backend course data to frontend Course type
-        const mappedCourses = response.data.courses.map((course: any) => ({
+        const courseList = Array.isArray(response.data) ? response.data : [];
+        const mappedCourses = courseList.map((course: any) => ({
           id: course.id,
           title: course.title,
           description: course.description || '',
@@ -53,8 +57,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
           visibility: course.visibility as 'public' | 'private',
           status: course.status,
-          studentsCount: 0, // TODO: Get from backend
-          lessonsCount: 0,  // TODO: Get from backend
+          studentsCount: 0,
+          lessonsCount: 0,
         }));
         setCourses(mappedCourses);
       } else {
@@ -68,34 +72,100 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     }
   };
 
-  // Filter courses
+  // Fetch courses & tags on mount
+  useEffect(() => {
+    fetchCourses();
+    async function fetchTags() {
+      try {
+        const tagsRes = await tagsAPI.getAllTags();
+        setTags(tagsRes.data || []);
+      } catch (e) {
+        setTags([]);
+      }
+    }
+    fetchTags();
+  }, []);
+
+  // Filter courses ở FE
   const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.ownerName.toLowerCase().includes(searchQuery.toLowerCase());
+      (course.ownerName?.toLowerCase?.().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
-    const matchTag = filterTag === 'all' || (course.tags && course.tags.includes(filterTag));
+    const matchTag = filterTag === 'all' || (course.tags && course.tags.some((t: any) => t.name === filterTag || t === filterTag));
     return matchSearch && matchVisibility && matchTag;
   });
 
-  // Use pagination hook
-  const { currentPage, setCurrentPage, totalPages, paginatedItems: paginatedCourses, resetPage } =
-    usePagination(filteredCourses, { itemsPerPage: 6 });
+  // Pagination FE
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
+  const paginatedCourses = filteredCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Reset page when filters change
+  // Reset page về 1 khi đổi filter
   useEffect(() => {
-    resetPage();
-  }, [searchQuery, filterVisibility, filterTag, resetPage]);
+    setCurrentPage(1);
+  }, [searchQuery, filterVisibility, filterTag]);
 
   const handleDeleteCourse = () => {
     if (courseToDelete) {
-      toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
-      setShowDeleteDialog(false);
-      setCourseToDelete(null);
+      coursesAPI.deleteCourse(courseToDelete.id)
+        .then(() => {
+          toast.success(`Đã xóa khóa học "${courseToDelete.title}"`);
+          // Refresh course list
+          fetchCourses();
+        })
+        .catch((err) => {
+          toast.error(`Xoá khoá học thất bại: ${err?.response?.data?.message || err.message || 'Lỗi không xác định'}`);
+        })
+        .finally(() => {
+          setShowDeleteDialog(false);
+          setCourseToDelete(null);
+        });
+    }
+  };
+
+  const handleReviewCourse = async (course: Course, action: 'approved' | 'rejected') => {
+    setReviewCourse(course);
+    setReviewAction(action);
+    if (action === 'rejected') {
+      setShowReviewDialog(true);
+    } else {
+      // Approve directly
+      setReviewLoading(true);
+      try {
+        await coursesAPI.reviewCourse(course.id, 'approved');
+        toast.success(`Đã duyệt khóa học "${course.title}"`);
+        fetchCourses();
+      } catch (err: any) {
+        toast.error(`Duyệt khóa học thất bại: ${err?.message || 'Lỗi không xác định'}`);
+      } finally {
+        setReviewLoading(false);
+        setReviewCourse(null);
+        setReviewAction(null);
+      }
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!reviewCourse) return;
+    setReviewLoading(true);
+    try {
+      await coursesAPI.reviewCourse(reviewCourse.id, 'rejected', rejectionReason);
+      toast.success(`Đã từ chối khóa học "${reviewCourse.title}"`);
+      fetchCourses();
+    } catch (err: any) {
+      toast.error(`Từ chối khóa học thất bại: ${err?.message || 'Lỗi không xác định'}`);
+    } finally {
+      setReviewLoading(false);
+      setShowReviewDialog(false);
+      setReviewCourse(null);
+      setReviewAction(null);
+      setRejectionReason('');
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {isLoading && <div className="text-center py-8">Đang tải dữ liệu...</div>}
+      {error && <div className="text-center text-red-500 py-8">{error}</div>}
       <PageHeader
         icon={<BookOpen className="w-8 h-8" />}
         title="Quản lý khóa học"
@@ -126,7 +196,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
         </div>
         <div className="md:col-span-4">
           <Combobox
-            items={[{ value: 'all', label: 'Tất cả chủ đề' }, ...mockTags.map(tag => ({ value: tag.name, label: tag.name }))]}
+            items={[{ value: 'all', label: 'Tất cả chủ đề' }, ...tags.map(tag => ({ value: tag.name, label: tag.name }))]}
             value={filterTag}
             onValueChange={(val) => setFilterTag(val || 'all')}
             placeholder="Chọn chủ đề"
@@ -140,7 +210,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
       {/* Results */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-gray-600">
-          {isLoading ? 'Đang tải...' : `Hiển thị ${filteredCourses.length} / ${courses.length} khóa học`}
+          Hiển thị {filteredCourses.length} / {courses.length} khóa học
         </p>
       </div>
 
@@ -169,19 +239,48 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
                   navigateTo('course-detail');
                 }}
                 action={
-                  <Button
-                    size="sm"
-                    className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCourseToDelete(course);
-                      setShowDeleteDialog(true);
-                    }}
-                    title="Xóa khóa học"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Xóa
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="h-8 w-max px-3 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-sm transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCourseToDelete(course);
+                        setShowDeleteDialog(true);
+                      }}
+                      title="Xóa khóa học"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Xóa
+                    </Button>
+                    {/* Admin review actions for pending courses */}
+                    {course.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-8 w-max px-3 bg-green-600 text-white border border-green-200 hover:bg-green-700 hover:border-green-300 shadow-sm transition-all"
+                          disabled={reviewLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReviewCourse(course, 'approved');
+                          }}
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 w-max px-3 bg-yellow-600 text-white border border-yellow-200 hover:bg-yellow-700 hover:border-yellow-300 shadow-sm transition-all"
+                          disabled={reviewLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReviewCourse(course, 'rejected');
+                          }}
+                        >
+                          Từ chối
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 }
               />
             ))
@@ -223,6 +322,29 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           </div>
         )}
       </DeleteConfirmDialog>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lý do từ chối khóa học</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Nhập lý do từ chối..."
+            value={rejectionReason}
+            onChange={e => setRejectionReason(e.target.value)}
+            disabled={reviewLoading}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReviewDialog(false)} disabled={reviewLoading}>
+              Hủy
+            </Button>
+            <Button onClick={handleRejectSubmit} loading={reviewLoading} disabled={reviewLoading || !rejectionReason}>
+              Xác nhận từ chối
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

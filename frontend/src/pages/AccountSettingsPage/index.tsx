@@ -43,7 +43,7 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!isNaN(Number(user.id))) {
+    if (user.id === 'demo' || user.id === 'test') {
       toast.error('Tài khoản demo không thể đổi ảnh.');
       return;
     }
@@ -51,7 +51,7 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
     if (file.size > 2 * 1024 * 1024) {
       toast.error('Ảnh quá lớn (vui lòng chọn file dưới 2MB)');
       return;
-    }
+    } 
 
     // Tạo URL tạm thời để hiển thị lên vòng tròn Avatar ngay lập tức
     const objectUrl = URL.createObjectURL(file);
@@ -214,7 +214,7 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
               <div className="text-left space-y-4 text-sm text-gray-600">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-[#1E88E5]" />
-                  <span>Tham gia: {user.joinedDate || '2024'}</span>
+                  <span>Tham gia: {user.joinedDate ? user.joinedDate.slice(0, 10) : '2024'}</span>
                 </div>
               </div>
             </CardContent>

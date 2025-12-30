@@ -1,14 +1,19 @@
-import { supabase } from '@config/supabase';
+import { supabase, supabaseAdmin } from '@config/supabase';
 import type { 
   Course, 
   CourseFilters, 
   PaginatedResponse,
-  CourseWithDetails 
+  CourseWithDetails
 } from 'types/index';
+
+// Extend CourseFilters to include isAdmin property
+interface ExtendedCourseFilters extends CourseFilters {
+  isAdmin?: boolean;
+}
 
 export const courseService = {
   async getCourses(
-    filters: CourseFilters
+    filters: ExtendedCourseFilters
   ): Promise<PaginatedResponse<CourseWithDetails>> {
     try {
       const {
@@ -22,27 +27,63 @@ export const courseService = {
 
       const offset = (page - 1) * limit;
 
-      // Build query
-      let query = supabase
-        .from('courses')
-        .select(`
-          *,
-          course_tags(
-            tags(*)
-          )
-        `, { count: 'exact' });
+      // Nếu truyền owner_id thì trả về tất cả khoá học của owner đó (bỏ filter status/visibility)
+      let query;
+      if (filters.owner_id) {
+        query = supabase
+          .from('courses')
+          .select(`
+            *,
+            course_tags(
+              tags(*)
+            )
+          `, { count: 'exact' })
+          .eq('owner_id', filters.owner_id);
+      } else {
+        // Nếu là admin (không truyền visibility hoặc truyền 1 flag isAdmin), dùng supabaseAdmin để lấy tất cả khoá học
+        const isAdmin = !filters.visibility || filters.isAdmin;
+        query = (isAdmin ? supabaseAdmin : supabase)
+          .from('courses')
+          .select(`
+            *,
+            course_tags(
+              tags(*)
+            )
+          `, { count: 'exact' });
+        if (status) {
+          query = query.eq('status', status);
+        }
+        if (visibility) {
+          query = query.eq('visibility', visibility);
+        }
+        // Lọc theo tag (theo tên hoặc id)
+        if (filters.tag && filters.tag !== 'all') {
+          // Lấy danh sách course_id có tag phù hợp
+          const { data: courseTagData, error: courseTagError } = await supabase
+            .from('course_tags')
+            .select('course_id, tags!inner(name)')
+            .eq('tags.name', filters.tag);
+          if (courseTagError) {
+            throw new Error('Failed to fetch course_tags for tag filter: ' + courseTagError.message);
+          }
+          const courseIds = (courseTagData || []).map((ct: any) => ct.course_id);
+          // Nếu không có course nào thuộc tag này, trả về rỗng luôn
+          if (!courseIds.length) {
+            return {
+              data: [],
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            };
+          }
+          query = query.in('id', courseIds);
+        }
+      }
 
       // Apply filters
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-
-      if (visibility) {
-        query = query.eq('visibility', visibility);
       }
 
       // Apply pagination and ordering
@@ -60,6 +101,9 @@ export const courseService = {
       // Transform data
       const courses = (data || []).map((course: any) => ({
         ...course,
+        visibility: typeof course.visibility === 'string'
+          ? course.visibility.trim().toLowerCase() === 'private' ? 'private' : 'public'
+          : 'public',
         tags: course.course_tags?.map((ct: any) => ct.tags).filter(Boolean) || [],
         enrollmentCount: 0,
       }));

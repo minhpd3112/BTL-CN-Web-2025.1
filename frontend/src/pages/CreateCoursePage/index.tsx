@@ -345,7 +345,8 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         description: description,
         overview: courseOverview || null,
         visibility: visibility,
-        status: 'draft', // Always start as draft
+        // Nếu public thì status là 'pending' (chờ admin duyệt), nếu private thì 'approved'
+        status: visibility === 'public' ? 'pending' : 'approved',
         image_url: uploadedImageUrl || null,
         // Note: owner_id will be set by backend from auth token
       };

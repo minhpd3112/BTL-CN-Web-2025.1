@@ -1,44 +1,87 @@
 import { Request, Response } from 'express';
 import { CourseModel } from '@models/course.model';
 import { httpStatus } from '@utils/httpStatus';
+
 export const courseController = {
-  async getCourses(req: Request, res: Response) {
+  // Admin: approve or reject a course
+  async reviewCourse(req: Request, res: Response) {
     try {
-      const { status, visibility, owner_id, search, page = '1', limit = '10' } = req.query;
-
-      let filters: any = {};
-      if (status) filters.status = status;
-      if (visibility) filters.visibility = visibility;
-      if (owner_id) filters.owner_id = owner_id;
-
-      const courses = await CourseModel.findAll(filters);
-
-      // Search filter
-      let filteredCourses = courses;
-      if (search) {
-        const searchLower = (search as string).toLowerCase();
-        filteredCourses = courses.filter((course: any) =>
-          course.title.toLowerCase().includes(searchLower) ||
-          course.description?.toLowerCase().includes(searchLower)
-        );
+      const { id } = req.params;
+      const { status, rejection_reason } = req.body;
+      const userId = req.user?.id;
+      // Check admin role (giả định req.user.role)
+      if (!userId || req.user?.role !== 'admin') {
+        return res.status(httpStatus.FORBIDDEN).json({
+          success: false,
+          message: 'Only admin can review courses',
+        });
       }
-
-      // Pagination
-      const pageNum = parseInt(page as string);
-      const limitNum = parseInt(limit as string);
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
-      const paginatedCourses = filteredCourses.slice(startIndex, endIndex);
-
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'Status must be approved or rejected',
+        });
+      }
+      let updateData: any = {};
+      if (status === 'approved') {
+        updateData = { status: 'approved', rejection_reason: null };
+      } else {
+        if (!rejection_reason) {
+          return res.status(httpStatus.BAD_REQUEST).json({
+            success: false,
+            message: 'Rejection reason required',
+          });
+        }
+        updateData = { status: 'rejected', rejection_reason };
+      }
+      const updated = await CourseModel.update(id, updateData);
+      if (!updated) {
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'Course not found',
+        });
+      }
       res.json({
         success: true,
-        data: {
-          courses: paginatedCourses,
-          total: filteredCourses.length,
-          page: pageNum,
-          limit: limitNum,
-          totalPages: Math.ceil(filteredCourses.length / limitNum),
-        },
+        data: updated,
+        message: status === 'approved' ? 'Course approved' : 'Course rejected',
+      });
+    } catch (error: any) {
+      console.error('Review course error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to review course',
+        error: error.message,
+      });
+    }
+  },
+  async getCourses(req: Request, res: Response) {
+    try {
+      const { status, visibility, owner_id, search, tag, sort, page = '1', pageSize = '9', isAdmin } = req.query;
+      // Nếu là admin thì không filter status/visibility
+      const isAdminFlag = isAdmin === 'true';
+      const filters: any = {
+        ...(isAdminFlag ? {} : {
+          status: status || 'approved',
+          visibility: visibility || 'public',
+        }),
+        search,
+        page: parseInt(page as string) || 1,
+        limit: parseInt(pageSize as string) || 9,
+        tag,
+        sort,
+        owner_id,
+        isAdmin: isAdminFlag,
+      };
+      // Use service for DB query, filtering, sorting, pagination
+      const result = await require('../services/course.service').courseService.getCourses(filters);
+      res.json({
+        success: true,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
       });
     } catch (error: any) {
       console.error('Get courses error:', error);
@@ -89,7 +132,7 @@ export const courseController = {
       const courseData = {
         ...req.body,
         owner_id: userId,
-        status: 'draft',
+        // status sẽ lấy từ frontend (pending/approved), không ép về 'draft'
       };
 
       const course = await CourseModel.create(courseData);
