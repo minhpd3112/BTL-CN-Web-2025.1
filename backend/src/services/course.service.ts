@@ -64,7 +64,8 @@ export const courseService = {
             *,
             course_tags(
               tags(*)
-            )
+            ),
+            owner:user_profiles!owner_id(id, full_name, avatar_url)
           `, { count: 'exact' })
           .eq('owner_id', filters.owner_id);
       } else {
@@ -76,7 +77,8 @@ export const courseService = {
             *,
             course_tags(
               tags(*)
-            )
+            ),
+            owner:user_profiles!owner_id(id, full_name, avatar_url)
           `, { count: 'exact' });
         if (status) {
           query = query.eq('status', status);
@@ -134,6 +136,7 @@ export const courseService = {
           : 'public',
         tags: course.course_tags?.map((ct: any) => ct.tags).filter(Boolean) || [],
         enrollmentCount: 0,
+        owner: course.owner || undefined,
       }));
 
       return {
