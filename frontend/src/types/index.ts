@@ -54,6 +54,8 @@ export interface Course {
   description: string;
   overview?: string;
   ownerId: string; // uuid
+  ownerName?: string; // For mock data compatibility
+  ownerAvatar?: string; // For mock data compatibility
   owner?: CourseOwner; // Thông tin owner trả về từ API mới
   rating: number;
   students: number;
@@ -61,7 +63,7 @@ export interface Course {
   image: string;
   image_url?: string; // for Supabase storage URLs
   tags: string[];
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'draft' | 'pending' | 'approved' | 'rejected';
   visibility: 'public' | 'private';
   lessons: number;
   enrolledUsers: number[];
@@ -157,6 +159,8 @@ export interface Notification {
   message: string;
   courseId?: string; // uuid
   userId?: string; // uuid
+  user_id?: string; // API field
+  related_course_id?: string; // API field
   timestamp: string;
   read: boolean;
   icon: string;

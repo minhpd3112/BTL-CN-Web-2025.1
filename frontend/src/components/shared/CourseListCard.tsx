@@ -6,7 +6,7 @@ import { Eye, Globe, Lock, ArrowUpRight, Clock } from 'lucide-react';
 import { ReactNode } from 'react';
 
 interface CourseListCardProps {
-    course: Course & { progress?: number; completedLessons?: number; ownerName?: string };
+    course: Course & { progress?: number; completedLessons?: number; ownerName?: string; studentsCount?: number };
     onClick: () => void;
     action?: ReactNode;
     showProgress?: boolean;

@@ -196,138 +196,138 @@ export function CourseStudentsTab({
 
             {/* Only show enrolled students, no tabs */}
             <div>
-                    <Card className="hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg font-bold text-[#1E88E5]">Học viên đã tham gia</CardTitle>
-                                <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            className="bg-[#1E88E5] hover:bg-[#1565C0] text-white"
-                                            disabled={course.status !== 'approved'}
-                                            title={course.status !== 'approved' ? 'Chỉ mời học viên khi khoá học đã được duyệt' : ''}
-                                        >
-                                            <UserPlus className="w-4 h-4 mr-2" />
-                                            Thêm học viên
-                                        </Button>
-                                    </DialogTrigger>
-                                    {course.status === 'approved' && (
-                                        <DialogContent className="max-w-md">
-                                            <DialogHeader>
-                                                <DialogTitle>Mời học viên vào khóa học</DialogTitle>
-                                                <DialogDescription>
-                                                    Nhập email của học viên để thêm vào khóa học riêng tư
-                                                </DialogDescription>
-                                            </DialogHeader>
+                <Card className="hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Học viên đã tham gia</CardTitle>
+                            <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        className="bg-[#1E88E5] hover:bg-[#1565C0] text-white"
+                                        disabled={course.status === 'pending' || course.status === 'rejected'}
+                                        title={course.status === 'pending' || course.status === 'rejected' ? 'Không thể mời học viên khi khóa học đang chờ duyệt hoặc bị từ chối' : ''}
+                                    >
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Thêm học viên
+                                    </Button>
+                                </DialogTrigger>
+                                {(course.status === 'approved' || course.status === 'draft') && (
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>Mời học viên vào khóa học</DialogTitle>
+                                            <DialogDescription>
+                                                Nhập email của học viên để thêm vào khóa học riêng tư
+                                            </DialogDescription>
+                                        </DialogHeader>
 
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <Label htmlFor="invitee-email">Email học viên *</Label>
-                                                    <Input
-                                                        id="invitee-email"
-                                                        type="email"
-                                                        placeholder="student@example.com"
-                                                        value={inviteeEmail}
-                                                        onChange={(e) => setInviteeEmail(e.target.value)}
-                                                        className="mt-2"
-                                                        disabled={isInviting}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-2">
-                                                💡 Học viên cần đã có tài khoản trong hệ thống
-                                            </p>
-                                            <div className="flex justify-end gap-2 mt-6">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setAddStudentOpen(false);
-                                                        setInviteeEmail('');
-                                                    }}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label htmlFor="invitee-email">Email học viên *</Label>
+                                                <Input
+                                                    id="invitee-email"
+                                                    type="email"
+                                                    placeholder="student@example.com"
+                                                    value={inviteeEmail}
+                                                    onChange={(e) => setInviteeEmail(e.target.value)}
+                                                    className="mt-2"
                                                     disabled={isInviting}
-                                                >
-                                                    Hủy
-                                                </Button>
-                                                <Button
-                                                    className="bg-[#1E88E5] hover:bg-[#1565C0]"
-                                                    onClick={handleInviteStudent}
-                                                    disabled={isInviting}
-                                                >
-                                                    {isInviting ? (
-                                                        <>
-                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                                            Đang thêm...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <UserPlus className="w-4 h-4 mr-2" />
-                                                            Mời
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </DialogContent>
-                                    )}
-                                </Dialog>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="w-12 h-12 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                                    <p className="text-gray-600">Đang tải...</p>
-                                </div>
-                            ) : approvedStudents.length > 0 ? (
-                                <div className="space-y-4">
-                                    {approvedStudents.map((enrollment: any) => {
-                                        // Prefer full_name from user profile, fallback to partial ID
-                                        const userName = enrollment.user?.full_name || `User ${enrollment.user_id.substring(0, 8)}`;
-                                        const userInitial = userName.charAt(0).toUpperCase();
-                                        const enrolledDate = new Date(enrollment.enrolled_at).toLocaleDateString('vi-VN');
-
-                                        return (<div key={enrollment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                            <div className="flex items-center gap-4">
-                                                <Avatar>
-                                                    <AvatarFallback className="bg-[#1E88E5] text-white">
-                                                        {userInitial}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{userName}</div>
-                                                    <div className="text-sm text-gray-600">
-                                                        {enrollment.user?.email || 'Email không có sẵn'}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Tham gia: {enrolledDate}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="text-right">
-                                                    <div className="text-sm text-gray-600">Tiến độ</div>
-                                                    <div className="font-medium">{enrollment.progress?.percentage || 0}%</div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleRemoveStudent(enrollment.id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                                </Button>
+                                                />
                                             </div>
                                         </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p>Chưa có học viên nào tham gia</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            💡 Học viên cần đã có tài khoản trong hệ thống
+                                        </p>
+                                        <div className="flex justify-end gap-2 mt-6">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setAddStudentOpen(false);
+                                                    setInviteeEmail('');
+                                                }}
+                                                disabled={isInviting}
+                                            >
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                className="bg-[#1E88E5] hover:bg-[#1565C0]"
+                                                onClick={handleInviteStudent}
+                                                disabled={isInviting}
+                                            >
+                                                {isInviting ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                        Đang thêm...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <UserPlus className="w-4 h-4 mr-2" />
+                                                        Mời
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </DialogContent>
+                                )}
+                            </Dialog>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? (
+                            <div className="text-center py-12">
+                                <div className="w-12 h-12 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                <p className="text-gray-600">Đang tải...</p>
+                            </div>
+                        ) : approvedStudents.length > 0 ? (
+                            <div className="space-y-4">
+                                {approvedStudents.map((enrollment: any) => {
+                                    // Prefer full_name from user profile, fallback to partial ID
+                                    const userName = enrollment.user?.full_name || `User ${enrollment.user_id.substring(0, 8)}`;
+                                    const userInitial = userName.charAt(0).toUpperCase();
+                                    const enrolledDate = new Date(enrollment.enrolled_at).toLocaleDateString('vi-VN');
+
+                                    return (<div key={enrollment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                        <div className="flex items-center gap-4">
+                                            <Avatar>
+                                                <AvatarFallback className="bg-[#1E88E5] text-white">
+                                                    {userInitial}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div className="font-medium">{userName}</div>
+                                                <div className="text-sm text-gray-600">
+                                                    {enrollment.user?.email || 'Email không có sẵn'}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    Tham gia: {enrolledDate}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <div className="text-sm text-gray-600">Tiến độ</div>
+                                                <div className="font-medium">{enrollment.progress?.percentage || 0}%</div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveStudent(enrollment.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4 text-red-500" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-500">
+                                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p>Chưa có học viên nào tham gia</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div >
     );
 }

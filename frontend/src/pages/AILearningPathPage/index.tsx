@@ -238,53 +238,40 @@ export default function AILearningPathPage({ currentUser, navigateTo }: AILearni
             )}
 
             <div className="ai-learning-path-container">
-                {/* Header */}
-                <div className="ai-learning-path-header">
-                    <h1>Hãy cùng tạo lộ trình học tập cá nhân hóa dành riêng cho bạn!</h1>
-                </div>
+                {/* Header Card */}
+                <div className="header-card">
+                    {/* Header */}
+                    <div className="ai-learning-path-header">
+                        <h1>Hãy cùng tạo lộ trình học tập cá nhân hóa dành riêng cho bạn!</h1>
+                    </div>
 
-                {/* Mode Selector */}
-                <div className="mode-selector">
-                    <div className="mode-item active">
-                        <span className="mode-icon">📝</span>
-                        <span className="mode-label">Cơ bản</span>
-                    </div>
-                    <div className="mode-item">
-                        <span className="mode-icon">⏱️</span>
-                        <span className="mode-label">Tùy chọn</span>
-                    </div>
-                    <div className="mode-item">
-                        <span className="mode-icon">🚀</span>
-                        <span className="mode-label">Tạo lộ trình</span>
-                    </div>
-                </div>
-
-                {/* Step Indicator */}
-                <div className="step-indicator">
-                    <div className="step-item">
-                        <div className={`step-circle ${step === 1 ? 'active' : step > 1 ? 'completed' : 'inactive'}`}>
-                            {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+                    {/* Step Indicator */}
+                    <div className="step-indicator">
+                        <div className="step-item">
+                            <div className={`step-circle ${step === 1 ? 'active' : step > 1 ? 'completed' : 'inactive'}`}>
+                                {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+                            </div>
+                            <span className={`step-label ${step === 1 ? 'active' : ''}`}>Ngôn ngữ</span>
                         </div>
-                        <span className={`step-label ${step === 1 ? 'active' : ''}`}>Ngôn ngữ</span>
-                    </div>
-                    <div className={`step-connector ${step > 1 ? 'completed' : ''}`}></div>
-                    <div className="step-item">
-                        <div className={`step-circle ${step === 2 ? 'active' : step > 2 ? 'completed' : 'inactive'}`}>
-                            {step > 2 ? <Check className="w-4 h-4" /> : '2'}
+                        <div className={`step-connector ${step > 1 ? 'completed' : ''}`}></div>
+                        <div className="step-item">
+                            <div className={`step-circle ${step === 2 ? 'active' : step > 2 ? 'completed' : 'inactive'}`}>
+                                {step > 2 ? <Check className="w-4 h-4" /> : '2'}
+                            </div>
+                            <span className={`step-label ${step === 2 ? 'active' : ''}`}>Trình độ</span>
                         </div>
-                        <span className={`step-label ${step === 2 ? 'active' : ''}`}>Trình độ</span>
-                    </div>
-                    <div className={`step-connector ${step > 2 ? 'completed' : ''}`}></div>
-                    <div className="step-item">
-                        <div className={`step-circle ${step === 3 ? 'active' : step > 3 ? 'completed' : 'inactive'}`}>
-                            {step > 3 ? <Check className="w-4 h-4" /> : '3'}
+                        <div className={`step-connector ${step > 2 ? 'completed' : ''}`}></div>
+                        <div className="step-item">
+                            <div className={`step-circle ${step === 3 ? 'active' : step > 3 ? 'completed' : 'inactive'}`}>
+                                {step > 3 ? <Check className="w-4 h-4" /> : '3'}
+                            </div>
+                            <span className={`step-label ${step === 3 ? 'active' : ''}`}>Mục tiêu</span>
                         </div>
-                        <span className={`step-label ${step === 3 ? 'active' : ''}`}>Mục tiêu</span>
-                    </div>
-                    <div className={`step-connector ${step > 3 ? 'completed' : ''}`}></div>
-                    <div className="step-item">
-                        <div className={`step-circle ${step === 4 ? 'active' : 'inactive'}`}>4</div>
-                        <span className={`step-label ${step === 4 ? 'active' : ''}`}>Tạo</span>
+                        <div className={`step-connector ${step > 3 ? 'completed' : ''}`}></div>
+                        <div className="step-item">
+                            <div className={`step-circle ${step === 4 ? 'active' : 'inactive'}`}>4</div>
+                            <span className={`step-label ${step === 4 ? 'active' : ''}`}>Tạo</span>
+                        </div>
                     </div>
                 </div>
 
@@ -293,7 +280,7 @@ export default function AILearningPathPage({ currentUser, navigateTo }: AILearni
                     {/* Step 1: Topic Selection */}
                     {step === 1 && (
                         <>
-                            <h2 className="step-title">* Bạn muốn học gì?</h2>
+                            <h2 className="step-title">Bạn muốn học gì?</h2>
 
                             {/* Category Tabs */}
                             <div className="topic-tabs">

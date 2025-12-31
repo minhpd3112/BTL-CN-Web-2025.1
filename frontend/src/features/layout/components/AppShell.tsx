@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, BarChart3, FileCheck, Search, Plus, Bell, Menu, X as XIcon, LogOut, User, CheckCircle, UserPlus, Clock, Share2, Award, AlertCircle, TrendingUp } from 'lucide-react';
+import { GraduationCap, BookOpen, BarChart3, FileCheck, Search, Plus, Bell, Menu, X as XIcon, LogOut, User, CheckCircle, UserPlus, Clock, Share2, Award, AlertCircle, TrendingUp, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -122,7 +122,7 @@ export function AppShell({ state, actions }: AppShellProps) {
     // Reset local readSet when notifications change (e.g. after reload)
     setReadSet(new Set(notifications.filter((n) => n.read).map((n) => String(n.id))));
   }, [notifications]);
-    
+
   useEffect(() => {
     if (isAvatarHovered || isAvatarPinned) {
       setShowAvatarMenu(true);
@@ -182,6 +182,15 @@ export function AppShell({ state, actions }: AppShellProps) {
                     <Plus className="w-4 h-4 mr-2" /> Tạo khóa học
                   </Button>
                 )}
+                {currentRole !== 'admin' && (
+                  <Button
+                    onClick={() => navigateTo('ai-learning-path')}
+                    className="bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 hover:scale-105 hover:shadow-xl shadow-lg shadow-orange-300/50 transition-all duration-200"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Tạo lộ trình AI
+                  </Button>
+                )}
               </nav>
             </div>
 
@@ -197,7 +206,7 @@ export function AppShell({ state, actions }: AppShellProps) {
                       variant="ghost"
                       size="icon"
                       className="relative"
-                      onClick={() => setShowNotifications((v: boolean) => !v)}
+                      onClick={() => setShowNotifications(!showNotifications)}
                     >
                       <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-bell-shake' : ''}`} />
                       {unreadCount > 0 && (

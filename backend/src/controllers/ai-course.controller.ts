@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabase } from '../config/supabase';
+import { supabase, supabaseAdmin } from '../config/supabase';
 import aiService from '../services/ai.service';
 import youtubeService from '../services/youtube.service';
 
@@ -181,13 +181,22 @@ export const aiCourseController = {
                         continue;
                     }
 
+                    // Debug: Log quiz data
+                    if (lessonData.type === 'quiz') {
+                        console.log(`Quiz lesson "${lessonData.title}":`, {
+                            hasQuizQuestions: !!lessonData.quizQuestions,
+                            quizQuestionsCount: lessonData.quizQuestions?.length || 0,
+                            quizQuestions: lessonData.quizQuestions
+                        });
+                    }
+
                     // Create quiz questions if it's a quiz lesson
                     if (lessonData.type === 'quiz' && lessonData.quizQuestions && lessonData.quizQuestions.length > 0) {
                         for (let qIndex = 0; qIndex < lessonData.quizQuestions.length; qIndex++) {
                             const q = lessonData.quizQuestions[qIndex];
 
-                            // Create question
-                            const { data: question, error: questionError } = await supabase
+                            // Create question using admin client to bypass RLS
+                            const { data: question, error: questionError } = await supabaseAdmin
                                 .from('quiz_questions')
                                 .insert({
                                     lesson_id: lesson.id,
@@ -204,14 +213,19 @@ export const aiCourseController = {
                                 continue;
                             }
 
-                            // Create answers
+                            console.log(`Created question: ${q.question.substring(0, 50)}...`);
+
+                            // Create answers using admin client
                             for (let aIndex = 0; aIndex < q.options.length; aIndex++) {
-                                await supabase.from('quiz_answers').insert({
+                                const { error: answerError } = await supabaseAdmin.from('quiz_answers').insert({
                                     question_id: question.id,
                                     answer_text: q.options[aIndex],
                                     is_correct: q.correctAnswers.includes(aIndex),
                                     order_index: aIndex,
                                 });
+                                if (answerError) {
+                                    console.error(`Failed to create answer: ${answerError.message}`);
+                                }
                             }
                         }
                     }

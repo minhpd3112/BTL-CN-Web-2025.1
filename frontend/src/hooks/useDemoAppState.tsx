@@ -152,7 +152,7 @@ export function useDemoAppState() {
         read: n.read !== undefined ? n.read : n.is_read
       }));
       setNotifications(notifications);
-    } catch {}
+    } catch { }
   }, []);
 
   const markAllAsRead = useCallback(async () => {
@@ -165,7 +165,7 @@ export function useDemoAppState() {
         read: n.read !== undefined ? n.read : n.is_read
       }));
       setNotifications(notifications);
-    } catch {}
+    } catch { }
   }, []);
 
   const handleNotificationClick = useCallback((notification: Notification) => {

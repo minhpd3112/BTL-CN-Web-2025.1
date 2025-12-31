@@ -138,7 +138,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
     }
     if (!selectedTagState) return;
     try {
-      await tagsAPI.updateTag(selectedTagState.id, {
+      await tagsAPI.updateTag(String(selectedTagState.id), {
         name: formData.name,
         description: formData.description,
         image: formData.image || undefined,
@@ -168,7 +168,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
   const handleDeleteTag = async () => {
     if (!selectedTagState) return;
     try {
-      await tagsAPI.deleteTag(selectedTagState.id);
+      await tagsAPI.deleteTag(String(selectedTagState.id));
       toast.success(`Đã xóa chủ đề "${selectedTagState.name}"`);
       setShowDeleteDialog(false);
       setSelectedTagState(null);

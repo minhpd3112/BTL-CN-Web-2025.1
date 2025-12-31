@@ -343,12 +343,6 @@ export const reviewsAPI = {
     api.delete(`/reviews/${id}`).then(res => res.data),
 };
 
-// -----------------------------
-// Users API
-// -----------------------------
-export const usersAPI = {
-  getAllUsers: () => api.get('/users').then(res => res.data),
-};
 
 // -----------------------------
 // AI Course API

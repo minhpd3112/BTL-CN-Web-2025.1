@@ -95,7 +95,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   // Filter courses ở FE (chỉ search và visibility)
   const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.ownerName?.toLowerCase?.().includes(searchQuery.toLowerCase()) ?? false);
+      (course.ownerName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
     return matchSearch && matchVisibility;
   });

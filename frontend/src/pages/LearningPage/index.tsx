@@ -646,7 +646,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
         {/* 3. Right Sidebar */}
         <div
           style={{ width: isSidebarOpen ? `${sidebarWidth}px` : 0 }}
-          className={`hidden md:block flex-shrink-0 h-full transition-opacity duration-300 ease-in-out relative ${isSidebarOpen ? 'opacity-100' : 'opacity-0 overflow-hidden'
+          className={`hidden md:block flex-shrink-0 h-full overflow-hidden transition-opacity duration-300 ease-in-out relative ${isSidebarOpen ? 'opacity-100' : 'opacity-0'
             }`}
         >
           {/* Resize Handle */}

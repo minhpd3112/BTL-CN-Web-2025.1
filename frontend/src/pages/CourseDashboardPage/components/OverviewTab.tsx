@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Users, Clock } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { reviewsAPI } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Course } from '@/types';
 import { enrollmentsAPI, reviewsAPI } from '@/services/api';
 
