@@ -132,7 +132,7 @@ CREATE TABLE enrollments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'left')),
   request_message TEXT CHECK (char_length(request_message) <= 500),
   rejection_reason TEXT CHECK (char_length(rejection_reason) <= 500),
   approved_by UUID REFERENCES auth.users(id),

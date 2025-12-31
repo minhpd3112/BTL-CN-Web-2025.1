@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, CheckCircle, Users, BookOpen, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { mockCourses } from '@/services/mocks';
+import { coursesAPI } from '@/services/api';
 import { Course, Page } from '@/types';
 import { PageHeader } from '@/components/shared/PageHeader';
 
@@ -22,13 +22,37 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [courseToReject, setCourseToReject] = useState<Course | null>(null);
+  const [pendingCourses, setPendingCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Only show pending public courses
-  const pendingCourses = mockCourses.filter(c => c.status === 'pending' && c.visibility === 'public');
+  // Fetch pending public courses from API
+  useEffect(() => {
+    const fetchPendingCourses = async () => {
+      setLoading(true);
+      try {
+        const res = await coursesAPI.getAllCourses({ status: 'pending', visibility: 'public' });
+        if (res.success) {
+          setPendingCourses(res.data || []);
+        } else {
+          toast.error(res.message || 'Không thể tải danh sách khoá học');
+        }
+      } catch (err: any) {
+        toast.error('Lỗi tải khoá học: ' + (err?.message || 'Không xác định'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPendingCourses();
+  }, []);
 
-  const handleApproveCourse = (course: Course) => {
-    toast.success(`Đã duyệt khóa học "${course.title}"`);
-    // In real app: API call to update course status
+  const handleApproveCourse = async (course: Course) => {
+    try {
+      await coursesAPI.reviewCourse(course.id, 'approved');
+      toast.success(`Đã duyệt khóa học "${course.title}"`);
+      setPendingCourses(prev => prev.filter(c => c.id !== course.id));
+    } catch (err: any) {
+      toast.error('Duyệt khoá học thất bại: ' + (err?.message || 'Không xác định'));
+    }
   };
 
   const handleRejectCourse = (course: Course) => {
@@ -36,15 +60,23 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
     setShowRejectDialog(true);
   };
 
-  const confirmReject = () => {
+  const confirmReject = async () => {
     if (!rejectReason.trim()) {
       toast.error('Vui lòng nhập lý do từ chối');
       return;
     }
-    toast.success(`Đã từ chối khóa học "${courseToReject?.title}"`);
-    setShowRejectDialog(false);
-    setRejectReason('');
-    setCourseToReject(null);
+    if (!courseToReject) return;
+    try {
+      await coursesAPI.reviewCourse(courseToReject.id, 'rejected', rejectReason);
+      toast.success(`Đã từ chối khóa học "${courseToReject.title}"`);
+      setPendingCourses(prev => prev.filter(c => c.id !== courseToReject.id));
+    } catch (err: any) {
+      toast.error('Từ chối khoá học thất bại: ' + (err?.message || 'Không xác định'));
+    } finally {
+      setShowRejectDialog(false);
+      setRejectReason('');
+      setCourseToReject(null);
+    }
   };
 
   const CoursePreviewCard = ({ course }: { course: Course }) => (
@@ -164,7 +196,13 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
       />
 
       {/* Pending Courses Grid */}
-      {pendingCourses.length > 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <span className="text-gray-500">Đang tải khoá học...</span>
+          </CardContent>
+        </Card>
+      ) : pendingCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pendingCourses.map(course => (
             <CoursePreviewCard key={course.id} course={course} />

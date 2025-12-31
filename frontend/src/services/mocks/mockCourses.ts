@@ -2,7 +2,7 @@ import { Course } from '@/types';
 
 export const mockCourses: Course[] = [
   {
-    id: 1,
+    id: "1",
     title: 'Lập trình React từ Cơ bản đến Nâng cao',
     description: 'Khóa học toàn diện về React, từ components cơ bản đến hooks và state management',
     overview: `## Bạn sẽ học được gì?
@@ -22,7 +22,7 @@ export const mockCourses: Course[] = [
 - Đã từng làm việc với npm hoặc yarn
 - Tinh thần học hỏi và thực hành thường xuyên`,
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.8,
     students: 1234,
@@ -32,12 +32,12 @@ export const mockCourses: Course[] = [
     status: 'approved',
     visibility: 'public',
     lessons: 45,
-    enrolledUsers: [3], // Chỉ user 3 enrolled
+    enrolledUsers: [3],
     createdAt: '2024-01-15',
     updatedAt: '2024-01-20'
   },
   {
-    id: 2,
+    id: "2",
     title: 'Thiết kế UI/UX chuyên nghiệp với Figma',
     description: 'Học cách thiết kế giao diện người dùng đẹp mắt và trải nghiệm tốt',
     overview: `## Bạn sẽ học được gì?
@@ -57,7 +57,7 @@ export const mockCourses: Course[] = [
 - Cài đặt Figma (miễn phí)
 - Đam mê sáng tạo và thẩm mỹ`,
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.9,
     students: 856,
@@ -72,7 +72,7 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-25'
   },
   {
-    id: 3,
+    id: "3",
     title: 'Data Science với Python',
     description: 'Phân tích dữ liệu và machine learning với Python, Pandas, NumPy',
     overview: `## Bạn sẽ học được gì?
@@ -92,7 +92,7 @@ export const mockCourses: Course[] = [
 - Máy tính có cấu hình từ trung bình trở lên
 - Sẵn sàng học tập và thực hành nhiều`,
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.7,
     students: 2341,
@@ -107,7 +107,7 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-01'
   },
   {
-    id: 4,
+    id: "4",
     title: 'Digital Marketing thực chiến',
     description: 'Chiến lược marketing online hiệu quả cho doanh nghiệp',
     overview: `## Bạn sẽ học được gì?
@@ -127,7 +127,7 @@ export const mockCourses: Course[] = [
 - Hiểu biết cơ bản về internet và mạng xã hội
 - Đam mê kinh doanh và marketing`,
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.6,
     students: 567,
@@ -142,11 +142,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-01'
   },
   {
-    id: 5,
+    id: "5",
     title: 'Node.js Backend Development',
     description: 'Xây dựng RESTful API và ứng dụng backend với Node.js và Express',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.7,
     students: 892,
@@ -161,11 +161,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-22'
   },
   {
-    id: 6,
+    id: "6",
     title: 'Mobile App với React Native',
     description: 'Phát triển ứng dụng di động đa nền tảng với React Native',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.5,
     students: 645,
@@ -180,7 +180,7 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-05'
   },
   {
-    id: 7,
+    id: "7",
     title: 'Python cho người mới bắt đầu',
     description: 'Học Python từ con số 0, phù hợp cho người chưa biết lập trình',
     overview: `## Bạn sẽ học được gì?
@@ -200,7 +200,7 @@ export const mockCourses: Course[] = [
 - Khả năng đọc tiếng Anh cơ bản
 - Tinh thần học hỏi và kiên trì`,
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.8,
     students: 1567,
@@ -215,11 +215,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-15'
   },
   {
-    id: 8,
+    id: "8",
     title: 'AWS Cloud Computing cơ bản',
     description: 'Triển khai ứng dụng lên AWS với EC2, S3, RDS',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.6,
     students: 423,
@@ -234,11 +234,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-02'
   },
   {
-    id: 9,
+    id: "9",
     title: 'Khóa học Private Demo',
     description: 'Đây là khóa học riêng tư để test chức năng private course',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 0,
     students: 2,
@@ -253,11 +253,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-03'
   },
   {
-    id: 10,
+    id: "10",
     title: 'Machine Learning với TensorFlow',
     description: 'Xây dựng mô hình ML với TensorFlow và Keras',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.9,
     students: 834,
@@ -272,11 +272,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-07'
   },
   {
-    id: 11,
+    id: "11",
     title: 'Photoshop cho Designer',
     description: 'Làm chủ Adobe Photoshop từ cơ bản đến nâng cao',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.7,
     students: 932,
@@ -291,11 +291,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-17'
   },
   {
-    id: 12,
+    id: "12",
     title: 'Excel nâng cao cho doanh nghiệp',
     description: 'Làm việc hiệu quả với Excel, pivot table, macro và VBA',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.6,
     students: 1245,
@@ -310,11 +310,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-27'
   },
   {
-    id: 13,
+    id: "13",
     title: 'SQL và Database Design',
     description: 'Thiết kế cơ sở dữ liệu và viết truy vấn SQL hiệu quả',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.8,
     students: 756,
@@ -329,11 +329,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-20'
   },
   {
-    id: 14,
+    id: "14",
     title: 'Quay dựng video với Premiere Pro',
     description: 'Biên tập video chuyên nghiệp cho YouTube và TikTok',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.7,
     students: 623,
@@ -348,11 +348,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-04'
   },
   {
-    id: 15,
+    id: "15",
     title: 'Tiếng Anh giao tiếp cơ bản',
     description: 'Nâng cao kỹ năng giao tiếp tiếng Anh trong công việc',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.5,
     students: 1892,
@@ -367,11 +367,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-13'
   },
   {
-    id: 16,
+    id: "16",
     title: 'Docker và Kubernetes thực chiến',
     description: 'Container hóa và quản lý ứng dụng với Docker và K8s',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.9,
     students: 512,
@@ -386,11 +386,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-07'
   },
   {
-    id: 17,
+    id: "17",
     title: 'Blockchain và Cryptocurrency',
     description: 'Hiểu về công nghệ blockchain và đầu tư crypto an toàn',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.4,
     students: 378,
@@ -405,11 +405,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-10'
   },
   {
-    id: 18,
+    id: "18",
     title: 'Lập trình game với Unity',
     description: 'Tạo game 2D và 3D với Unity Engine',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.6,
     students: 689,
@@ -424,11 +424,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-23'
   },
   {
-    id: 19,
+    id: "19",
     title: 'Cyber Security cơ bản',
     description: 'Bảo mật mạng và ứng dụng, phòng chống tấn công',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.8,
     students: 445,
@@ -443,11 +443,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-30'
   },
   {
-    id: 20,
+    id: "20",
     title: 'Illustration và Drawing kỹ thuật số',
     description: 'Vẽ minh họa chuyên nghiệp với Procreate và iPad',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.7,
     students: 534,
@@ -462,11 +462,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-02-05'
   },
   {
-    id: 21,
+    id: "21",
     title: 'Content Writing và SEO',
     description: 'Viết content chuẩn SEO, thu hút traffic tự nhiên',
     ownerName: 'Trần Thị B',
-    ownerId: 3,
+    ownerId: "3",
     ownerAvatar: 'TB',
     rating: 4.5,
     students: 721,
@@ -481,11 +481,11 @@ export const mockCourses: Course[] = [
     updatedAt: '2024-01-25'
   },
   {
-    id: 22,
+    id: "22",
     title: 'Flutter - Mobile App Development',
     description: 'Xây dựng app đa nền tảng với Flutter và Dart',
     ownerName: 'Nguyễn Văn A',
-    ownerId: 2,
+    ownerId: "2",
     ownerAvatar: 'NA',
     rating: 4.6,
     students: 598,

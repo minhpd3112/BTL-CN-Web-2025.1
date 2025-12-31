@@ -31,8 +31,8 @@ export const authenticate = async (
     const token = authHeader.substring(7);
 
     // Thử xác thực bằng JWT admin trước
-    const adminPayload = verifyAdminToken(token);
-    if (adminPayload && adminPayload.role === 'admin') {
+    const adminPayload = verifyAdminToken(token) as { id: string; email: string; role: string } | null;
+    if (adminPayload && typeof adminPayload === 'object' && adminPayload.role === 'admin') {
       req.user = {
         id: adminPayload.id,
         email: adminPayload.email,
@@ -178,7 +178,7 @@ export const requireOwnerOrAdmin = (resourceType: 'course' | 'section' | 'lesson
           .select('course_id')
           .eq('id', (data as any).section_id)
           .single();
-        
+
         if (section) {
           const { data: course } = await supabase
             .from('courses')

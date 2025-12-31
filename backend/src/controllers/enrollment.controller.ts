@@ -1,9 +1,47 @@
 import { Request, Response } from 'express';
 import { EnrollmentModel } from '@models/enrollment.model';
-import { supabase } from '@config/supabase';
+import { supabase, supabaseAdmin } from '@config/supabase';
 import { httpStatus } from '@utils/httpStatus';
 
 export const EnrollmentController = {
+  async leaveCourse(req: Request, res: Response) {
+      console.log('==> [leaveCourse] Controller called', req.method, req.originalUrl);
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
+
+      const enrollment = await EnrollmentModel.findById(id);
+      console.log('[leaveCourse] userId:', userId, '| enrollmentId:', id, '| enrollment.user_id:', enrollment?.user_id);
+      if (!enrollment) {
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'Enrollment not found',
+        });
+      }
+
+      // Only enrollment owner can leave
+      if (enrollment.user_id !== userId) {
+        console.warn('[leaveCourse] Permission denied. userId:', userId, '| enrollment.user_id:', enrollment.user_id);
+        return res.status(httpStatus.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to leave this enrollment',
+        });
+      }
+
+      // Delete enrollment
+      const deleteResult = await EnrollmentModel.deleteByUser(id, userId);
+      console.log('[leaveCourse] Delete result:', deleteResult);
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Leave course error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to leave course',
+        error: error.message,
+      });
+    }
+  },
   async getMyEnrollments(req: Request, res: Response) {
     try {
       const userId = req.user!.id;
@@ -15,9 +53,40 @@ export const EnrollmentController = {
         enrollments = enrollments.filter((e: any) => e.status === status);
       }
 
+      // Fetch owner profiles for each course
+      for (const enrollment of enrollments) {
+        if (enrollment.course && enrollment.course.owner_id) {
+          try {
+            const { data: ownerProfile } = await supabaseAdmin
+              .from('user_profiles')
+              .select('id, full_name, avatar_url')
+              .eq('id', enrollment.course.owner_id)
+              .limit(1)
+              .single();
+
+            if (ownerProfile) {
+              enrollment.course.owner = ownerProfile;
+            }
+          } catch (err) {
+            console.log('Could not fetch owner profile for:', enrollment.course.owner_id);
+          }
+        }
+      }
+
+      // Fetch progress for each enrollment
+      for (const enrollment of enrollments) {
+        try {
+          const progress = await EnrollmentModel.getProgress(userId, enrollment.course_id);
+          (enrollment as any).progress = progress; // Add progress: { total, completed, percentage }
+        } catch (err) {
+          console.error('Failed to get progress for enrollment:', enrollment.id, err);
+          (enrollment as any).progress = { total: 0, completed: 0, percentage: 0 };
+        }
+      }
+
       res.json({
         success: true,
-        data: enrollments,
+        data: enrollments || [], // Ensure always return array even if empty
       });
     } catch (error: any) {
       console.error('Get enrollments error:', error);
@@ -35,24 +104,86 @@ export const EnrollmentController = {
       const { status } = req.query;
       const userId = req.user!.id;
 
-      // Check if user is course owner
-      const { data: course } = await supabase
+      // Check if user is course owner (use admin to bypass RLS)
+      const { data: course } = await supabaseAdmin
         .from('courses')
         .select('owner_id')
         .eq('id', courseId)
         .single();
 
-      if (!course || course.owner_id !== userId) {
-        return res.status(httpStatus.FORBIDDEN).json({
+      if (!course) {
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
-          message: 'You do not have permission to view enrollments',
+          message: 'Course not found',
         });
       }
 
+      const isOwner = course.owner_id === userId;
+      // If not owner, check if user is enrolled
+      if (!isOwner) {
+        const { data: enrollment } = await supabaseAdmin
+          .from('enrollments')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('course_id', courseId)
+          .single();
+
+        // Students who are enrolled can only see count, not details
+        if (!enrollment || enrollment.status !== 'approved') {
+          return res.status(httpStatus.FORBIDDEN).json({
+            success: false,
+            message: 'You do not have permission to view enrollments',
+          });
+        }
+
+        // Return only count for enrolled students
+        const enrollments = await EnrollmentModel.findByCourseId(
+          courseId,
+          status as string
+        );
+
+        return res.json({
+          success: true,
+          data: enrollments.map((e: any) => ({
+            id: e.id,
+            status: e.status,
+            enrolled_at: e.enrolled_at
+          })), // Return minimal info for students
+        });
+      }
+
+      // Owner can see full details
       const enrollments = await EnrollmentModel.findByCourseId(
         courseId,
         status as string
       );
+
+      // Fetch progress and user email for each enrollment (only for owner)
+      for (const enrollment of enrollments) {
+        try {
+          const progress = await EnrollmentModel.getProgress(enrollment.user_id, courseId);
+          (enrollment as any).progress = progress;
+        } catch (err) {
+          console.error('Failed to get progress for enrollment:', enrollment.id, err);
+          (enrollment as any).progress = { total: 0, completed: 0, percentage: 0 };
+        }
+
+        // Fetch user email from auth.users
+        try {
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(enrollment.user_id);
+          if (authData?.user?.email) {
+            (enrollment as any).user_email = authData.user.email;
+          }
+        } catch (err) {
+          console.error('Failed to get email for user:', enrollment.user_id, err);
+        }
+      }
+
+      console.log('Get course enrollments:', {
+        courseId,
+        totalEnrollments: enrollments.length,
+        statuses: enrollments.map(e => e.status)
+      });
 
       res.json({
         success: true,
@@ -82,15 +213,27 @@ export const EnrollmentController = {
         });
       }
 
+      // Check if course is public to auto-approve enrollment
+      const { data: course } = await supabaseAdmin
+        .from('courses')
+        .select('visibility')
+        .eq('id', course_id)
+        .single();
+
+      const isPublicCourse = course?.visibility === 'public';
+
       const enrollment = await EnrollmentModel.create({
         user_id: userId,
         course_id,
         request_message,
+        status: isPublicCourse ? 'approved' : 'pending',
+        approved_by: isPublicCourse ? userId : undefined,
       });
 
       res.status(httpStatus.CREATED).json({
         success: true,
         data: enrollment,
+        message: isPublicCourse ? 'Bạn đã tham gia khóa học thành công!' : 'Đã gửi yêu cầu đăng ký khóa học',
       });
     } catch (error: any) {
       console.error('Create enrollment error:', error);
@@ -171,18 +314,31 @@ export const EnrollmentController = {
         });
       }
 
-      if ((enrollment as any).user_id !== userId) {
+      // Check if user is course owner (not enrollment owner!)
+      const { data: course } = await supabaseAdmin
+        .from('courses')
+        .select('owner_id')
+        .eq('id', (enrollment as any).course_id)
+        .single();
+
+      if (!course || course.owner_id !== userId) {
         return res.status(httpStatus.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to delete this enrollment',
         });
       }
 
-      await EnrollmentModel.delete(id);
+      // Delete using admin client to bypass RLS
+      const { error: deleteError } = await supabaseAdmin
+        .from('enrollments')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
 
       res.json({
         success: true,
-        message: 'Enrollment cancelled successfully',
+        message: 'Enrollment deleted successfully',
       });
     } catch (error: any) {
       console.error('Delete enrollment error:', error);
@@ -228,6 +384,153 @@ export const EnrollmentController = {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch enrollment progress',
+        error: error.message,
+      });
+    }
+  },
+
+  async getCourseAverageProgress(req: Request, res: Response) {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user!.id;
+
+      // Check if user is the course owner
+      const { data: course } = await supabaseAdmin
+        .from('courses')
+        .select('owner_id')
+        .eq('id', courseId)
+        .single();
+
+      if (!course || course.owner_id !== userId) {
+        return res.status(httpStatus.FORBIDDEN).json({
+          success: false,
+          message: 'Only course owners can view average progress',
+        });
+      }
+
+      const progressData = await EnrollmentModel.getCourseAverageProgress(courseId);
+
+      res.json({
+        success: true,
+        data: progressData,
+      });
+    } catch (error: any) {
+      console.error('Get course average progress error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to fetch course average progress',
+        error: error.message,
+      });
+    }
+  },
+
+  async inviteByEmail(req: Request, res: Response) {
+    try {
+      const userId = req.user!.id;
+      const { course_id, invitee_email } = req.body;
+
+      if (!course_id || !invitee_email) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'Course ID and invitee email are required',
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(invitee_email)) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'Invalid email format',
+        });
+      }
+
+      // Check if user is course owner (use admin to bypass RLS)
+      const { data: course, error: courseError } = await supabaseAdmin
+        .from('courses')
+        .select('owner_id, title, visibility')
+        .eq('id', course_id)
+        .single();
+
+      if (courseError || !course) {
+        console.log('Course lookup error:', courseError);
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'Course not found',
+        });
+      }
+
+      console.log('Course owner check:', {
+        courseOwnerId: course.owner_id,
+        requestUserId: userId,
+        match: course.owner_id === userId
+      });
+
+      if (course.owner_id !== userId) {
+        return res.status(httpStatus.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to invite students to this course',
+        });
+      }
+
+      // Look up user by email using Supabase Auth admin API
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+
+      if (listError) {
+        throw listError;
+      }
+
+      const inviteeUser = users?.find(u => u.email?.toLowerCase() === invitee_email.toLowerCase());
+
+      if (!inviteeUser) {
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'User with this email not found. Please make sure they have registered an account.',
+        });
+      }
+
+      // Check if already enrolled
+      const { data: existingEnrollment } = await supabase
+        .from('enrollments')
+        .select('id, status')
+        .eq('user_id', inviteeUser.id)
+        .eq('course_id', course_id)
+        .single();
+
+      if (existingEnrollment) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'This student is already enrolled in the course',
+        });
+      }
+
+      // Create approved enrollment directly using admin client (bypass RLS)
+      const { data: enrollment, error: createError } = await supabaseAdmin
+        .from('enrollments')
+        .insert({
+          user_id: inviteeUser.id,
+          course_id: course_id,
+          status: 'approved',
+          approved_by: userId,
+          request_message: 'Invited by course owner',
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        throw createError;
+      }
+
+      res.status(httpStatus.CREATED).json({
+        success: true,
+        data: enrollment,
+        message: `Successfully added ${invitee_email} to the course`,
+      });
+    } catch (error: any) {
+      console.error('Invite by email error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to invite student',
         error: error.message,
       });
     }

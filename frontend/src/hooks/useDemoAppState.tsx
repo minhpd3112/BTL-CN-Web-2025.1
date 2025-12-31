@@ -5,6 +5,14 @@ import {
   mockCourses,
   mockEnrollmentRequests,
 } from '@/services/mocks';
+
+// Helper to update enrolledUsers in mockCourses
+function addUserToCourseEnrolledUsers(courseId: string, userId: number) {
+  const course = mockCourses.find(c => c.id === courseId);
+  if (course && !course.enrolledUsers.includes(userId)) {
+    course.enrolledUsers.push(userId);
+  }
+}
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
 
 // --- MOCK DATA (Giữ bên ngoài Hook) ---
@@ -102,16 +110,19 @@ export function useDemoAppState() {
     localStorage.setItem('user_data', JSON.stringify(updatedUser));
   }, []);
 
-  const isOwner = useCallback((course: Course) => 
+  const isOwner = useCallback((course: Course) =>
     currentUser ? course.ownerId === currentUser.id : false, [currentUser]);
 
+  // Note: This returns true by default for enrolled students
+  // The actual enrollment check is done in CourseDetailPage via API
   const canAccessCourse = useCallback((course: Course) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
-    return course.ownerId === currentUser.id || course.enrolledUsers?.includes(currentUser.id);
+    if (course.visibility === 'public') return true;
+    return course.ownerId === currentUser.id || course.enrolledUsers?.includes(Number(currentUser.id));
   }, [currentUser]);
 
-  const markAsRead = useCallback((id: number) => {
+  const markAsRead = useCallback((id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   }, []);
 
@@ -132,26 +143,37 @@ export function useDemoAppState() {
     }
   }, [markAsRead, navigateTo]);
 
-  const handleApproveRequest = useCallback((requestId: number) => {
+  const handleApproveRequest = useCallback((requestId: string) => {
     setEnrollmentRequests(prev => prev.map(req =>
       req.id === requestId ? { ...req, status: 'approved', respondedAt: new Date().toLocaleString() } : req
     ));
   }, []);
 
-  const handleRejectRequest = useCallback((requestId: number) => {
+  const handleRejectRequest = useCallback((requestId: string) => {
     setEnrollmentRequests(prev => prev.map(req =>
       req.id === requestId ? { ...req, status: 'rejected', respondedAt: new Date().toLocaleString() } : req
     ));
   }, []);
 
   const handleEnrollRequest = useCallback((request: any) => {
-    const newRequest = { ...request, id: Date.now(), status: 'pending', requestedAt: new Date().toLocaleString() };
+    // Nếu là public thì duyệt luôn
+    const isPublic = request.isPublic;
+    const status = isPublic ? 'approved' : 'pending';
+    const newRequest = { ...request, id: Date.now(), status, requestedAt: new Date().toLocaleString() };
     setEnrollmentRequests(prev => [...prev, newRequest]);
+    // Nếu là public, cập nhật enrolledUsers trong mockCourses
+    if (isPublic && request.courseId && request.userId) {
+      addUserToCourseEnrolledUsers(String(request.courseId), Number(request.userId));
+    }
+    // Gọi callback nếu có (để cập nhật UI ngay)
+    if (request.onSuccess && typeof request.onSuccess === 'function') {
+      request.onSuccess();
+    }
   }, []);
 
   // 4. COMPUTED VALUES
   const currentRole = currentUser?.role || 'user';
-  const userNotifications = useMemo(() => 
+  const userNotifications = useMemo(() =>
     currentRole === 'admin' ? notifications : notifications.filter(n => n.userId === currentUser?.id),
     [currentRole, notifications, currentUser?.id]
   );

@@ -183,4 +183,31 @@ export const LessonController = {
       });
     }
   },
+
+  async reorder(req: Request, res: Response) {
+    try {
+      const { section_id, lessons } = req.body;
+
+      if (!section_id || !lessons) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'Section ID and lessons are required',
+        });
+      }
+
+      await LessonModel.reorder(section_id, lessons);
+
+      res.json({
+        success: true,
+        message: 'Lessons reordered successfully',
+      });
+    } catch (error: any) {
+      console.error('Reorder lessons error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to reorder lessons',
+        error: error.message,
+      });
+    }
+  },
 };

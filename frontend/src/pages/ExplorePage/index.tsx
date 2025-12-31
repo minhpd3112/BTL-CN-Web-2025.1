@@ -13,7 +13,7 @@ import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { useCoursesQuery } from '@/hooks/useCoursesQuery';
-import { tagsAPI } from '@/services/api';
+import { tagsAPI, enrollmentsAPI } from '@/services/api';
 
 
 interface ExplorePageProps {
@@ -22,14 +22,28 @@ interface ExplorePageProps {
   currentUser: any;
 }
 
-export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps) {
+export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: ExplorePageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [currentPage, setCurrentPage] = useState(1);
   const [allTags, setAllTags] = useState<string[]>(['all']);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
   const ITEMS_PER_PAGE = 9;
+
+  // Fetch user's enrolled courses on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        const enrollments = Array.isArray(res) ? res : res.data;
+        if (enrollments && Array.isArray(enrollments)) {
+          const courseIds = enrollments.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  }, [currentUser?.id]);
 
   // Fetch tags from backend
   useEffect(() => {
@@ -63,7 +77,17 @@ export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps)
     setCurrentPage(1);
   };
 
-  // ...existing code...
+  const handleJoinSuccess = () => {
+    // Refresh enrolled courses
+    if (currentUser?.id) {
+      enrollmentsAPI.getMyEnrollments().then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          const courseIds = res.data.map((e: any) => e.course_id);
+          setEnrolledCourseIds(courseIds);
+        }
+      }).catch(err => console.log('Could not fetch enrollments'));
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -156,6 +180,9 @@ export function ExplorePage({ navigateTo, setSelectedCourse }: ExplorePageProps)
                     setSelectedCourse(course);
                     navigateTo('course-detail');
                   }}
+                  currentUserId={currentUser?.id}
+                  isEnrolled={enrolledCourseIds.includes(course.id) || enrolledCourseIds.includes(String(course.id))}
+                  onJoinSuccess={handleJoinSuccess}
                 />
               </AnimatedSection>
             ))}
