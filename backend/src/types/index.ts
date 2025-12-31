@@ -1,3 +1,27 @@
+// Notification types for users (keep in sync with frontend)
+export type NotificationType =
+  | 'course_approved'
+  | 'course_rejected'
+  | 'student_joined'
+  | 'course_completed';
+
+export interface Notification {
+  id: string; // uuid
+  type: NotificationType;
+  title: string;
+  message: string;
+  courseId?: string; // uuid
+  userId?: string; // uuid
+  timestamp: string;
+  read: boolean;
+  icon: string;
+  color: string;
+  action?: {
+    page: string;
+    courseId?: string; // uuid
+    userId?: string; // uuid
+  };
+}
 export interface User {
   id: number;
   username: string;

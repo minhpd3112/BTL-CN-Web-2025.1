@@ -62,6 +62,8 @@ interface AppShellProps {
 }
 
 export function AppShell({ state, actions }: AppShellProps) {
+  // Local state for instant UI feedback of notification read status
+  const [isNotificationsPinned, setIsNotificationsPinned] = useState(false);
   const {
     currentUser,
     currentPage,
@@ -108,13 +110,18 @@ export function AppShell({ state, actions }: AppShellProps) {
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isAvatarPinned, setIsAvatarPinned] = useState(false);
-  const [isNotificationsHovered, setIsNotificationsHovered] = useState(false);
-
+  // Only use showNotifications for popover open/close
+  const [readSet, setReadSet] = useState<Set<string>>(new Set());
   useEffect(() => {
     setShowAvatarMenu(false);
     setIsAvatarPinned(false);
   }, [currentPage]);
 
+  useEffect(() => {
+    // Reset local readSet when notifications change (e.g. after reload)
+    setReadSet(new Set(notifications.filter((n) => n.read).map((n) => String(n.id))));
+  }, [notifications]);
+    
   useEffect(() => {
     if (isAvatarHovered || isAvatarPinned) {
       setShowAvatarMenu(true);
@@ -124,14 +131,7 @@ export function AppShell({ state, actions }: AppShellProps) {
     }
   }, [isAvatarHovered, isAvatarPinned]);
 
-  useEffect(() => {
-    if (isNotificationsHovered) {
-      setShowNotifications(true);
-    } else {
-      const timeoutId = setTimeout(() => setShowNotifications(false), 150);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isNotificationsHovered, setShowNotifications]);
+  // Remove hover logic for notifications popover
 
   return (
     <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
@@ -186,10 +186,18 @@ export function AppShell({ state, actions }: AppShellProps) {
 
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <div onMouseEnter={() => setIsNotificationsHovered(true)} onMouseLeave={() => setIsNotificationsHovered(false)}>
-                <Popover open={showNotifications} onOpenChange={setShowNotifications}>
+              <div>
+                <Popover
+                  open={showNotifications}
+                  onOpenChange={setShowNotifications}
+                >
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative"
+                      onClick={() => setShowNotifications((v: boolean) => !v)}
+                    >
                       <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-bell-shake' : ''}`} />
                       {unreadCount > 0 && (
                         <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs rounded-full px-1">
@@ -198,7 +206,10 @@ export function AppShell({ state, actions }: AppShellProps) {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-96 p-0" align="end">
+                  <PopoverContent
+                    className="w-96 p-0"
+                    align="end"
+                  >
                     <div className="flex items-center justify-between p-4 border-b">
                       <h3 className="font-medium">Thông báo</h3>
                       {unreadCount > 0 && <button onClick={markAllAsRead} className="text-sm text-[#1E88E5] hover:underline">Đánh dấu đã đọc</button>}
@@ -206,17 +217,53 @@ export function AppShell({ state, actions }: AppShellProps) {
                     {notifications.length > 0 ? (
                       <ScrollArea className="h-[400px]">
                         <div className="divide-y">
-                          {notifications.map(notification => (
-                            <button key={notification.id} className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''}`} onClick={() => { handleNotificationClick(notification); setShowNotifications(false); }}>
-                              <div className="flex gap-3">
-                                <div className={`flex-shrink-0 mt-1 ${notification.color}`}><Bell className="w-5 h-5" /></div>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm ${!notification.read ? 'font-medium' : ''}`}>{notification.title}</p>
-                                  <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
+                          {notifications.map(notification => {
+                            let Icon = Bell;
+                            let color = 'text-gray-400';
+                            // Choose icon and color based on notification type
+                            switch (notification.type) {
+                              case 'course_approved':
+                                Icon = CheckCircle;
+                                color = 'text-green-500';
+                                break;
+                              case 'course_rejected':
+                                Icon = AlertCircle;
+                                color = 'text-red-500';
+                                break;
+                              case 'student_joined':
+                                Icon = UserPlus;
+                                color = 'text-blue-500';
+                                break;
+                              case 'course_completed':
+                                Icon = Award;
+                                color = 'text-yellow-500';
+                                break;
+                              default:
+                                Icon = Bell;
+                                color = 'text-gray-400';
+                            }
+                            const isRead = notification.read || readSet.has(String(notification.id));
+                            return (
+                              <button
+                                key={notification.id}
+                                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!isRead ? 'bg-blue-50/70' : 'bg-white'}`}
+                                onClick={() => {
+                                  if (!isRead) setReadSet(prev => new Set(prev).add(String(notification.id)));
+                                  handleNotificationClick(notification);
+                                  setShowNotifications(false);
+                                  setIsNotificationsPinned(false);
+                                }}
+                              >
+                                <div className="flex gap-3">
+                                  <div className={`flex-shrink-0 mt-1 ${color}`}><Icon className="w-5 h-5" /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm ${!isRead ? 'font-medium' : ''}`}>{notification.title}</p>
+                                    <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            </button>
-                          ))}
+                              </button>
+                            );
+                          })}
                         </div>
                       </ScrollArea>
                     ) : <div className="p-12 text-center text-gray-500"><p>Chưa có thông báo nào</p></div>}
@@ -361,7 +408,18 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} setSelectedTag={setSelectedTag} currentUser={currentUser} />}
         {currentPage === 'my-courses' && <MyCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser!} />}
         {currentPage === 'explore' && <ExplorePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} />}
-        {currentPage === 'course-detail' && <CourseDetailPage course={selectedCourse} navigateTo={navigateTo} setSelectedUser={setSelectedUser} currentUser={currentUser} isOwner={isOwner(selectedCourse)} canAccess={canAccessCourse(selectedCourse)} enrollmentRequests={enrollmentRequests} onEnrollRequest={handleEnrollRequest} />}
+        {currentPage === 'course-detail' && selectedCourse && (
+          <CourseDetailPage
+            course={selectedCourse}
+            navigateTo={navigateTo}
+            setSelectedUser={setSelectedUser}
+            currentUser={currentUser}
+            isOwner={isOwner(selectedCourse)}
+            canAccess={selectedCourse.overrideAccess === true ? true : canAccessCourse(selectedCourse)}
+            enrollmentRequests={enrollmentRequests}
+            onEnrollRequest={handleEnrollRequest}
+          />
+        )}
         {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}

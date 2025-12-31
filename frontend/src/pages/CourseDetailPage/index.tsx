@@ -78,12 +78,13 @@ export function CourseDetailPage({
   setSelectedUser
 }: CourseDetailPageProps) {
   // Loading state for access check
+  // ...
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
   // Dialog state for leaving course
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState('');
-  const [expandedSections, setExpandedSections] = useState<number[]>([1]);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
 
@@ -108,7 +109,12 @@ export function CourseDetailPage({
   const [reviewCount, setReviewCount] = useState<number>(0);
 
   // Actual access control based on enrollment
-  const [actualCanAccess, setActualCanAccess] = useState<boolean>(canAccess);
+  const [actualCanAccess, setActualCanAccess] = useState<boolean>(() => {
+    // Ưu tiên quyền overrideAccess nếu có
+    if ((course as any).overrideAccess) return true;
+    return canAccess;
+  });
+  // ...
 
   // Check if user has pending request
   const [hasPendingRequest, setHasPendingRequest] = useState(() =>
@@ -196,7 +202,7 @@ export function CourseDetailPage({
     }
   };
 
-  const toggleSection = (sectionId: number) => {
+  const toggleSection = (sectionId: string) => {
     setExpandedSections(prev =>
       prev.includes(sectionId)
         ? prev.filter(id => id !== sectionId)
@@ -286,6 +292,12 @@ export function CourseDetailPage({
 
   // Check actual enrollment status for non-owners
   useEffect(() => {
+    // Nếu overrideAccess thì luôn cho truy cập
+    if ((course as any).overrideAccess) {
+      setActualCanAccess(true);
+      setIsLoadingAccess(false);
+      return;
+    }
     const checkEnrollment = async () => {
       if (!currentUser || isOwner || currentUser.role === 'admin') {
         setActualCanAccess(true);
@@ -315,7 +327,7 @@ export function CourseDetailPage({
     };
 
     checkEnrollment();
-  }, [course.id, currentUser, isOwner, course.visibility]);
+  }, [course.id, currentUser, isOwner, course.visibility, course]);
 
   // Fetch course reviews
   useEffect(() => {
@@ -734,6 +746,7 @@ export function CourseDetailPage({
               Tổng quan
             </TabsTrigger>
 
+            {/* Luôn hiển thị tab Đánh giá cho owner, admin, học viên */}
             <TabsTrigger
               value="reviews"
               className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
@@ -890,8 +903,9 @@ export function CourseDetailPage({
 
           {/* Reviews Tab */}
           <TabsContent value="reviews">
-            {/* Review Form - Only show if user can review */}
-            {canReview && !myReview && (
+
+            {/* Review Form - Chỉ cho phép học viên đã học, không phải owner/admin */}
+            {canReview && !myReview && !isOwner && currentUser?.role !== 'admin' && (
               <ReviewForm
                 courseId={course.id.toString()}
                 onSuccess={() => {
@@ -933,8 +947,9 @@ export function CourseDetailPage({
               />
             )}
 
-            {/* Message for non-eligible users */}
-            {isEnrolled && !canReview && (
+
+            {/* Message for non-eligible users (chỉ cho học viên, không phải owner/admin) */}
+            {isEnrolled && !canReview && !isOwner && currentUser?.role !== 'admin' && (
               <Alert className="mb-6">
                 <AlertDescription>
                   Bạn cần hoàn thành 100% khóa học để có thể đánh giá.

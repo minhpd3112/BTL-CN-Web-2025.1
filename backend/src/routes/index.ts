@@ -9,6 +9,8 @@ import enrollmentRoutes from './enrollment.routes';
 import lessonProgressRoutes from './lesson-progress.routes';
 import quizRoutes from './quiz.routes';
 import reviewRoutes from './review.routes';
+
+import notificationRoutes from './notification.routes';
 import userRoutes from './user.routes';
 
 const router = Router();
@@ -23,6 +25,8 @@ router.use('/enrollments', enrollmentRoutes);
 router.use('/lesson-progress', lessonProgressRoutes);
 router.use('/quiz', quizRoutes);
 router.use('/reviews', reviewRoutes);
+
+router.use('/notifications', notificationRoutes);
 router.use('/users', userRoutes);
 
 export default router;

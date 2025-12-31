@@ -47,6 +47,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
         if (response.success) {
           // Defensive: ensure response.data is an array (API trả về data: Array)
           const courseList = Array.isArray(response.data) ? response.data : [];
+          console.log('[MyCoursesPage] courseList from API:', courseList);
           // Ẩn khoá học bị từ chối khỏi danh sách chính, nhưng lưu lại rejected để hiển thị lý do
           const rejectedCourses = courseList.filter((course: any) => course.status === 'rejected');
           const mappedCourses = courseList
@@ -62,8 +63,10 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
               visibility: course.visibility as 'public' | 'private',
               status: course.status,
-              studentsCount: 0,
-              lessonsCount: 0,
+              studentsCount: course.students || course.studentsCount || course.total_students || course.enrolled_count || 0,
+              students: course.students || course.studentsCount || course.total_students || course.enrolled_count || 0,
+              rating: course.rating || 0,
+              lessonsCount: course.lessons || 0,
               rejectionReason: course.rejection_reason || '',
             }));
           setMyCreatedCourses(mappedCourses);
@@ -106,7 +109,9 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               tags: enrollment.course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
               visibility: enrollment.course.visibility as 'public' | 'private',
               status: enrollment.course.status,
-              studentsCount: 0,
+              studentsCount: enrollment.course.students || enrollment.course.studentsCount || enrollment.course.total_students || enrollment.course.enrolled_count || 0,
+              students: enrollment.course.students || enrollment.course.studentsCount || enrollment.course.total_students || enrollment.course.enrolled_count || 0,
+              rating: enrollment.course.rating || 0,
               lessonsCount: enrollment.progress?.total || 0,
               progress: enrollment.progress?.percentage || 0,
               completedLessons: enrollment.progress?.completed || 0,
