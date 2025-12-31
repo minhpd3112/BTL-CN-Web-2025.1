@@ -42,11 +42,52 @@ export const UserModel = {
   },
 
   async delete(id: string) {
-    const { error } = await supabaseAdmin
+    // 1. Xoá toàn bộ khoá học mà user là owner
+    const { data: ownedCourses, error: courseErr } = await supabaseAdmin
+      .from('courses')
+      .select('id')
+      .eq('owner_id', id);
+    if (courseErr) throw courseErr;
+    if (ownedCourses && ownedCourses.length > 0) {
+      const courseIds = ownedCourses.map((c: any) => c.id);
+      // Xoá enrollments liên quan đến các khoá học này
+      const { error: delEnrollErr } = await supabaseAdmin
+        .from('enrollments')
+        .delete()
+        .in('course_id', courseIds);
+      if (delEnrollErr) throw delEnrollErr;
+      // Xoá khoá học
+      const { error: delCourseErr } = await supabaseAdmin
+        .from('courses')
+        .delete()
+        .in('id', courseIds);
+      if (delCourseErr) throw delCourseErr;
+    }
+
+    // 2. Xoá enrollments liên quan
+    // Xoá enrollments mà user là học viên
+    const { error: enrollUserErr } = await supabaseAdmin
+      .from('enrollments')
+      .delete()
+      .eq('user_id', id);
+    if (enrollUserErr) throw enrollUserErr;
+    // Cập nhật enrollments mà user là người duyệt (approved_by)
+    const { error: enrollApproveErr } = await supabaseAdmin
+      .from('enrollments')
+      .update({ approved_by: null })
+      .eq('approved_by', id);
+    if (enrollApproveErr) throw enrollApproveErr;
+
+    // 3. Xoá profile
+    const { error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .delete()
       .eq('id', id);
-    if (error) throw error;
+    if (profileError) throw profileError;
+
+    // 4. Xoá user thực trong auth.users (Supabase)
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError) throw authError;
     return true;
   },
 };

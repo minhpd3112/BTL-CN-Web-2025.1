@@ -99,44 +99,96 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
     }
   };
 
-  const handleAddTag = () => {
+  const handleAddTag = async () => {
     if (!formData.name.trim()) {
       toast.error('Vui lòng nhập tên chủ đề');
       return;
     }
-    const newTag: TagData = {
-      id: Math.max(...tags.map(t => t.id), 0) + 1,
-      name: formData.name,
-      description: formData.description,
-      courseCount: 0,
-      image: formData.image || undefined,
-    };
-    setTags([...tags, newTag]);
-    toast.success(`Đã thêm chủ đề "${formData.name}"`);
-    setShowAddDialog(false);
+    try {
+      await tagsAPI.createTag({
+        name: formData.name,
+        description: formData.description,
+        image: formData.image || undefined,
+      });
+      toast.success(`Đã thêm chủ đề "${formData.name}"`);
+      setShowAddDialog(false);
+      // Refetch tags from backend
+      setLoading(true);
+      setError(null);
+      let data = await tagsAPI.getAllTags();
+      if (!Array.isArray(data)) {
+        if (data && Array.isArray(data.data)) {
+          data = data.data;
+        } else {
+          data = [];
+        }
+      }
+      setTags(data);
+    } catch (e) {
+      toast.error('Thêm chủ đề thất bại');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditTag = () => {
+  const handleEditTag = async () => {
     if (!formData.name.trim()) {
       toast.error('Vui lòng nhập tên chủ đề');
       return;
     }
-    setTags(tags.map(tag =>
-      tag.id === selectedTagState?.id
-        ? { ...tag, name: formData.name, description: formData.description, image: formData.image || undefined }
-        : tag
-    ));
-    toast.success(`Đã cập nhật chủ đề "${formData.name}"`);
-    setShowEditDialog(false);
-    setSelectedTagState(null);
+    if (!selectedTagState) return;
+    try {
+      await tagsAPI.updateTag(selectedTagState.id, {
+        name: formData.name,
+        description: formData.description,
+        image: formData.image || undefined,
+      });
+      toast.success(`Đã cập nhật chủ đề "${formData.name}"`);
+      setShowEditDialog(false);
+      setSelectedTagState(null);
+      // Refetch tags from backend
+      setLoading(true);
+      setError(null);
+      let data = await tagsAPI.getAllTags();
+      if (!Array.isArray(data)) {
+        if (data && Array.isArray(data.data)) {
+          data = data.data;
+        } else {
+          data = [];
+        }
+      }
+      setTags(data);
+    } catch (e) {
+      toast.error('Cập nhật chủ đề thất bại');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteTag = () => {
-    // Logic removal: No longer checks for courseCount.
-    setTags(tags.filter(tag => tag.id !== selectedTagState?.id));
-    toast.success(`Đã xóa chủ đề "${selectedTagState?.name}"`);
-    setShowDeleteDialog(false);
-    setSelectedTagState(null);
+  const handleDeleteTag = async () => {
+    if (!selectedTagState) return;
+    try {
+      await tagsAPI.deleteTag(selectedTagState.id);
+      toast.success(`Đã xóa chủ đề "${selectedTagState.name}"`);
+      setShowDeleteDialog(false);
+      setSelectedTagState(null);
+      // Refetch tags from backend
+      setLoading(true);
+      setError(null);
+      let data = await tagsAPI.getAllTags();
+      if (!Array.isArray(data)) {
+        if (data && Array.isArray(data.data)) {
+          data = data.data;
+        } else {
+          data = [];
+        }
+      }
+      setTags(data);
+    } catch (e) {
+      toast.error('Xóa chủ đề thất bại');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openEditDialog = (tag: TagData) => {

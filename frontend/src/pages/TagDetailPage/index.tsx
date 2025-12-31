@@ -101,7 +101,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
     );
   }
 
-  const totalStudents = tagCourses.reduce((sum, course) => sum + course.students, 0);
+  const totalStudents = tagCourses.reduce((sum, course) => sum + (typeof course.students === 'number' ? course.students : 0), 0);
   const avgRating = tagCourses.length > 0
     ? (tagCourses.reduce((sum, course) => sum + course.rating, 0) / tagCourses.length).toFixed(1)
     : '0.0';
@@ -249,6 +249,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
                       navigateTo('course-detail');
                     }}
                     currentUserId={currentUser?.id}
+                    currentRole={currentUser?.role}
                     isEnrolled={enrolledCourseIds.includes(course.id)}
                     onJoinSuccess={handleJoinSuccess}
                   />

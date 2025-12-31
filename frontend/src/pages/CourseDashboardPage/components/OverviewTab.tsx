@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Star, Users, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { reviewsAPI } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Course } from '@/types';
@@ -108,26 +111,7 @@ export function OverviewTab({ course, enrollmentRequests = [] }: OverviewTabProp
                 </Card>
 
                 {/* Requests Card */}
-                <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 overflow-hidden relative ${coursePendingRequests.length > 0 ? 'border-l-orange-500' : 'border-l-gray-300'}`}>
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Clock className={`w-24 h-24 ${coursePendingRequests.length > 0 ? 'text-orange-500' : 'text-gray-400'}`} />
-                    </div>
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Yêu cầu chờ duyệt</p>
-                                <div className="flex items-baseline gap-2">
-                                    <p className={`text-4xl font-bold ${coursePendingRequests.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-                                        {coursePendingRequests.length}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className={`w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${coursePendingRequests.length > 0 ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-200' : 'bg-gray-100'}`}>
-                                <Clock className={`w-6 h-6 ${coursePendingRequests.length > 0 ? 'text-white' : 'text-gray-400'}`} />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+
             </div>
 
             {/* Đánh giá */}

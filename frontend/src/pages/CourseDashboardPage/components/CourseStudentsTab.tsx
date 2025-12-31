@@ -24,7 +24,7 @@ export function CourseStudentsTab({
     const [addStudentOpen, setAddStudentOpen] = useState(false);
     const [inviteeEmail, setInviteeEmail] = useState('');
     const [isInviting, setIsInviting] = useState(false);
-    const [activeStudentTab, setActiveStudentTab] = useState<'enrolled' | 'pending'>('enrolled');
+    // Only show enrolled students, remove pending tab
     // Fetch real enrollments from API
     const [enrollments, setEnrollments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -99,32 +99,12 @@ export function CourseStudentsTab({
     }, [course.id, fetchEnrollments, fetchAverageProgress]);
 
     const courseEnrollments = enrollments;
-    const pendingRequests = courseEnrollments.filter(e => e.status === 'pending');
     const approvedStudents = courseEnrollments.filter(e => e.status === 'approved');
 
     console.log('Total enrollments:', enrollments.length);
     console.log('Approved students:', approvedStudents.length);
-    console.log('Pending requests:', pendingRequests.length);
 
-    const handleApproveRequest = async (enrollmentId: string) => {
-        try {
-            await enrollmentsAPI.updateStatus(enrollmentId, 'approved');
-            toast.success('Đã chấp nhận học viên');
-            fetchEnrollments(); // Refresh list
-        } catch (error) {
-            toast.error('Không thể chấp nhận học viên');
-        }
-    };
-
-    const handleRejectRequest = async (enrollmentId: string) => {
-        try {
-            await enrollmentsAPI.updateStatus(enrollmentId, 'rejected', 'Rejected by instructor');
-            toast.success('Đã từ chối học viên');
-            fetchEnrollments(); // Refresh list
-        } catch (error) {
-            toast.error('Không thể từ chối học viên');
-        }
-    };
+    // Remove approve/reject request handlers
 
     const handleRemoveStudent = async (enrollmentId: string) => {
         try {
@@ -173,7 +153,7 @@ export function CourseStudentsTab({
         <div className="py-6">
             {/* Stats */}
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* Total Students Card */}
                 <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-[#1E88E5] overflow-hidden relative">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -193,34 +173,6 @@ export function CourseStudentsTab({
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Pending Requests Card */}
-                <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 overflow-hidden relative ${pendingRequests.length > 0 ? 'border-l-orange-500' : 'border-l-gray-300'}`}>
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Clock className={`w-24 h-24 ${pendingRequests.length > 0 ? 'text-orange-500' : 'text-gray-400'}`} />
-                    </div>
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Yêu cầu chờ duyệt</p>
-                                <div className="flex items-baseline gap-2">
-                                    <p className={`text-4xl font-bold ${pendingRequests.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-                                        {pendingRequests.length}
-                                    </p>
-                                    {pendingRequests.length > 0 && (
-                                        <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full animate-pulse">
-                                            Cần xử lý
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className={`w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${pendingRequests.length > 0 ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-200' : 'bg-gray-100'}`}>
-                                <Clock className={`w-6 h-6 ${pendingRequests.length > 0 ? 'text-white' : 'text-gray-400'}`} />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
                 {/* Average Progress Card */}
                 <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 overflow-hidden relative">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -242,33 +194,8 @@ export function CourseStudentsTab({
                 </Card>
             </div>
 
-            <Tabs defaultValue="enrolled" onValueChange={(v) => setActiveStudentTab(v as 'enrolled' | 'pending')}>
-                <TabsList className="mb-6 bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
-                    {/* Sliding indicator */}
-                    <div
-                        className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
-                        style={{
-                            left: activeStudentTab === 'enrolled' ? '0px' : '50%',
-                            width: '50%',
-                        }}
-                    />
-                    <TabsTrigger
-                        value="enrolled"
-                        className="relative z-10 flex-1 min-w-[140px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-                        style={{ color: activeStudentTab === 'enrolled' ? '#FFFFFF' : '#1E88E5' }}
-                    >
-                        Đã tham gia ({approvedStudents.length})
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="pending"
-                        className="relative z-10 flex-1 min-w-[140px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-                        style={{ color: activeStudentTab === 'pending' ? '#FFFFFF' : '#1E88E5' }}
-                    >
-                        Chờ duyệt ({pendingRequests.length})
-                    </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="enrolled">
+            {/* Only show enrolled students, no tabs */}
+            <div>
                     <Card className="hover:shadow-lg transition-shadow duration-300">
                         <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
                             <div className="flex items-center justify-between">
@@ -400,68 +327,7 @@ export function CourseStudentsTab({
                             )}
                         </CardContent>
                     </Card>
-                </TabsContent>
-
-                <TabsContent value="pending">
-                    <Card className="hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
-                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Yêu cầu đăng ký chờ duyệt</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {pendingRequests.length > 0 ? (
-                                <div className="space-y-4">
-                                    {pendingRequests.map((request: any) => (
-                                        <div key={request.id} className="p-4 border rounded-lg">
-                                            <div className="flex items-start gap-3">
-                                                <Avatar>
-                                                    <AvatarFallback className="bg-[#1E88E5] text-white">
-                                                        {request.userAvatar}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1">
-                                                    <div className="font-medium mb-1">{request.userName}</div>
-                                                    <div className="text-sm text-gray-600 mb-2">{request.userEmail}</div>
-                                                    {request.message && (
-                                                        <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                                                            <p className="text-sm text-gray-700 italic">"{request.message}"</p>
-                                                        </div>
-                                                    )}
-                                                    <div className="text-xs text-gray-500">
-                                                        Đăng ký lúc: {request.requestedAt}
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-500 hover:bg-green-600"
-                                                        onClick={() => handleApproveRequest(request.id)}
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                                        Chấp nhận
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => handleRejectRequest(request.id)}
-                                                    >
-                                                        <XCircle className="w-4 h-4 mr-1" />
-                                                        Từ chối
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p>Không có yêu cầu đăng ký mới</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                </div>
         </div >
     );
 }

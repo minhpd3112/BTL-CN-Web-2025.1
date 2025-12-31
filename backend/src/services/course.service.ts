@@ -129,14 +129,50 @@ export const courseService = {
       }
 
       // Transform data
+      // Lấy tất cả course_id
+      const courseIds = (data || []).map((course: any) => course.id);
+      // Query enrollments 1 lần cho tất cả course_id
+      let studentsMap: Record<string, number> = {};
+      if (courseIds.length > 0) {
+        const { data: enrollmentsData, error: enrollmentsError } = await supabaseAdmin
+          .from('enrollments')
+          .select('course_id, status')
+          .in('course_id', courseIds)
+          .eq('status', 'approved');
+        console.log('EnrollmentsData:', enrollmentsData);
+        if (!enrollmentsError && Array.isArray(enrollmentsData)) {
+          // Đếm số học viên cho từng khoá học
+          studentsMap = enrollmentsData.reduce((acc: Record<string, number>, e: any) => {
+            acc[e.course_id] = (acc[e.course_id] || 0) + 1;
+            return acc;
+          }, {});
+          console.log('StudentsMap:', studentsMap);
+        }
+      }
+
+      // Fetch average rating for all courses
+      const ReviewModel = require('../models/review.model').ReviewModel;
+      const ratingMap: Record<string, number> = {};
+      if (courseIds.length > 0) {
+        for (const courseId of courseIds) {
+          try {
+            const stats = await ReviewModel.getCourseAverageRating(courseId);
+            ratingMap[courseId] = stats.average;
+          } catch (err) {
+            ratingMap[courseId] = 0;
+          }
+        }
+      }
+
       const courses = (data || []).map((course: any) => ({
         ...course,
         visibility: typeof course.visibility === 'string'
           ? course.visibility.trim().toLowerCase() === 'private' ? 'private' : 'public'
           : 'public',
         tags: course.course_tags?.map((ct: any) => ct.tags).filter(Boolean) || [],
-        enrollmentCount: 0,
+        students: studentsMap[course.id] || 0,
         owner: course.owner || undefined,
+        rating: ratingMap[course.id] || 0,
       }));
 
       return {

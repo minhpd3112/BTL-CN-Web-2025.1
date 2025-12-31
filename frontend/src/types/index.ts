@@ -142,9 +142,17 @@ export interface Review {
   helpful: number;
 }
 
+
+// Notification types for users
+export type NotificationType =
+  | 'course_approved'
+  | 'course_rejected'
+  | 'student_joined'
+  | 'course_completed';
+
 export interface Notification {
   id: string; // uuid
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   courseId?: string; // uuid

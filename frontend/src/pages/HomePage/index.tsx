@@ -32,6 +32,13 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [allTags, setAllTags] = useState<TagType[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
+
+  // Debug: log publicCourses when it changes
+  useEffect(() => {
+    if (!loadingCourses) {
+      console.log('publicCourses:', publicCourses);
+    }
+  }, [publicCourses, loadingCourses]);
   // Fetch all tags from backend
   useEffect(() => {
     setLoadingTags(true);
@@ -211,6 +218,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                       navigateTo('course-detail');
                     }}
                     currentUserId={currentUser?.id}
+                    currentRole={currentUser?.role}
                     isEnrolled={enrolledCourseIds.includes(course.id)}
                     onJoinSuccess={handleJoinSuccess}
                   />

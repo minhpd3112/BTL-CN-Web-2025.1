@@ -1,3 +1,18 @@
+// -----------------------------
+// Notifications API
+// -----------------------------
+export const notificationsAPI = {
+  getMyNotifications: () => api.get('/notifications').then(res => res.data),
+  markAsRead: (id: string) => api.patch(`/notifications/${id}/read`).then(res => res.data),
+  markAllAsRead: () => api.patch('/notifications/read-all').then(res => res.data),
+};
+// -----------------------------
+// Users API
+// -----------------------------
+export const usersAPI = {
+  getAllUsers: () => api.get('/users').then(res => res.data),
+  delete: (id: string) => api.delete(`/users/${id}`).then(res => res.data),
+};
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
