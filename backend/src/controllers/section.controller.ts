@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { SectionModel } from '@models/section.model';
-import { HttpStatus } from '@utils/httpStatus';
+import { httpStatus } from '@utils/httpStatus';
 
 export const SectionController = {
   async getByCourseId(req: Request, res: Response) {
@@ -14,7 +14,7 @@ export const SectionController = {
       });
     } catch (error: any) {
       console.error('Get sections error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch sections',
         error: error.message,
@@ -28,7 +28,7 @@ export const SectionController = {
       const section = await SectionModel.findById(id);
 
       if (!section) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Section not found',
         });
@@ -40,7 +40,7 @@ export const SectionController = {
       });
     } catch (error: any) {
       console.error('Get section error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch section',
         error: error.message,
@@ -52,13 +52,13 @@ export const SectionController = {
     try {
       const section = await SectionModel.create(req.body);
 
-      res.status(HttpStatus.CREATED).json({
+      res.status(httpStatus.CREATED).json({
         success: true,
         data: section,
       });
     } catch (error: any) {
       console.error('Create section error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to create section',
         error: error.message,
@@ -72,7 +72,7 @@ export const SectionController = {
       const section = await SectionModel.update(id, req.body);
 
       if (!section) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Section not found',
         });
@@ -84,7 +84,7 @@ export const SectionController = {
       });
     } catch (error: any) {
       console.error('Update section error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to update section',
         error: error.message,
@@ -103,7 +103,7 @@ export const SectionController = {
       });
     } catch (error: any) {
       console.error('Delete section error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to delete section',
         error: error.message,
@@ -116,7 +116,7 @@ export const SectionController = {
       const { course_id, sections } = req.body;
 
       if (!course_id || !sections) {
-        return res.status(HttpStatus.BAD_REQUEST).json({
+        return res.status(httpStatus.BAD_REQUEST).json({
           success: false,
           message: 'Course ID and sections are required',
         });
@@ -130,7 +130,7 @@ export const SectionController = {
       });
     } catch (error: any) {
       console.error('Reorder sections error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to reorder sections',
         error: error.message,

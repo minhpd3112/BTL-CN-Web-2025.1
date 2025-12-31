@@ -26,8 +26,8 @@ interface CourseDashboardPageProps {
   course: Course;
   navigateTo: (page: Page, course?: any) => void;
   enrollmentRequests?: any[];
-  onApproveRequest?: (id: number) => void;
-  onRejectRequest?: (id: number) => void;
+  onApproveRequest?: (id: string) => void;
+  onRejectRequest?: (id: string) => void;
   currentUser: User;
 }
 

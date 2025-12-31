@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { mockTags } from '@/services/mocks';
+import { coursesAPI, sectionsAPI, lessonsAPI, tagsAPI, supabase } from '@/services/api';
 import { Page, User } from '@/types';
 import { QuizEditor } from '@/components/shared/QuizEditor';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -48,7 +48,12 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [courseOverview, setCourseOverview] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
 
   // Sections and lessons
   const [sections, setSections] = useState<Section[]>([]);
@@ -68,6 +73,25 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [quizSettings, setQuizSettings] = useState<QuizSettings>({ quizType: 'practice', passingScore: 70 });
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+
+  // Fetch available tags on mount
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await tagsAPI.getAllTags();
+        if (response.success && response.data) {
+          const tagNames = response.data.map((tag: any) => tag.name);
+          setAvailableTags(tagNames);
+          console.log('Loaded tags from backend:', tagNames);
+        }
+      } catch (error: any) {
+        console.error('Error fetching tags:', error);
+        setAvailableTags([]);
+      }
+    };
+
+    fetchTags();
+  }, []);
 
   const handleEditSection = (section: Section) => {
     setEditingSection(section);
@@ -234,7 +258,54 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
     setShowQuizEditor(false);
   };
 
-  const handleSaveCourse = () => {
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      // Get the current auth token from localStorage
+      const authToken = localStorage.getItem('auth_token');
+
+      if (!authToken) {
+        console.error('No auth token found. User must be logged in to upload images.');
+        toast.error('Vui lòng đăng nhập để upload ảnh');
+        return null;
+      }
+
+      // Set the session for Supabase client
+      // This ensures the upload uses a fresh token
+      await supabase.auth.setSession({
+        access_token: authToken,
+        refresh_token: '', // Not needed for upload
+      });
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `course-images/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('course-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('course-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      return null;
+    }
+  };
+
+  const handleSaveCourse = async () => {
+    // Validation
     if (!courseName.trim()) {
       toast.error('Vui lòng nhập tên khóa học');
       return;
@@ -252,8 +323,124 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       return;
     }
 
-    toast.success('Đã tạo khóa học thành công!');
-    setTimeout(() => navigateTo('my-courses'), 1000);
+    setIsCreating(true);
+
+    try {
+      let uploadedImageUrl: string | null = imageUrl;
+
+      // Upload image if file is selected
+      if (imageFile) {
+        toast.info('Đang upload ảnh bìa...');
+        uploadedImageUrl = await uploadImage(imageFile);
+        if (!uploadedImageUrl) {
+          toast.error('Không thể upload ảnh. Vui lòng thử lại.');
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      // Prepare course data matching backend schema
+      const courseData = {
+        title: courseName,
+        description: description,
+        overview: courseOverview || null,
+        visibility: visibility,
+        // Nếu public thì status là 'pending' (chờ admin duyệt), nếu private thì 'approved'
+        status: visibility === 'public' ? 'pending' : 'approved',
+        image_url: uploadedImageUrl || null,
+        // Note: owner_id will be set by backend from auth token
+      };
+
+      // Create the course
+      const response = await coursesAPI.createCourse(courseData);
+
+      if (response.success && response.data) {
+        const courseId = response.data.id;
+
+        toast.success('Đã tạo khóa học thành công!');
+
+        // Save tags to course
+        if (selectedTags.length > 0) {
+          try {
+            console.log('Saving tags:', { courseId, selectedTags });
+            const tagResponse = await coursesAPI.addCourseTags(courseId, selectedTags);
+            console.log('Tags saved successfully:', tagResponse);
+          } catch (error: any) {
+            console.error('Error saving tags:', error);
+            console.error('Error details:', {
+              message: error?.message,
+              response: error?.response?.data,
+              status: error?.response?.status
+            });
+            toast.warning('Khóa học đã tạo nhưng không thể lưu chủ đề');
+          }
+        }
+
+        // Save sections and lessons
+        if (sections.length > 0) {
+          try {
+            for (const section of sections) {
+              const sectionData = {
+                course_id: courseId.toString(),
+                title: section.title,
+                description: section.description || '',
+                order_index: section.order - 1, // Convert to 0-indexed
+              };
+
+              const sectionResponse = await sectionsAPI.create(sectionData);
+
+              if (sectionResponse.success && sectionResponse.data && section.lessons.length > 0) {
+                const sectionId = sectionResponse.data.id;
+
+                // Save lessons for this section
+                for (let i = 0; i < section.lessons.length; i++) {
+                  const lesson = section.lessons[i];
+                  const lessonData: any = {
+                    section_id: sectionId.toString(),
+                    title: lesson.title,
+                    description: lesson.description || '',
+                    content_type: lesson.type === 'text' ? 'article' : lesson.type,
+                    order_index: i,
+                    is_free: false,
+                  };
+
+                  // Map to correct database columns
+                  if (lesson.type === 'video' && lesson.youtubeUrl) {
+                    lessonData.content_url = lesson.youtubeUrl;
+                  } else if (lesson.type === 'text' && lesson.content) {
+                    lessonData.content_text = lesson.content;
+                  } else if (lesson.type === 'pdf' && lesson.pdfUrl) {
+                    lessonData.content_url = lesson.pdfUrl;
+                  }
+
+                  await lessonsAPI.create(lessonData);
+                }
+              }
+            }
+            console.log('Sections and lessons saved successfully');
+          } catch (error) {
+            console.error('Error saving sections/lessons:', error);
+            toast.warning('Khóa học đã tạo nhưng không thể lưu nội dung');
+          }
+        }
+
+        setTimeout(() => navigateTo('my-courses'), 1500);
+      } else {
+        toast.error(response.message || 'Không thể tạo khóa học');
+      }
+    } catch (error: any) {
+      console.error('Create course error:', error);
+
+      if (error?.response?.status === 401) {
+        toast.error('Vui lòng đăng nhập để tạo khóa học');
+      } else if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Đã xảy ra lỗi khi tạo khóa học. Vui lòng thử lại.');
+      }
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -309,14 +496,84 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                   />
                 </div>
                 <div>
-                  <Label htmlFor="image">Ảnh bìa</Label>
-                  <div className="mt-2">
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1E88E5] transition-colors cursor-pointer bg-gray-50/50 hover:bg-[#1E88E5]/5">
-                      <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-1">Kéo thả ảnh vào đây hoặc click để chọn</p>
-                      <p className="text-xs text-gray-500">PNG, JPG (tối đa 5MB)</p>
-                      <input type="file" id="image" accept="image/*" className="hidden" />
+                  <Label htmlFor="image-file">Ảnh bìa khóa học</Label>
+                  <div className="mt-2 space-y-3">
+                    {/* File Input */}
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="image-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Validate file size (max 5MB)
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast.error('Kích thước ảnh không được vượt quá 5MB');
+                              return;
+                            }
+                            setImageFile(file);
+                            // Create preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setImagePreview(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('image-file')?.click()}
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        {imageFile ? 'Thay đổi ảnh' : 'Chọn ảnh'}
+                      </Button>
+                      {imageFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview('');
+                            const input = document.getElementById('image-file') as HTMLInputElement;
+                            if (input) input.value = '';
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
+
+                    {/* Image Preview */}
+                    {imagePreview && (
+                      <div className="relative w-full h-48 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!imagePreview && (
+                      <div className="flex items-center justify-center w-full h-48 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
+                        <div className="text-center">
+                          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">Chưa chọn ảnh bìa</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-500">
+                      💡 Chọn ảnh có kích thước tối đa 5MB (định dạng: JPG, PNG, WebP)
+                    </p>
                   </div>
                 </div>
                 <div>
@@ -353,9 +610,9 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                         <SelectValue placeholder="Thêm chủ đề..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockTags.map(tag => (
-                          <SelectItem key={tag.id} value={tag.name}>
-                            {tag.name}
+                        {availableTags.map(tagName => (
+                          <SelectItem key={tagName} value={tagName}>
+                            {tagName}
                           </SelectItem>
                         ))}
                       </SelectContent>

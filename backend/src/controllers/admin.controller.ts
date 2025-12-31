@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { httpStatus } from '../utils/httpStatus';
+import { signAdminToken } from '../utils/jwt';
 
 // Đặt thông tin admin cố định ở đây hoặc lấy từ biến môi trường
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@edulearn.vn';
@@ -15,21 +16,24 @@ export const adminController = {
       });
     }
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      // Trả về thông tin admin, có thể thêm JWT ở đây nếu muốn
+      // Trả về thông tin admin và JWT
+      const user = {
+        id: 'admin-fixed-id',
+        username: 'admin',
+        email: ADMIN_EMAIL,
+        name: 'Quản trị viên',
+        avatar: '',
+        role: 'admin',
+        joinedDate: '2024-01-01T00:00:00.000Z',
+        status: 'active',
+        lastLogin: new Date().toISOString(),
+      };
+      const token = signAdminToken({ id: user.id, role: user.role, email: user.email });
       return res.status(httpStatus.OK).json({
         success: true,
         data: {
-          user: {
-            id: 'admin-fixed-id',
-            username: 'admin',
-            email: ADMIN_EMAIL,
-            name: 'Quản trị viên',
-            avatar: '',
-            role: 'admin',
-            joinedDate: '2024-01-01T00:00:00.000Z',
-            status: 'active',
-            lastLogin: new Date().toISOString(),
-          },
+          user,
+          token,
         },
         message: 'Admin login successful',
       });

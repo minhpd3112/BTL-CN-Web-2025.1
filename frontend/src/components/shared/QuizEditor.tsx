@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, HelpCircle, Clock, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,16 +46,47 @@ Các hook cơ bản trong React:
 export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: QuizEditorProps) {
   const [quizText, setQuizText] = useState('');
   const [parsedQuestions, setParsedQuestions] = useState<QuizQuestion[]>(initialQuestions);
-  
+
   // Quiz Settings State
   const [hasTimeLimit, setHasTimeLimit] = useState<boolean>(initialSettings?.quizType === 'exam');
   const [timeLimit, setTimeLimit] = useState<number>(initialSettings?.timeLimit || 30);
   const [passingScore, setPassingScore] = useState<number>(initialSettings?.passingScore || 70);
 
+  // Convert initialQuestions to text format when component mounts or initialQuestions changes
+  useEffect(() => {
+    if (initialQuestions && initialQuestions.length > 0) {
+      console.log('🔄 Converting initialQuestions to text:', initialQuestions);
+      const formattedText = initialQuestions.map(q => {
+        console.log(`📝 Question: "${q.question}"`, {
+          type: q.type,
+          correctAnswers: q.correctAnswers,
+          options: q.options
+        });
+        const questionLine = q.question;
+        const optionLines = q.options.map((opt, idx) => {
+          const isCorrect = q.correctAnswers.includes(idx);
+          console.log(`  Option ${idx}: "${opt}" - Correct: ${isCorrect}`);
+
+          // Use proper format: (x) for single choice, [x] for multiple choice
+          if (q.type === 'single') {
+            return isCorrect ? `(x) ${opt}` : `( ) ${opt}`;
+          } else {
+            return isCorrect ? `[x] ${opt}` : `[ ] ${opt}`;
+          }
+        }).join('\n');
+        return `${questionLine}\n${optionLines}`;
+      }).join('\n\n');
+
+      console.log('✅ Final formatted text:', formattedText);
+      setQuizText(formattedText);
+      setParsedQuestions(initialQuestions);
+    }
+  }, [initialQuestions]);
+
   const parseQuizText = (text: string): QuizQuestion[] => {
     const questions: QuizQuestion[] = [];
     const lines = text.trim().split('\n').filter(line => line.trim());
-    
+
     let currentQuestion: Partial<QuizQuestion> | null = null;
     let currentOptions: string[] = [];
     let currentCorrectAnswers: number[] = [];
@@ -63,22 +94,31 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
 
     for (const line of lines) {
       const trimmedLine = line.trim();
-      
+
       // Check if it's an option line
-      const singleChoiceMatch = trimmedLine.match(/^\(([x ])\)\s*(.+)$/);
-      const multipleChoiceMatch = trimmedLine.match(/^\[([x ])\]\s*(.+)$/);
-      
+      // Match both (x) and ( x ) and () and ( ) formats
+      const singleChoiceMatch = trimmedLine.match(/^\(([x ]?)\)\s*(.+)$/);
+      const multipleChoiceMatch = trimmedLine.match(/^\[([x ]?)\]\s*(.+)$/);
+
       if (singleChoiceMatch || multipleChoiceMatch) {
         // It's an option
         const match = singleChoiceMatch || multipleChoiceMatch;
-        const isChecked = match![1] === 'x';
+        const isChecked = match![1].trim() === 'x';
         const optionText = match![2].trim();
-        
+
         if (!currentQuestion) {
           // Skip options without a question
           continue;
         }
-        
+
+        // Detect question type from first option's bracket format
+        if (currentOptions.length === 0) {
+          // First option - set question type based on bracket
+          const detectedType = singleChoiceMatch ? 'single' : 'multiple';
+          currentQuestion.type = detectedType;
+          console.log(`🔍 Detected type "${detectedType}" from bracket: ${singleChoiceMatch ? '()' : '[]'}`);
+        }
+
         currentOptions.push(optionText);
         if (isChecked) {
           currentCorrectAnswers.push(optionIndex);
@@ -96,7 +136,7 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
             explanation: currentQuestion.explanation
           });
         }
-        
+
         // Start new question
         currentQuestion = {
           question: trimmedLine,
@@ -108,7 +148,7 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
         optionIndex = 0;
       }
     }
-    
+
     // Save last question
     if (currentQuestion && currentQuestion.question && currentOptions.length > 0) {
       questions.push({
@@ -119,7 +159,7 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
         explanation: currentQuestion.explanation
       });
     }
-    
+
     return questions;
   };
 
@@ -133,15 +173,15 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
   const handleParse = () => {
     try {
       const questions = parseQuizText(quizText);
-      const typedQuestions = detectQuestionType(questions);
-      
-      if (typedQuestions.length === 0) {
+      console.log('📋 Parsed questions with types:', questions.map(q => ({ q: q.question, type: q.type })));
+
+      if (questions.length === 0) {
         toast.error('Không tìm thấy câu hỏi nào! Vui lòng kiểm tra format.');
         return;
       }
-      
-      setParsedQuestions(typedQuestions);
-      toast.success(`Đã phân tích ${typedQuestions.length} câu hỏi!`);
+
+      setParsedQuestions(questions);
+      toast.success(`Đã phân tích ${questions.length} câu hỏi!`);
     } catch (error) {
       toast.error('Có lỗi khi phân tích câu hỏi. Vui lòng kiểm tra format.');
     }
@@ -152,18 +192,18 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
       toast.error('Chưa có câu hỏi nào để lưu!');
       return;
     }
-    
+
     if (hasTimeLimit && (!timeLimit || timeLimit <= 0)) {
       toast.error('Vui lòng nhập thời gian giới hạn!');
       return;
     }
-    
+
     const settings: QuizSettings = {
       quizType: hasTimeLimit ? 'exam' : 'practice',
       timeLimit: hasTimeLimit ? timeLimit : undefined,
       passingScore
     };
-    
+
     onSave(parsedQuestions, settings);
     toast.success(`Đã lưu ${parsedQuestions.length} câu hỏi!`);
   };
@@ -191,7 +231,7 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
                 </Label>
               </div>
               <p className="text-sm text-gray-600">
-                {hasTimeLimit 
+                {hasTimeLimit
                   ? 'Học viên cần xác nhận và sẽ có thời gian giới hạn để làm bài'
                   : 'Học viên có thể làm bài không giới hạn thời gian'
                 }
@@ -314,7 +354,7 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <p className="text-sm text-gray-800 mb-2 font-medium">Copy prompt này và gửi đến ChatGPT/Claude/Gemini kèm theo nội dung quiz của bạn:</p>
                       <div className="bg-white p-3 rounded border border-gray-300 text-sm font-mono whitespace-pre-wrap">
-{`Hãy chuyển đổi các câu hỏi quiz sau sang format chuẩn:
+                        {`Hãy chuyển đổi các câu hỏi quiz sau sang format chuẩn:
 
 Format cho câu hỏi một đáp án đúng:
 - Dòng đầu: Câu hỏi
@@ -361,7 +401,7 @@ Các hook cơ bản trong React:
           </div>
 
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={handleParse}
               className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
             >

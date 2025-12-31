@@ -1,16 +1,61 @@
-import { Star, Users, ArrowRight, Eye } from 'lucide-react';
+import { Star, Users, ArrowRight, Eye, LogIn } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Course } from '@/types';
 import { useState } from 'react';
+import { supabase, enrollmentsAPI } from '@/services/api';
+import { toast } from 'sonner';
 
 interface CourseCardProps {
   course: Course;
   onClick: () => void;
+  isEnrolled?: boolean;
+  currentUserId?: string;
+  onJoinSuccess?: () => void;
 }
 
-export function CourseCard({ course, onClick }: CourseCardProps) {
+export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinSuccess }: CourseCardProps) {
+  const [isJoining, setIsJoining] = useState(false);
+
+  // Ưu tiên lấy image_url, sau đó image
+  let imageUrl = course.image_url || course.image;
+  // Nếu là tên file hoặc path ngắn, build public URL từ bucket
+  if (imageUrl && !/^https?:\/\//.test(imageUrl)) {
+    imageUrl = supabase.storage.from('course-images').getPublicUrl(imageUrl).data.publicUrl || '/placeholder-course.jpg';
+  }
+  if (!imageUrl) imageUrl = '/placeholder-course.jpg';
+
+  const handleJoinCourse = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!currentUserId) {
+      toast.error('Vui lòng đăng nhập để tham gia khóa học');
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const response = await enrollmentsAPI.create({
+        course_id: course.id,
+        request_message: `Tham gia khóa học ${course.title}`
+      });
+
+      if (response.success) {
+        toast.success('Bạn đã tham gia khóa học thành công!');
+        if (onJoinSuccess) onJoinSuccess();
+      } else {
+        toast.error(response.message || 'Không thể tham gia khóa học');
+      }
+    } catch (error: any) {
+      console.error('Join course error:', error);
+      toast.error('Đã xảy ra lỗi khi tham gia khóa học');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -35,7 +80,7 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
         >
           <div className="relative aspect-video overflow-hidden">
             <img
-              src={course.image}
+              src={imageUrl}
               alt={course.title}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
@@ -48,13 +93,29 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
               </div>
             </div>
 
-
-            {/* Play Icon Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
-              <div className="bg-white/30 backdrop-blur-md p-3 rounded-full shadow-lg">
-                <Eye className="w-10 h-10 text-white" />
+            {/* Join Button for Public Courses */}
+            {course.visibility === 'public' && !isEnrolled && currentUserId && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <Button
+                  size="sm"
+                  className="bg-[#1E88E5] hover:bg-[#1565C0] text-white shadow-lg"
+                  disabled={isJoining}
+                  onClick={handleJoinCourse}
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  {isJoining ? 'Đang tham gia...' : 'Tham gia ngay'}
+                </Button>
               </div>
-            </div>
+            )}
+
+            {/* Play Icon Overlay (for other cases) */}
+            {!(course.visibility === 'public' && !isEnrolled && currentUserId) && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
+                <div className="bg-white/30 backdrop-blur-md p-3 rounded-full shadow-lg">
+                  <Eye className="w-10 h-10 text-white" />
+                </div>
+              </div>
+            )}
           </div>
 
           <CardContent className="flex flex-col flex-grow p-5 gap-3">

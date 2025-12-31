@@ -37,7 +37,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         const res = await adminAPI.login({ email, password });
         if (res.success) {
           const adminUser: User = {
-            id: parseInt(res.data.user.id, 10),
+            id: res.data.user.id, // giữ nguyên string UUID
             username: res.data.user.email?.split('@')[0] || 'admin',
             email: res.data.user.email || '',
             name: res.data.user.full_name || 'Admin',
@@ -103,7 +103,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // eslint-disable-next-line no-console
           console.log('joinedDate for user', data.user.id, joinedDate);
           const realUser: User = {
-            id: parseInt(data.user.id, 10),
+            id: data.user.id, // giữ nguyên string UUID
             username: data.user.email?.split('@')[0] || 'user',
             email: data.user.email || '',
             name: data.user.user_metadata?.full_name || 'Người dùng mới',

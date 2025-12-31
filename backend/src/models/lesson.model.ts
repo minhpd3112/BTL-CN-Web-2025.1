@@ -1,5 +1,5 @@
 import { supabase } from '@config/supabase';
-import { Lesson } from '@types/index';
+import { Lesson } from '../types';
 
 export const LessonModel = {
   async findBySectionId(sectionId: string) {
@@ -122,6 +122,19 @@ export const LessonModel = {
       .eq('id', questionId);
 
     if (error) throw error;
+    return { success: true };
+  },
+
+  async reorder(sectionId: string, lessonOrders: { id: string; order_index: number }[]) {
+    const updates = lessonOrders.map(({ id, order_index }) =>
+      supabase
+        .from('lessons')
+        .update({ order_index })
+        .eq('id', id)
+        .eq('section_id', sectionId)
+    );
+
+    await Promise.all(updates);
     return { success: true };
   }
 };

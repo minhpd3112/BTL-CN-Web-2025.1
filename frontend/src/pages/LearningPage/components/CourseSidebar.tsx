@@ -23,6 +23,7 @@ interface CourseSidebarProps {
     sections: Section[];
     currentLessonId: number;
     onSelectLesson: (lessonId: number) => void;
+    onToggleCompletion?: (lessonId: string) => void;
     className?: string;
     isOpen?: boolean;
 }
@@ -31,6 +32,7 @@ export function CourseSidebar({
     sections,
     currentLessonId,
     onSelectLesson,
+    onToggleCompletion,
     className
 }: CourseSidebarProps) {
     // Determine which sections should be open by default (e.g., the one with the current lesson)
@@ -103,9 +105,15 @@ export function CourseSidebar({
                                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#1E88E5]" />
                                                 )}
 
-                                                <div className="mt-0.5 flex-shrink-0">
+                                                <div
+                                                    className="mt-0.5 flex-shrink-0 cursor-pointer"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onToggleCompletion?.(String(lesson.id));
+                                                    }}
+                                                >
                                                     {lesson.isCompleted ? (
-                                                        <CheckCircle className="w-4 h-4 text-green-500 fill-green-100" />
+                                                        <CheckCircle className="w-4 h-4 text-green-500 fill-green-100 hover:scale-110 transition-transform" />
                                                     ) : (
                                                         <Icon className={cn(
                                                             "w-4 h-4",

@@ -5,7 +5,7 @@
 export type UserRole = 'admin' | 'user';
 
 export interface User {
-  id: number;
+  id: string; // uuid
   username: string;
   // NOTE: password đã bị xóa - frontend KHÔNG BAO GIỜ nên biết password của user
   role: UserRole;
@@ -13,6 +13,8 @@ export interface User {
   avatar: string;
   email: string;
   fullName?: string;
+  full_name?: string; // API field
+  avatar_url?: string; // API field
   phone?: string;
   bio?: string;
   joinedDate: string;
@@ -22,13 +24,16 @@ export interface User {
   status: 'active' | 'inactive';
   lastLogin: string;
   location?: string;
+  address?: string; // API field
   googleId?: string;
   createdAt?: string;
+  created_at?: string; // API field
   updatedAt?: string;
+  updated_at?: string; // API field
 }
 
 export interface Tag {
-  id: number;
+  id: string; // uuid
   name: string;
   color: string;
   icon: string;
@@ -38,17 +43,19 @@ export interface Tag {
 }
 
 export interface Course {
-  id: number;
+  id: string; // uuid
   title: string;
   description: string;
   overview?: string;
   ownerName: string;
-  ownerId: number;
+  ownerId: string; // uuid
+  owner_id?: string; // API field
   ownerAvatar: string;
   rating: number;
   students: number;
   duration: string;
   image: string;
+  image_url?: string; // for Supabase storage URLs
   tags: string[];
   status: 'pending' | 'approved' | 'rejected';
   visibility: 'public' | 'private';
@@ -59,8 +66,8 @@ export interface Course {
 }
 
 export interface Section {
-  id: number;
-  courseId: number;
+  id: string; // uuid
+  courseId: string; // uuid
   title: string;
   description: string;
   order: number;
@@ -82,8 +89,8 @@ export interface QuizSettings {
 }
 
 export interface Lesson {
-  id: number;
-  sectionId: number;
+  id: string; // uuid
+  sectionId: string; // uuid
   title: string;
   type: 'video' | 'text' | 'pdf' | 'quiz';
   duration: string;
@@ -97,9 +104,9 @@ export interface Lesson {
 }
 
 export interface Enrollment {
-  id: number;
-  userId: number;
-  courseId: number;
+  id: string; // uuid
+  userId: string; // uuid
+  courseId: string; // uuid
   enrolledAt: string;
   progress: number;
   completedLessons: number[];
@@ -107,9 +114,9 @@ export interface Enrollment {
 }
 
 export interface EnrollmentRequest {
-  id: number;
-  courseId: number;
-  userId: number;
+  id: string; // uuid
+  courseId: string; // uuid
+  userId: string; // uuid
   userName: string;
   userAvatar: string;
   userEmail: string;
@@ -120,9 +127,9 @@ export interface EnrollmentRequest {
 }
 
 export interface Review {
-  id: number;
-  courseId: number;
-  userId: number;
+  id: string; // uuid
+  courseId: string; // uuid
+  userId: string; // uuid
   userName: string;
   userAvatar: string;
   rating: number;
@@ -132,29 +139,29 @@ export interface Review {
 }
 
 export interface Notification {
-  id: number;
+  id: string; // uuid
   type: string;
   title: string;
   message: string;
-  courseId?: number;
-  userId?: number;
+  courseId?: string; // uuid
+  userId?: string; // uuid
   timestamp: string;
   read: boolean;
   icon: string;
   color: string;
   action?: {
     page: Page;
-    courseId?: number;
-    userId?: number;
+    courseId?: string; // uuid
+    userId?: string; // uuid
   };
 }
 
 export interface Activity {
-  id: number;
+  id: string; // uuid
   type: 'course_created' | 'course_pending' | 'user_enrolled' | 'course_approved';
-  userId: number;
+  userId: string; // uuid
   userName: string;
-  courseId?: number;
+  courseId?: string; // uuid
   courseName?: string;
   timestamp: string;
   icon: string;

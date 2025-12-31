@@ -1,9 +1,3 @@
-// -----------------------------
-// Users API
-// -----------------------------
-export const usersAPI = {
-  getAllUsers: () => api.get('/users').then(res => res.data),
-};
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,12 +10,14 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('Missing Supabase environment variables! Check your .env file.');
 }
 
+// Create Supabase client for direct database queries (e.g., user profiles)
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // -----------------------------
 // Axios instance
 // -----------------------------
-const api: AxiosInstance = axios.create({
+// Create axios instance with token
+export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -161,7 +157,18 @@ export const authAPI = {
 
   getStoredUser() {
     const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) {
+      console.log('[getStoredUser] user_data not found in localStorage');
+      return null;
+    }
+    try {
+      const user = JSON.parse(userData);
+      console.log('[getStoredUser] user loaded from localStorage:', user);
+      return user;
+    } catch (e) {
+      console.error('[getStoredUser] Failed to parse user_data:', e, userData);
+      return null;
+    }
   },
 
   getStoredToken() {
@@ -185,6 +192,9 @@ export const adminAPI = {
     const response = await api.post<AuthResponse>('/auth/admin/login', data);
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      if (response.data.data.session?.access_token) {
+        localStorage.setItem('auth_token', response.data.data.session.access_token);
+      }
     }
     return response.data;
   },
@@ -199,6 +209,15 @@ export const coursesAPI = {
   createCourse: (data: any) => api.post('/courses', data).then(res => res.data),
   updateCourse: (id: string, data: any) => api.patch(`/courses/${id}`, data).then(res => res.data),
   deleteCourse: (id: string) => api.delete(`/courses/${id}`).then(res => res.data),
+  addCourseTags: (courseId: string, tags: string[]) => api.post(`/courses/${courseId}/tags`, { tags }).then(res => res.data),
+  /**
+   * Admin approve/reject course
+   * @param id Course ID
+   * @param status 'approved' | 'rejected'
+   * @param rejection_reason Optional reason for rejection
+   */
+  reviewCourse: (id: string, status: 'approved' | 'rejected', rejection_reason?: string) =>
+    api.patch(`/courses/${id}/review`, { status, rejection_reason }).then(res => res.data),
 };
 
 // -----------------------------
@@ -210,4 +229,108 @@ export const tagsAPI = {
   createTag: (data: any) => api.post('/tags', data).then(res => res.data),
   updateTag: (id: string, data: any) => api.patch(`/tags/${id}`, data).then(res => res.data),
   deleteTag: (id: string) => api.delete(`/tags/${id}`).then(res => res.data),
+};
+
+// -----------------------------
+// Sections API
+// -----------------------------
+export const sectionsAPI = {
+  getByCourseId: (courseId: string) => api.get(`/sections/course/${courseId}`).then(res => res.data),
+  getById: (id: string) => api.get(`/sections/${id}`).then(res => res.data),
+  create: (data: any) => api.post('/sections', data).then(res => res.data),
+  update: (id: string, data: any) => api.patch(`/sections/${id}`, data).then(res => res.data),
+  delete: (id: string) => api.delete(`/sections/${id}`).then(res => res.data),
+  reorder: (data: any) => api.post('/sections/reorder', data).then(res => res.data),
+  reorderSections: (courseId: string, sections: { id: string; order_index: number }[]) =>
+    api.post('/sections/reorder', { course_id: courseId, sections }).then(res => res.data),
+};
+
+// -----------------------------
+// Lessons API
+// -----------------------------
+export const lessonsAPI = {
+  getBySectionId: (sectionId: string) => api.get(`/lessons/section/${sectionId}`).then(res => res.data),
+  getById: (id: string) => api.get(`/lessons/${id}`).then(res => res.data),
+  create: (data: any) => api.post('/lessons', data).then(res => res.data),
+  update: (id: string, data: any) => api.patch(`/lessons/${id}`, data).then(res => res.data),
+  delete: (id: string) => api.delete(`/lessons/${id}`).then(res => res.data),
+  reorderLessons: (sectionId: string, lessons: { id: string; order_index: number }[]) =>
+    api.post('/lessons/reorder', { section_id: sectionId, lessons }).then(res => res.data),
+};
+
+// -----------------------------
+// Enrollments API
+// -----------------------------
+export const enrollmentsAPI = {
+  leaveCourse: (id: string) => api.delete(`/enrollments/${id}/leave-test`).then(res => res.data),
+  getMyEnrollments: () => api.get('/enrollments/my-enrollments').then(res => res.data),
+  getByCourseId: (courseId: string, status?: string) => {
+    const params = status ? `?status=${status}` : '';
+    const cacheBuster = `${params ? '&' : '?'}_t=${Date.now()}`; // Prevent cache
+    return api.get(`/enrollments/course/${courseId}${params}${cacheBuster}`).then(res => res.data);
+  },
+  create: (data: { course_id: string; request_message?: string }) =>
+    api.post('/enrollments', data).then(res => res.data),
+  updateStatus: (id: string, status: 'approved' | 'rejected', rejection_reason?: string) =>
+    api.patch(`/enrollments/${id}/status`, { status, rejection_reason }).then(res => res.data),
+  delete: (id: string) => api.delete(`/enrollments/${id}`).then(res => res.data),
+  inviteByEmail: (courseId: string, inviteeEmail: string) =>
+    api.post('/enrollments/invite-by-email', {
+      course_id: courseId,
+      invitee_email: inviteeEmail
+    }).then(res => res.data),
+  getCourseAverageProgress: (courseId: string) =>
+    api.get(`/enrollments/course/${courseId}/average-progress`).then(res => res.data),
+};
+
+// -----------------------------
+// Lesson Progress API
+// -----------------------------
+export const lessonProgressAPI = {
+  toggleCompletion: (lessonId: string) =>
+    api.post('/lesson-progress/toggle', { lessonId }).then(res => res.data),
+
+  getUserProgress: (courseId: string) =>
+    api.get(`/lesson-progress/course/${courseId}`).then(res => res.data),
+};
+
+// -----------------------------
+// Quiz API
+// -----------------------------
+export const quizAPI = {
+  createQuiz: (lessonId: string, questions: any[], settings: any) =>
+    api.post(`/quiz/${lessonId}`, { questions, settings }).then(res => res.data),
+
+  getQuiz: (lessonId: string) =>
+    api.get(`/quiz/${lessonId}`).then(res => res.data),
+
+  submitQuiz: (lessonId: string, answers: any, timeSpent?: number) =>
+    api.post(`/quiz/${lessonId}/submit`, { answers, timeSpent }).then(res => res.data),
+
+  getAttempts: (lessonId: string) =>
+    api.get(`/quiz/${lessonId}/attempts`).then(res => res.data),
+};
+
+// -----------------------------
+// Reviews API
+// -----------------------------
+export const reviewsAPI = {
+  create: (data: { course_id: string; rating: number; comment: string }) =>
+    api.post('/reviews', data).then(res => res.data),
+
+  getByCourseId: (courseId: string) =>
+    api.get(`/reviews/course/${courseId}`).then(res => res.data),
+
+  getUserReview: (userId: string, courseId: string) =>
+    api.get(`/reviews/user/${userId}/course/${courseId}`).then(res => res.data),
+
+  delete: (id: string) =>
+    api.delete(`/reviews/${id}`).then(res => res.data),
+};
+
+// -----------------------------
+// Users API
+// -----------------------------
+export const usersAPI = {
+  getAllUsers: () => api.get('/users').then(res => res.data),
 };

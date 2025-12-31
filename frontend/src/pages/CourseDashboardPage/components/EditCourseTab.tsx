@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Lock, Globe, Video, FileText, Award, Trash2, BookOpen, Upload, Link as LinkIcon, X, AlertTriangle, Loader2, Edit, Check, GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,15 +14,18 @@ import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { mockTags } from '@/services/mocks';
-import { Course, Page, User } from '@/types';
+import { coursesAPI, sectionsAPI, lessonsAPI, tagsAPI, quizAPI, supabase } from '@/services/api';
+import { Course, Page, User, QuizSettings } from '@/types';
 import { QuizEditor } from '@/components/shared/QuizEditor';
+import { SortableSection } from './SortableSection';
+import { SortableLesson } from './SortableLesson';
 
 interface Section {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    order: number;
+    order_index: number;
+    course_id: string;
     lessons: Lesson[];
 }
 
@@ -32,30 +38,18 @@ interface QuizQuestion {
 }
 
 interface Lesson {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    type: 'video' | 'text' | 'pdf' | 'quiz';
-    duration: string;
-    youtubeUrl?: string;
-    content?: string;
-    pdfUrl?: string;
+    content_type: 'video' | 'text' | 'pdf' | 'quiz' | 'article';
+    duration?: number;
+    content_url?: string;  // For video and PDF
+    content_text?: string; // For text/article
+    section_id: string;
+    order_index: number;
     quizQuestions?: QuizQuestion[];
+    quizSettings?: QuizSettings;
 }
-
-// Mock course sections data - in real app, this would come from the course
-const mockCourseSections: Section[] = [
-    {
-        id: 1,
-        title: 'Giới thiệu',
-        description: 'Tổng quan về khóa học',
-        order: 1,
-        lessons: [
-            { id: 1, title: 'Chào mừng đến với khóa học', description: 'Video giới thiệu', type: 'video', duration: '10:00', youtubeUrl: 'dQw4w9WgXcQ' },
-            { id: 2, title: 'Cài đặt môi trường', description: 'Hướng dẫn setup', type: 'video', duration: '15:00', youtubeUrl: 'dQw4w9WgXcQ' },
-        ]
-    }
-];
 
 interface EditCourseTabProps {
     course: Course;
@@ -64,17 +58,25 @@ interface EditCourseTabProps {
 }
 
 export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTabProps) {
+    // Form states - initialize with course data
     const [courseName, setCourseName] = useState(course.title);
     const [description, setDescription] = useState(course.description);
     const [visibility, setVisibility] = useState<'private' | 'public'>(course.visibility || 'private');
     const [selectedTags, setSelectedTags] = useState<string[]>(course.tags || []);
-    const [courseOverview, setCourseOverview] = useState('');
+    const [courseOverview, setCourseOverview] = useState(course.overview || '');
+    const [imageUrl, setImageUrl] = useState(course.image || '');
+    const [availableTags, setAvailableTags] = useState<Array<{ value: string; label: string }>>([]);
+
+    // Loading states
+    const [isLoadingCourse, setIsLoadingCourse] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Sections and lessons
-    const [sections, setSections] = useState<Section[]>(mockCourseSections);
+    const [sections, setSections] = useState<Section[]>([]);
     const [showAddSection, setShowAddSection] = useState(false);
     const [sectionTitle, setSectionTitle] = useState('');
-    const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
+    const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
     const [editingSection, setEditingSection] = useState<Section | null>(null);
 
     // Lessons
@@ -89,53 +91,245 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
     const [showDeleteCourseDialog, setShowDeleteCourseDialog] = useState(false);
 
+    // Inline editing states
+    const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+    const [editSectionTitle, setEditSectionTitle] = useState('');
+
+    // Fetch available tags on mount
+    useEffect(() => {
+        const fetchTags = async () => {
+            try {
+                const response = await tagsAPI.getAllTags();
+                if (response.success && response.data) {
+                    const tagOptions = response.data.map((tag: any) => ({
+                        value: tag.name,
+                        label: tag.name
+                    }));
+                    setAvailableTags(tagOptions);
+                    console.log('Loaded tags from backend:', tagOptions);
+                }
+            } catch (error: any) {
+                console.error('Error fetching tags:', error);
+                // Fallback to empty array if fetch fails
+                setAvailableTags([]);
+            }
+        };
+
+        fetchTags();
+    }, []);
+
+    // Fetch full course details on mount
+    useEffect(() => {
+        const fetchCourseDetails = async () => {
+            if (!course.id) return;
+
+            setIsLoadingCourse(true);
+            try {
+                const response = await coursesAPI.getCourseById(course.id.toString());
+                if (response.success && response.data) {
+                    const fullCourse = response.data;
+
+                    // Parse tags - handle different formats from backend
+                    let courseTags: string[] = [];
+                    if (fullCourse.tags) {
+                        if (typeof fullCourse.tags === 'string') {
+                            try {
+                                courseTags = JSON.parse(fullCourse.tags);
+                            } catch (e) {
+                                // If parsing fails, treat as single tag
+                                courseTags = [fullCourse.tags];
+                            }
+                        } else if (Array.isArray(fullCourse.tags)) {
+                            // Tags might be array of objects like [{tag: {name: "JavaScript"}}]
+                            // or array of strings like ["JavaScript", "React"]
+                            courseTags = fullCourse.tags.map((item: any) => {
+                                // If item has a nested 'tag' object with 'name' property
+                                if (item?.tag?.name) {
+                                    return item.tag.name;
+                                }
+                                // If item itself has a 'name' property
+                                if (item?.name) {
+                                    return item.name;
+                                }
+                                // If item is already a string
+                                if (typeof item === 'string') {
+                                    return item;
+                                }
+                                return '';
+                            }).filter(Boolean); // Remove empty strings
+                        }
+                    }
+
+                    console.log('Parsed course tags:', courseTags);
+
+                    // Update all form fields with full course data
+                    setCourseName(fullCourse.title || '');
+                    setDescription(fullCourse.description || '');
+                    setVisibility(fullCourse.visibility || 'private');
+                    setSelectedTags(courseTags);
+                    setCourseOverview(fullCourse.overview || '');
+                    setImageUrl(fullCourse.image_url || fullCourse.image || '');
+
+                    console.log('Loaded course data:', {
+                        title: fullCourse.title,
+                        tags: courseTags,
+                        overview: fullCourse.overview,
+                        image: fullCourse.image_url || fullCourse.image
+                    });
+                }
+            } catch (error: any) {
+                console.error('Error fetching course details:', error);
+                toast.error('Không thể tải thông tin khóa học');
+            } finally {
+                setIsLoadingCourse(false);
+            }
+        };
+
+        fetchCourseDetails();
+    }, [course.id]);
+
+    // Fetch sections and lessons on mount
+    useEffect(() => {
+        const fetchCourseContent = async () => {
+            if (!course.id) return;
+
+            setIsLoading(true);
+            try {
+                const response = await sectionsAPI.getByCourseId(course.id.toString());
+                if (response.success && response.data) {
+                    setSections(response.data);
+                    console.log('Loaded sections:', response.data);
+                } else {
+                    console.log('No sections found or error:', response);
+                }
+            } catch (error: any) {
+                console.error('Error fetching course content:', error);
+                toast.error('Không thể tải nội dung khóa học');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCourseContent();
+    }, [course.id]);
+
     const handleEditSection = (section: Section) => {
         setEditingSection(section);
         setSectionTitle(section.title);
         setShowAddSection(true);
     };
 
-    const handleAddSection = () => {
+    const handleAddSection = async () => {
         if (sectionTitle.trim()) {
-            if (editingSection) {
-                // Update existing section
-                setSections(sections.map(s =>
-                    s.id === editingSection.id
-                        ? { ...s, title: sectionTitle }
-                        : s
-                ));
-                toast.success('Đã cập nhật mục!');
-            } else {
-                // Add new section
-                const newSection: Section = {
-                    id: Date.now(),
-                    title: sectionTitle,
-                    description: '',
-                    order: sections.length + 1,
-                    lessons: []
-                };
-                setSections([...sections, newSection]);
-                toast.success('Đã thêm mục mới!');
+            try {
+                if (editingSection) {
+                    // Update existing section
+                    const response = await sectionsAPI.update(editingSection.id, { title: sectionTitle });
+                    if (response.success) {
+                        setSections(sections.map(s =>
+                            s.id === editingSection.id
+                                ? { ...s, title: sectionTitle }
+                                : s
+                        ));
+                        toast.success('Đã cập nhật mục!');
+                    }
+                } else {
+                    // Add new section
+                    const newSectionData = {
+                        course_id: course.id.toString(),
+                        title: sectionTitle,
+                        description: '',
+                        order_index: sections.length,
+                    };
+                    const response = await sectionsAPI.create(newSectionData);
+                    if (response.success && response.data) {
+                        setSections([...sections, { ...response.data, lessons: [] }]);
+                        toast.success('Đã thêm mục mới!');
+                    }
+                }
+                setSectionTitle('');
+                setEditingSection(null);
+                setShowAddSection(false);
+            } catch (error: any) {
+                console.error('Error saving section:', error);
+                toast.error('Không thể lưu mục. Vui lòng thử lại.');
             }
-            setSectionTitle('');
-            setEditingSection(null);
-            setShowAddSection(false);
         }
     };
 
-    const handleEditLesson = (lesson: Lesson, sectionId: number) => {
+    const handleEditLesson = async (lesson: Lesson, sectionId: string) => {
         setEditingLesson(lesson);
         setCurrentSectionId(sectionId);
-        setLessonType(lesson.type);
+        setLessonType(lesson.content_type === 'article' ? 'text' : lesson.content_type);
         setLessonTitle(lesson.title);
-        setYoutubeUrl(lesson.youtubeUrl || '');
-        setLessonContent(lesson.content || '');
-        setPdfUrl(lesson.pdfUrl || '');
-        setQuizQuestions(lesson.quizQuestions || []);
+
+        // Load content based on type
+        if (lesson.content_type === 'video') {
+            setYoutubeUrl(lesson.content_url || '');
+        } else if (lesson.content_type === 'article' || lesson.content_type === 'text') {
+            setLessonContent(lesson.content_text || '');
+        } else if (lesson.content_type === 'pdf') {
+            setPdfUrl(lesson.content_url || '');
+        } else if (lesson.content_type === 'quiz') {
+            // Load quiz data from backend
+            try {
+                const response = await quizAPI.getQuiz(lesson.id);
+                console.log('🔍 Loading quiz data for edit:', response);
+
+                if (response.success && response.data) {
+                    const { questions, lesson: quizLesson } = response.data;
+
+                    console.log('📝 Quiz questions from backend:', questions);
+
+                    // Convert backend format to QuizEditor format
+                    const formattedQuestions: QuizQuestion[] = questions.map((q: any, qIdx: number) => {
+                        console.log(`\n🔍 Processing question ${qIdx}:`, q);
+                        console.log('  Answers:', q.answers);
+
+                        const correctAnswerIndices = q.answers
+                            .map((a: any, idx: number) => {
+                                console.log(`    Answer ${idx}:`, {
+                                    text: a.answer_text,
+                                    is_correct: a.is_correct,
+                                    willBeMarked: a.is_correct ? idx : -1
+                                });
+                                return a.is_correct ? idx : -1;
+                            })
+                            .filter((idx: number) => idx !== -1);
+
+                        console.log(`  ✅ Correct answer indices:`, correctAnswerIndices);
+
+                        const formatted = {
+                            question: q.question,
+                            type: q.type === 'single_choice' ? 'single' : 'multiple',
+                            options: q.answers.map((a: any) => a.answer_text),
+                            correctAnswers: correctAnswerIndices,
+                            explanation: q.explanation || ''
+                        };
+
+                        console.log('✅ Formatted question:', formatted);
+                        return formatted;
+                    });
+
+                    console.log('📦 All formatted questions:', formattedQuestions);
+                    setQuizQuestions(formattedQuestions);
+
+                    // Store quiz settings for later use
+                    if (quizLesson.quiz_settings) {
+                        // Will be used when opening QuizEditor
+                        (lesson as any).quizSettings = quizLesson.quiz_settings;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading quiz:', error);
+                toast.error('Không thể tải nội dung quiz');
+            }
+        }
+
         setShowAddLesson(true);
     };
 
-    const handleAddLesson = () => {
+    const handleAddLesson = async () => {
         if (!currentSectionId) {
             toast.error('Vui lòng chọn mục để thêm mục nhỏ');
             return;
@@ -147,106 +341,209 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 return;
             }
 
-            if (editingLesson) {
-                // Update existing lesson
-                const updatedLesson: Lesson = {
-                    ...editingLesson,
-                    title: lessonTitle,
-                    description: '',
-                    type: lessonType,
-                    ...(lessonType === 'video' && { youtubeUrl }),
-                    ...(lessonType === 'text' && { content: lessonContent }),
-                    ...(lessonType === 'pdf' && { pdfUrl }),
-                    ...(lessonType === 'quiz' && { quizQuestions })
-                };
+            try {
+                if (editingLesson) {
+                    // Update existing lesson
+                    const updateData: any = {
+                        title: lessonTitle,
+                        content_type: lessonType === 'text' ? 'article' : lessonType,
+                    };
+                    if (lessonType === 'video') updateData.content_url = youtubeUrl;
+                    if (lessonType === 'text') updateData.content_text = lessonContent;
+                    if (lessonType === 'pdf') updateData.content_url = pdfUrl;
 
-                setSections(sections.map(section =>
-                    section.id === currentSectionId
-                        ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
-                        : section
-                ));
+                    const response = await lessonsAPI.update(editingLesson.id, updateData);
+                    if (response.success && response.data) {
+                        setSections(sections.map(section =>
+                            section.id === currentSectionId
+                                ? {
+                                    ...section,
+                                    lessons: section.lessons.map(l =>
+                                        l.id === editingLesson.id ? response.data : l
+                                    )
+                                }
+                                : section
+                        ));
+                        toast.success('Đã cập nhật mục nhỏ!');
+                    }
+                } else {
+                    // Add new lesson
+                    const currentSection = sections.find(s => s.id === currentSectionId);
+                    const newLessonData: any = {
+                        section_id: currentSectionId,
+                        title: lessonTitle,
+                        description: '',
+                        content_type: lessonType === 'text' ? 'article' : lessonType,
+                        order_index: currentSection?.lessons.length || 0,
+                        is_free: false,
+                    };
+                    // Map to correct database columns
+                    if (lessonType === 'video') newLessonData.content_url = youtubeUrl;
+                    if (lessonType === 'text') newLessonData.content_text = lessonContent;
+                    if (lessonType === 'pdf') newLessonData.content_url = pdfUrl;
 
-                toast.success('Đã cập nhật mục nhỏ!');
+                    const response = await lessonsAPI.create(newLessonData);
+                    if (response.success && response.data) {
+                        setSections(sections.map(section =>
+                            section.id === currentSectionId
+                                ? { ...section, lessons: [...section.lessons, response.data] }
+                                : section
+                        ));
+                        toast.success('Đã thêm mục nhỏ!');
+                    }
+                }
+
+                setLessonTitle('');
+                setYoutubeUrl('');
+                setLessonContent('');
+                setPdfUrl('');
+                setEditingLesson(null);
+                setShowAddLesson(false);
+            } catch (error: any) {
+                console.error('Error saving lesson:', error);
+                toast.error('Không thể lưu mục nhỏ. Vui lòng thử lại.');
+            }
+        }
+    };
+
+    const handleSaveQuiz = async (questions: QuizQuestion[], settings: any) => {
+        if (!currentSectionId || !lessonTitle.trim()) {
+            toast.error('Vui lòng nhập tiêu đề và chọn mục');
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+
+            if (editingLesson && editingLesson.content_type === 'quiz') {
+                // UPDATE existing quiz
+                const lessonId = editingLesson.id;
+
+                // Update quiz content using quiz API
+                const quizResponse = await quizAPI.createQuiz(lessonId, questions, settings);
+
+                if (quizResponse.success) {
+                    // Also update lesson title if changed
+                    if (editingLesson.title !== lessonTitle) {
+                        await lessonsAPI.update(lessonId, { title: lessonTitle });
+                    }
+
+                    // Update local state
+                    setSections(sections.map(section =>
+                        section.id === currentSectionId
+                            ? {
+                                ...section,
+                                lessons: section.lessons.map(l =>
+                                    l.id === lessonId ? { ...l, title: lessonTitle } : l
+                                )
+                            }
+                            : section
+                    ));
+
+                    // IMPORTANT: Reload quiz data to get fresh data for next edit
+                    try {
+                        const reloadResponse = await quizAPI.getQuiz(lessonId);
+                        if (reloadResponse.success && reloadResponse.data) {
+                            const { questions } = reloadResponse.data;
+                            const formattedQuestions: QuizQuestion[] = questions.map((q: any) => {
+                                const correctAnswerIndices = q.answers
+                                    .map((a: any, idx: number) => a.is_correct ? idx : -1)
+                                    .filter((idx: number) => idx !== -1);
+
+                                return {
+                                    question: q.question,
+                                    type: q.type === 'single_choice' ? 'single' : 'multiple',
+                                    options: q.answers.map((a: any) => a.answer_text),
+                                    correctAnswers: correctAnswerIndices,
+                                    explanation: q.explanation || ''
+                                };
+                            });
+                            setQuizQuestions(formattedQuestions);
+                        }
+                    } catch (reloadError) {
+                        console.error('Failed to reload quiz data:', reloadError);
+                    }
+
+                    toast.success(`Đã cập nhật quiz với ${questions.length} câu hỏi!`);
+                } else {
+                    toast.error('Không thể cập nhật quiz');
+                }
             } else {
-                // Add new lesson
-                const newLesson: Lesson = {
-                    id: Date.now(),
+                // CREATE new quiz
+                const currentSection = sections.find(s => s.id === currentSectionId);
+                const newLessonData: any = {
+                    section_id: currentSectionId,
                     title: lessonTitle,
                     description: '',
-                    type: lessonType,
-                    duration: '15:00',
-                    ...(lessonType === 'video' && { youtubeUrl }),
-                    ...(lessonType === 'text' && { content: lessonContent }),
-                    ...(lessonType === 'pdf' && { pdfUrl })
+                    content_type: 'quiz',
+                    order_index: currentSection?.lessons.length || 0,
+                    is_free: false,
+                    quiz_settings: settings
                 };
 
-                setSections(sections.map(section =>
-                    section.id === currentSectionId
-                        ? { ...section, lessons: [...section.lessons, newLesson] }
-                        : section
-                ));
+                const response = await lessonsAPI.create(newLessonData);
 
-                toast.success('Đã thêm mục nhỏ!');
+                if (response.success && response.data) {
+                    const lessonId = response.data.id;
+                    const quizResponse = await quizAPI.createQuiz(lessonId, questions, settings);
+
+                    if (quizResponse.success) {
+                        setSections(sections.map(section =>
+                            section.id === currentSectionId
+                                ? { ...section, lessons: [...section.lessons, response.data] }
+                                : section
+                        ));
+                        toast.success(`Đã tạo quiz với ${questions.length} câu hỏi!`);
+                    } else {
+                        toast.error('Đã tạo lesson nhưng không thể lưu câu hỏi quiz');
+                    }
+                }
             }
 
             setLessonTitle('');
-            setYoutubeUrl('');
-            setLessonContent('');
-            setPdfUrl('');
+            setQuizQuestions([]);
             setEditingLesson(null);
             setShowAddLesson(false);
+            setShowQuizEditor(false);
+        } catch (error: any) {
+            console.error('Error saving quiz:', error);
+            toast.error('Không thể lưu quiz. Vui lòng thử lại.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleSaveQuiz = (questions: QuizQuestion[]) => {
-        if (!currentSectionId) return;
 
-        if (editingLesson) {
-            // Update existing quiz
-            const updatedLesson: Lesson = {
-                ...editingLesson,
-                title: lessonTitle,
-                description: '',
-                type: 'quiz',
-                duration: `${questions.length * 2} phút`,
-                quizQuestions: questions
-            };
-
-            setSections(sections.map(section =>
-                section.id === currentSectionId
-                    ? { ...section, lessons: section.lessons.map(l => l.id === editingLesson.id ? updatedLesson : l) }
-                    : section
-            ));
-
-            toast.success('Đã cập nhật quiz!');
-        } else {
-            // Add new quiz
-            const newLesson: Lesson = {
-                id: Date.now(),
-                title: lessonTitle,
-                description: '',
-                type: 'quiz',
-                duration: `${questions.length * 2} phút`,
-                quizQuestions: questions
-            };
-
-            setSections(sections.map(section =>
-                section.id === currentSectionId
-                    ? { ...section, lessons: [...section.lessons, newLesson] }
-                    : section
-            ));
-
-            toast.success('Đã thêm quiz!');
+    // Inline edit handlers
+    const handleSaveSectionEdit = async () => {
+        if (!editingSectionId || !editSectionTitle.trim()) {
+            setEditingSectionId(null);
+            return;
         }
 
-        setLessonTitle('');
-        setQuizQuestions([]);
-        setEditingLesson(null);
-        setShowAddLesson(false);
-        setShowQuizEditor(false);
+        try {
+            const response = await sectionsAPI.update(editingSectionId.toString(), {
+                title: editSectionTitle.trim()
+            });
+
+            if (response.success) {
+                setSections(sections.map(s =>
+                    s.id === editingSectionId ? { ...s, title: editSectionTitle.trim() } : s
+                ));
+                toast.success('Đã cập nhật tên mục');
+                setEditingSectionId(null);
+            } else {
+                toast.error('Không thể cập nhật tên mục');
+            }
+        } catch (error) {
+            console.error('Error updating section:', error);
+            toast.error('Có lỗi xảy ra khi cập nhật');
+        }
     };
 
-    const handleSaveChanges = () => {
+
+
+    const handleSaveChanges = async () => {
         if (!courseName.trim()) {
             toast.error('Vui lòng nhập tên khóa học');
             return;
@@ -259,13 +556,94 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             toast.error('Vui lòng chọn ít nhất 1 chủ đề');
             return;
         }
-        if (sections.length === 0) {
-            toast.error('Vui lòng thêm ít nhất 1 mục');
-            return;
-        }
 
-        toast.success('Đã lưu thay đổi!');
-        // No navigation needed, just a success message
+        setIsSaving(true);
+        try {
+            const updateData = {
+                title: courseName,
+                description: description,
+                overview: courseOverview || null,
+                visibility: visibility,
+                image_url: imageUrl || null,
+            };
+
+            const response = await coursesAPI.updateCourse(course.id.toString(), updateData);
+            if (response.success) {
+                // Save tags after course update
+                try {
+                    // Remove all existing tags first by calling addCourseTags with selected tags
+                    // The backend addTags will replace existing associations
+                    if (selectedTags.length > 0) {
+                        await coursesAPI.addCourseTags(course.id.toString(), selectedTags);
+                        console.log('Tags saved successfully:', selectedTags);
+                    }
+                } catch (tagError) {
+                    console.error('Error saving tags:', tagError);
+                    toast.warning('Đã lưu khóa học nhưng không thể cập nhật chủ đề');
+                }
+
+                toast.success('Đã lưu thay đổi!');
+            } else {
+                toast.error(response.message || 'Không thể lưu thay đổi');
+            }
+        } catch (error: any) {
+            console.error('Error saving course:', error);
+            toast.error('Không thể lưu thay đổi. Vui lòng thử lại.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Drag and drop sensors
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+    // Handle section reorder
+    const handleSectionDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = sections.findIndex((s) => s.id === active.id);
+            const newIndex = sections.findIndex((s) => s.id === over.id);
+            const newSections = arrayMove(sections, oldIndex, newIndex);
+            setSections(newSections);
+
+            try {
+                const sectionsWithNewOrder = newSections.map((section, index) => ({
+                    id: section.id,
+                    order_index: index
+                }));
+                await sectionsAPI.reorderSections(course.id.toString(), sectionsWithNewOrder);
+                toast.success('Đã cập nhật thứ tự mục');
+            } catch (error) {
+                toast.error('Không thể cập nhật thứ tự mục');
+            }
+        }
+    };
+
+    // Handle lesson reorder within a section
+    const handleLessonDragEnd = async (event: DragEndEvent, sectionId: string) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const sectionIndex = sections.findIndex(s => s.id === sectionId);
+            const section = sections[sectionIndex];
+            const oldIndex = section.lessons.findIndex((l) => l.id === active.id);
+            const newIndex = section.lessons.findIndex((l) => l.id === over.id);
+            const newLessons = arrayMove(section.lessons, oldIndex, newIndex);
+
+            const newSections = [...sections];
+            newSections[sectionIndex] = { ...section, lessons: newLessons };
+            setSections(newSections);
+
+            try {
+                const lessonsWithNewOrder = newLessons.map((lesson, index) => ({
+                    id: lesson.id,
+                    order_index: index
+                }));
+                await lessonsAPI.reorderLessons(sectionId, lessonsWithNewOrder);
+                toast.success('Đã cập nhật thứ tự bài học');
+            } catch (error) {
+                toast.error('Không thể cập nhật thứ tự bài học');
+            }
+        }
     };
 
     return (
@@ -316,13 +694,81 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                 <p className="text-xs text-gray-500 mt-1">{courseOverview.length}/2000 ký tự</p>
                             </div>
                             <div>
-                                <Label htmlFor="image">Ảnh bìa</Label>
-                                <Input
-                                    id="image"
-                                    type="file"
-                                    accept="image/*"
-                                    className="mt-2"
-                                />
+                                <Label htmlFor="image-upload">Ảnh bìa khóa học</Label>
+                                <div className="mt-2 space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="image-upload"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+
+                                                // Validate file size (max 5MB)
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    toast.error('Kích thước ảnh không được vượt quá 5MB');
+                                                    return;
+                                                }
+
+                                                setIsSaving(true);
+                                                try {
+                                                    // Upload to Supabase storage
+                                                    const fileExt = file.name.split('.').pop();
+                                                    const fileName = `course-${course.id}-${Date.now()}.${fileExt}`;
+                                                    const filePath = `${fileName}`;
+
+                                                    const { data, error } = await supabase.storage
+                                                        .from('course-images')
+                                                        .upload(filePath, file, {
+                                                            cacheControl: '3600',
+                                                            upsert: true
+                                                        });
+
+                                                    if (error) throw error;
+
+                                                    // Get public URL
+                                                    const { data: { publicUrl } } = supabase.storage
+                                                        .from('course-images')
+                                                        .getPublicUrl(filePath);
+
+                                                    setImageUrl(publicUrl);
+                                                    toast.success('Đã tải ảnh lên thành công!');
+                                                } catch (error: any) {
+                                                    console.error('Error uploading image:', error);
+                                                    toast.error('Không thể tải ảnh lên. Vui lòng thử lại.');
+                                                } finally {
+                                                    setIsSaving(false);
+                                                }
+                                            }}
+                                            className="flex-1"
+                                            disabled={isSaving}
+                                        />
+                                        {imageUrl && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setImageUrl('')}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-500">💡 Chọn ảnh từ máy tính (tối đa 5MB)</p>
+                                    {imageUrl && (
+                                        <div className="mt-3">
+                                            <img
+                                                src={imageUrl}
+                                                alt="Course preview"
+                                                className="w-full h-48 object-cover rounded-lg border"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x400?text=Invalid+Image';
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <Label>Chủ đề khóa học (có thể chọn nhiều) *</Label>
@@ -347,7 +793,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
                                     {/* Tag Selection Dropdown */}
                                     <Combobox
-                                        items={mockTags.map(tag => ({ value: tag.name, label: tag.name }))}
+                                        items={availableTags}
                                         value=""
                                         onValueChange={(value) => {
                                             if (value && !selectedTags.includes(value)) {
@@ -491,7 +937,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                             <div className="space-y-4">
                                                 <div>
                                                     <Label>Mục *</Label>
-                                                    <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(Number(val))}>
+                                                    <Select value={currentSectionId?.toString()} onValueChange={(val) => setCurrentSectionId(val)}>
                                                         <SelectTrigger className="mt-2">
                                                             <SelectValue placeholder="Chọn mục" />
                                                         </SelectTrigger>
@@ -587,6 +1033,24 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                     </div>
                                                 )}
 
+                                                {/* Edit Quiz Content Button for existing quiz lessons */}
+                                                {lessonType === 'quiz' && editingLesson && (
+                                                    <div className="border-t pt-4">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className="w-full"
+                                                            onClick={() => {
+                                                                setShowQuizEditor(true);
+                                                                setShowAddLesson(false);
+                                                            }}
+                                                        >
+                                                            <Award className="w-4 h-4 mr-2" />
+                                                            Chỉnh sửa nội dung Quiz ({quizQuestions.length} câu hỏi)
+                                                        </Button>
+                                                    </div>
+                                                )}
+
 
                                             </div>
                                             <DialogFooter>
@@ -610,87 +1074,70 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                             </div>
                         </CardHeader>
                         <CardContent>
-                            {sections.length > 0 ? (
-                                <div className="space-y-6">
-                                    {sections.map((section) => (
-                                        <div key={section.id} className="border-2 border-gray-200 rounded-lg overflow-hidden">
-                                            {/* Section Header */}
-                                            <div className="bg-gray-50 px-4 py-3 flex items-center justify-between group">
-                                                <div
-                                                    className="flex-1 cursor-pointer"
-                                                    onClick={() => handleEditSection(section)}
-                                                >
-                                                    <h4 className="text-sm font-medium">{section.title}</h4>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="secondary">{section.lessons.length} mục nhỏ</Badge>
-                                                    <Button variant="ghost" size="icon" onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSections(sections.filter(s => s.id !== section.id));
-                                                        toast.success('Đã xóa mục');
-                                                    }}>
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Lessons in Section */}
-                                            <div className="p-4 space-y-2">
-                                                {section.lessons.length > 0 ? (
-                                                    section.lessons.map((lesson, lessonIndex) => (
-                                                        <div key={lesson.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg hover:border-[#1E88E5]/50 transition-colors group">
-                                                            <div className="w-8 h-8 rounded bg-[#1E88E5]/10 flex items-center justify-center flex-shrink-0 text-sm text-[#1E88E5]">
-                                                                {lessonIndex + 1}
-                                                            </div>
-                                                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#1E88E5]" />}
-                                                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-green-600" />}
-                                                                {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-red-600" />}
-                                                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-orange-600" />}
-                                                            </div>
-                                                            <div
-                                                                className="flex-1 min-w-0 cursor-pointer"
-                                                                onClick={() => handleEditLesson(lesson, section.id)}
-                                                            >
-                                                                <div className="text-sm mb-1">{lesson.title}</div>
-                                                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                                    <span>
-                                                                        {lesson.type === 'video' && '📹 Video'}
-                                                                        {lesson.type === 'text' && '📝 Bài viết'}
-                                                                        {lesson.type === 'pdf' && '📄 PDF'}
-                                                                        {lesson.type === 'quiz' && '✅ Quiz'}
-                                                                    </span>
-                                                                    <span>•</span>
-                                                                    <span>{lesson.duration}</span>
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="flex-shrink-0"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSections(sections.map(s =>
-                                                                        s.id === section.id
-                                                                            ? { ...s, lessons: s.lessons.filter(l => l.id !== lesson.id) }
-                                                                            : s
-                                                                    ));
-                                                                    toast.success('Đã xóa bài học');
-                                                                }}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-center py-6 text-gray-500 text-sm">
-                                                        Chưa có mục nhỏ nào trong mục này
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                            {isLoading ? (
+                                <div className="text-center py-16">
+                                    <Loader2 className="w-10 h-10 text-[#1E88E5] mx-auto mb-4 animate-spin" />
+                                    <p className="text-gray-500">\u0110ang t\u1ea3i n\u1ed9i dung kh\u00f3a h\u1ecdc...</p>
                                 </div>
+                            ) : sections.length > 0 ? (
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+                                    <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                                        <div className="space-y-6">
+                                            {sections.map((section) => (
+                                                <SortableSection
+                                                    key={section.id}
+                                                    section={section}
+                                                    editingSectionId={editingSectionId}
+                                                    editSectionTitle={editSectionTitle}
+                                                    sections={sections}
+                                                    setEditingSectionId={setEditingSectionId}
+                                                    setEditSectionTitle={setEditSectionTitle}
+                                                    setSections={setSections}
+                                                    handleSaveSectionEdit={handleSaveSectionEdit}
+                                                    onRenderLessons={(section) => (
+                                                        <div className="p-4 space-y-2">
+                                                            {section.lessons.length > 0 ? (
+                                                                <DndContext
+                                                                    sensors={sensors}
+                                                                    collisionDetection={closestCenter}
+                                                                    onDragEnd={(e) => handleLessonDragEnd(e, section.id)}
+                                                                >
+                                                                    <SortableContext items={section.lessons.map(l => l.id)} strategy={verticalListSortingStrategy}>
+                                                                        {section.lessons.map((lesson, lessonIndex) => (
+                                                                            <SortableLesson
+                                                                                key={lesson.id}
+                                                                                lesson={lesson}
+                                                                                lessonIndex={lessonIndex}
+                                                                                onEdit={handleEditLesson}
+                                                                                onDelete={async (lessonId) => {
+                                                                                    try {
+                                                                                        await lessonsAPI.delete(lessonId);
+                                                                                        setSections(sections.map(s =>
+                                                                                            s.id === section.id
+                                                                                                ? { ...s, lessons: s.lessons.filter(l => l.id !== lessonId) }
+                                                                                                : s
+                                                                                        ));
+                                                                                        toast.success('Đã xóa bài học');
+                                                                                    } catch (error) {
+                                                                                        toast.error('Không thể xóa bài học');
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        ))}
+                                                                    </SortableContext>
+                                                                </DndContext>
+                                                            ) : (
+                                                                <div className="text-center py-6 text-gray-500 text-sm">
+                                                                    Chưa có mục nhỏ nào trong mục này
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                />
+                                            ))}
+                                        </div>
+                                    </SortableContext>
+                                </DndContext>
                             ) : (
                                 <div className="text-center py-16">
                                     <div className="w-20 h-20 rounded-full bg-[#1E88E5]/10 flex items-center justify-center mx-auto mb-4">
@@ -730,8 +1177,26 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                             <CardTitle className="text-lg font-bold text-[#1E88E5]">Hành động</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 pt-6">
-                            <Button className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md hover:shadow-lg transition-all" onClick={handleSaveChanges}>
-                                Lưu thay đổi
+                            <Button
+                                className="w-full bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md hover:shadow-lg transition-all"
+                                onClick={handleSaveChanges}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Đang lưu...
+                                    </>
+                                ) : (
+                                    'Lưu thay đổi'
+                                )}
+                            </Button>
+                            <Button
+                                onClick={() => setShowDeleteCourseDialog(true)}
+                                className="w-full bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Xóa khóa học</span>
                             </Button>
                         </CardContent>
                     </Card>
@@ -740,16 +1205,19 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
             {/* Quiz Editor Dialog */}
             <Dialog open={showQuizEditor} onOpenChange={setShowQuizEditor}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Tạo Quiz: {lessonTitle}</DialogTitle>
+                        <DialogTitle className="text-2xl font-bold text-[#1E88E5]">
+                            {editingLesson ? 'Chỉnh sửa Quiz' : 'Tạo Quiz Mới'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Nhập câu hỏi theo format đặc biệt
+                            {editingLesson ? `Chỉnh sửa nội dung quiz cho bài học "${lessonTitle}"` : `Tạo quiz cho bài học "${lessonTitle}"`}
                         </DialogDescription>
                     </DialogHeader>
                     <QuizEditor
                         onSave={handleSaveQuiz}
                         initialQuestions={quizQuestions}
+                        initialSettings={editingLesson?.quizSettings}
                     />
                 </DialogContent>
             </Dialog>
@@ -759,10 +1227,21 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 open={showDeleteCourseDialog}
                 onOpenChange={setShowDeleteCourseDialog}
                 title="Xác nhận xóa khóa học"
-                onConfirm={() => {
-                    toast.success('Đã xóa khóa học thành công');
-                    setShowDeleteCourseDialog(false);
-                    navigateTo('my-courses');
+                onConfirm={async () => {
+                    try {
+                        const response = await coursesAPI.deleteCourse(course.id.toString());
+                        if (response.success) {
+                            toast.success('Đã xóa khóa học thành công');
+                            setShowDeleteCourseDialog(false);
+                            // Navigate back to my courses after a short delay
+                            setTimeout(() => navigateTo('my-courses'), 500);
+                        } else {
+                            toast.error(response.message || 'Không thể xóa khóa học');
+                        }
+                    } catch (error: any) {
+                        console.error('Error deleting course:', error);
+                        toast.error('Có lỗi xảy ra khi xóa khóa học');
+                    }
                 }}
             >
                 <div className="flex gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
@@ -777,6 +1256,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     </div>
                 </div>
             </DeleteConfirmDialog>
-        </div >
+        </div>
     );
 }

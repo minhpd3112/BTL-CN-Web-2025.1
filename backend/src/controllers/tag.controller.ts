@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Tag as TagModel } from '@models/tag.model';
+import { TagModel } from '@models/tag.model';
 import { httpStatus } from '@utils/httpStatus';
 
 export const tagController = {
@@ -69,7 +69,7 @@ export const tagController = {
       const tag = await TagModel.update(id, req.body);
 
       if (!tag) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Tag not found',
         });
@@ -81,7 +81,7 @@ export const tagController = {
       });
     } catch (error: any) {
       console.error('Update tag error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to update tag',
         error: error.message,
@@ -100,7 +100,7 @@ export const tagController = {
       });
     } catch (error: any) {
       console.error('Delete tag error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to delete tag',
         error: error.message,

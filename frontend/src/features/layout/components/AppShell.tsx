@@ -50,13 +50,13 @@ interface AppShellProps {
     setSelectedTag: (tag: any) => void;
     setSidebarOpen: (open: boolean) => void;
     setShowNotifications: (show: boolean) => void;
-    markAsRead: (id: number) => void;
+    markAsRead: (id: string) => void;
     markAllAsRead: () => void;
     handleNotificationClick: (notification: any) => void;
     isOwner: (course: any) => boolean;
     canAccessCourse: (course: any) => boolean;
-    handleApproveRequest: (id: number) => void;
-    handleRejectRequest: (id: number) => void;
+    handleApproveRequest: (id: string) => void;
+    handleRejectRequest: (id: string) => void;
     handleEnrollRequest: (request: any) => void;
   };
 }
