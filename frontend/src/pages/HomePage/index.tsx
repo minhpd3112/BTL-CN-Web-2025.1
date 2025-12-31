@@ -1,4 +1,4 @@
-import { Search, Plus, TrendingUp, BookOpen, Users, Tag } from 'lucide-react';
+import { Search, Plus, TrendingUp, BookOpen, Users, Tag, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/shared/CourseCard';
@@ -143,15 +143,26 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                 Khám phá khóa học
               </Button>
               {currentUser?.role !== 'admin' && (
-                <Button
-                  size="lg"
-                  className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
-                  onClick={() => navigateTo('create-course')}
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Tạo khóa học
-                </Button>
+                <>
+                  <Button
+                    size="lg"
+                    className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
+                    onClick={() => navigateTo('create-course')}
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Tạo khóa học
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
+                    onClick={() => navigateTo('ai-learning-path')}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Tạo lộ trình AI
+                  </Button>
+                </>
               )}
             </div>
           </div >

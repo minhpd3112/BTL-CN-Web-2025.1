@@ -6,7 +6,7 @@ import { Eye, Globe, Lock, ArrowUpRight, Clock } from 'lucide-react';
 import { ReactNode } from 'react';
 
 interface CourseListCardProps {
-    course: Course & { progress?: number; completedLessons?: number };
+    course: Course & { progress?: number; completedLessons?: number; ownerName?: string };
     onClick: () => void;
     action?: ReactNode;
     showProgress?: boolean;
@@ -61,7 +61,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false, 
                                         {course.title}
                                     </h3>
                                     <p className="text-xs text-gray-500 font-medium">
-                                        Bởi <span className="text-gray-700">{course.ownerName}</span>
+                                        Bởi <span className="text-gray-700">{course.ownerName || course.owner?.full_name || 'Không rõ'}</span>
                                     </p>
                                 </div>
 

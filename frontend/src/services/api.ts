@@ -334,3 +334,14 @@ export const reviewsAPI = {
 export const usersAPI = {
   getAllUsers: () => api.get('/users').then(res => res.data),
 };
+
+// -----------------------------
+// AI Course API
+// -----------------------------
+export const aiCourseAPI = {
+  previewCourse: (data: { topic: string; level: string; goal: string }) =>
+    api.post('/ai-course/preview', data).then(res => res.data),
+
+  generateCourse: (data: { topic: string; level: string; goal: string; courseData?: any }) =>
+    api.post('/ai-course/generate', data).then(res => res.data),
+};

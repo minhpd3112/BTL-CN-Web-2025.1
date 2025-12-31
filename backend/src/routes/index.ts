@@ -10,6 +10,7 @@ import lessonProgressRoutes from './lesson-progress.routes';
 import quizRoutes from './quiz.routes';
 import reviewRoutes from './review.routes';
 import userRoutes from './user.routes';
+import aiCourseRoutes from './ai-course.routes';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/lesson-progress', lessonProgressRoutes);
 router.use('/quiz', quizRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/users', userRoutes);
+router.use('/ai-course', aiCourseRoutes);
 
 export default router;

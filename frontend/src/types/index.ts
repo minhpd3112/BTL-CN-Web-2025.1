@@ -192,4 +192,5 @@ export type Page =
   | 'manage-tags'
   | 'course-students'
   | 'account-settings'
-  | 'tag-detail';
+  | 'tag-detail'
+  | 'ai-learning-path';

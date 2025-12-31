@@ -26,6 +26,7 @@ import { ManageCoursesPage } from '@/pages/ManageCoursesPage';
 import { UserDetailPage } from '@/pages/UserDetailPage';
 import { AccountSettingsPage } from '@/pages/AccountSettingsPage';
 import { TagDetailPage } from '@/pages/TagDetailPage';
+import AILearningPathPage from '@/pages/AILearningPathPage';
 
 interface AppShellProps {
   state: {
@@ -365,6 +366,7 @@ export function AppShell({ state, actions }: AppShellProps) {
         {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
         {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
         {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
+        {currentPage === 'ai-learning-path' && <AILearningPathPage navigateTo={navigateTo} currentUser={currentUser} />}
         {currentPage === 'course-dashboard' && <CourseDashboardPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser!} enrollmentRequests={enrollmentRequests} onApproveRequest={handleApproveRequest} onRejectRequest={handleRejectRequest} />}
         {/* Admin Pages - Protected */}
         {currentUser?.role === 'admin' && (

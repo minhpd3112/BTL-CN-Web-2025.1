@@ -454,12 +454,37 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* 2. Main Content Area */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          {/* Video Stage with Custom Controls */}
+          {/* Video Stage - Supports both YouTube and uploaded videos */}
           {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
-            <CustomYouTubePlayer
-              videoUrl={selectedLesson.youtubeUrl}
-              title={selectedLesson.title}
-            />
+            (() => {
+              const videoUrl = selectedLesson.youtubeUrl;
+              // Check if it's a YouTube URL or direct video URL
+              const isYouTubeUrl = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+
+              if (isYouTubeUrl) {
+                return (
+                  <CustomYouTubePlayer
+                    videoUrl={videoUrl}
+                    title={selectedLesson.title}
+                  />
+                );
+              } else {
+                // Direct video URL (from Supabase Storage or other sources)
+                return (
+                  <div className="flex-1 bg-black flex items-center justify-center">
+                    <video
+                      src={videoUrl}
+                      controls
+                      autoPlay
+                      className="w-full h-full max-h-[70vh] object-contain"
+                      controlsList="nodownload"
+                    >
+                      Trình duyệt của bạn không hỗ trợ video.
+                    </video>
+                  </div>
+                );
+              }
+            })()
           )}
 
           {/* Text/Article Content */}
@@ -562,16 +587,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
             }}
             className="bg-white text-gray-700 border-t border-gray-200 relative overflow-auto flex-shrink-0"
           >
-            {/* Resize Handle */}
-            <div
-              onMouseDown={handleDescriptionMouseDown}
-              className={`absolute top-0 left-0 right-0 h-1 hover:h-1.5 bg-gray-300 hover:bg-[#1E88E5] cursor-row-resize z-50 group transition-all ${isResizingDescription ? 'h-1.5 bg-[#1E88E5]' : ''
-                }`}
-            >
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rotate-90">
-                <GripVertical className="w-4 h-4 text-[#1E88E5]" />
-              </div>
-            </div>
+            {/* Resize Handle removed */}
 
             <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto p-2 md:p-4 pt-4">
               <div className="flex items-start justify-between mb-8 pb-8 border-b border-gray-200">

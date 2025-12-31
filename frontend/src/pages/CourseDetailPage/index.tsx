@@ -83,7 +83,7 @@ export function CourseDetailPage({
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState('');
-  const [expandedSections, setExpandedSections] = useState<number[]>([1]);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
   // Curriculum state
@@ -115,9 +115,6 @@ export function CourseDetailPage({
       (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
     ) || false
   );
-
-  // Leave course dialog state
-  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
   // Check if user is already enrolled (will be updated via API)
   const [isEnrolled, setIsEnrolled] = useState(false);
@@ -198,7 +195,7 @@ export function CourseDetailPage({
     }
   };
 
-  const toggleSection = (sectionId: number) => {
+  const toggleSection = (sectionId: string) => {
     setExpandedSections(prev =>
       prev.includes(sectionId)
         ? prev.filter(id => id !== sectionId)
