@@ -1124,6 +1124,41 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                                 <p className="text-sm text-gray-600 mt-2">
                                                                     💡 Có thể nhập link đầy đủ hoặc chỉ ID video
                                                                 </p>
+
+                                                                {/* YouTube Preview */}
+                                                                {youtubeUrl && (() => {
+                                                                    // Extract video ID from various YouTube URL formats
+                                                                    let videoId = '';
+                                                                    if (youtubeUrl.includes('youtube.com/watch?v=')) {
+                                                                        videoId = youtubeUrl.split('v=')[1]?.split('&')[0] || '';
+                                                                    } else if (youtubeUrl.includes('youtu.be/')) {
+                                                                        videoId = youtubeUrl.split('youtu.be/')[1]?.split('?')[0] || '';
+                                                                    } else if (youtubeUrl.includes('youtube.com/embed/')) {
+                                                                        videoId = youtubeUrl.split('embed/')[1]?.split('?')[0] || '';
+                                                                    } else if (/^[a-zA-Z0-9_-]{11}$/.test(youtubeUrl.trim())) {
+                                                                        // Just the video ID
+                                                                        videoId = youtubeUrl.trim();
+                                                                    }
+
+                                                                    if (videoId) {
+                                                                        return (
+                                                                            <div className="mt-4">
+                                                                                <Label className="text-sm text-gray-700 mb-2 block">Xem trước video:</Label>
+                                                                                <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black">
+                                                                                    <iframe
+                                                                                        src={`https://www.youtube.com/embed/${videoId}`}
+                                                                                        title="YouTube video preview"
+                                                                                        className="absolute inset-0 w-full h-full"
+                                                                                        frameBorder="0"
+                                                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                                        allowFullScreen
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
                                                             </div>
                                                         )}
 

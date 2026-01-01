@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award, ChevronDown, GripVertical } from 'lucide-react';
 import { LearningHeader } from './components/LearningHeader';
 import { CourseSidebar } from './components/CourseSidebar';
@@ -494,10 +495,10 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                 <Card>
                   <CardContent className="p-6 md:p-8">
                     {selectedLesson.content_text ? (
-                      <div className="prose max-w-none">
-                        <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700">
+                      <div className="markdown-content">
+                        <ReactMarkdown>
                           {selectedLesson.content_text}
-                        </pre>
+                        </ReactMarkdown>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 text-gray-500">
