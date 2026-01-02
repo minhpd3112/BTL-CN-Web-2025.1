@@ -207,8 +207,9 @@ export const adminAPI = {
     const response = await api.post<AuthResponse>('/auth/admin/login', data);
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
-      if (response.data.data.session?.access_token) {
-        localStorage.setItem('auth_token', response.data.data.session.access_token);
+      const token = (response.data.data as any).token || response.data.data.session?.access_token;
+      if (token) {
+        localStorage.setItem('auth_token', token);
       }
     }
     return response.data;
@@ -244,6 +245,15 @@ export const tagsAPI = {
   createTag: (data: any) => api.post('/tags', data).then(res => res.data),
   updateTag: (id: string, data: any) => api.patch(`/tags/${id}`, data).then(res => res.data),
   deleteTag: (id: string) => api.delete(`/tags/${id}`).then(res => res.data),
+  uploadTagImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/tags/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then(res => res.data);
+  },
 };
 
 // -----------------------------

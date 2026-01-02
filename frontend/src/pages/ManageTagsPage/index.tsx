@@ -27,10 +27,15 @@ interface ManageTagsPageProps {
   setSelectedTag?: (tag: TagData) => void;
 }
 
+import { supabase } from '@/services/api';
+
+// ... imports
+
 export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPageProps = {}) {
   const [tags, setTags] = useState<TagData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null); // New state for file
 
   useEffect(() => {
     async function fetchTags() {
@@ -55,6 +60,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
     }
     fetchTags();
   }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -70,6 +76,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
 
   const handleOpenAddDialog = () => {
     setFormData({ name: '', description: '', image: '' });
+    setImageFile(null); // Reset file
     setShowAddDialog(true);
   };
 
@@ -80,11 +87,22 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
         toast.error('File ảnh quá lớn (tối đa 5MB)');
         return;
       }
+      setImageFile(file); // Store file for upload
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result as string }));
+        setFormData(prev => ({ ...prev, image: reader.result as string })); // Preview
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const response = await tagsAPI.uploadTagImage(file);
+      return response.data.url;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      return null;
     }
   };
 
@@ -94,6 +112,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
 
   const removeImage = () => {
     setFormData(prev => ({ ...prev, image: '' }));
+    setImageFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -104,26 +123,29 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       toast.error('Vui lòng nhập tên chủ đề');
       return;
     }
+    setLoading(true); // Show loading state on button potentially, but here using global loading for now or just wait
     try {
+      let imageUrl = formData.image;
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile);
+        if (uploadedUrl) imageUrl = uploadedUrl;
+        else {
+          toast.error('Upload ảnh thất bại');
+          setLoading(false);
+          return;
+        }
+      }
+
       await tagsAPI.createTag({
         name: formData.name,
         description: formData.description,
-        image: formData.image || undefined,
+        image: imageUrl || undefined,
       });
       toast.success(`Đã thêm chủ đề "${formData.name}"`);
       setShowAddDialog(false);
-      // Refetch tags from backend
-      setLoading(true);
-      setError(null);
-      let data = await tagsAPI.getAllTags();
-      if (!Array.isArray(data)) {
-        if (data && Array.isArray(data.data)) {
-          data = data.data;
-        } else {
-          data = [];
-        }
-      }
-      setTags(data);
+      // Refetch
+      const data = await tagsAPI.getAllTags(); // Simplified refetch
+      setTags(Array.isArray(data) ? data : (data.data || []));
     } catch (e) {
       toast.error('Thêm chủ đề thất bại');
     } finally {
@@ -137,27 +159,30 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       return;
     }
     if (!selectedTagState) return;
+    setLoading(true);
     try {
+      let imageUrl = formData.image;
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile);
+        if (uploadedUrl) imageUrl = uploadedUrl;
+        else {
+          toast.error('Upload ảnh thất bại');
+          setLoading(false);
+          return;
+        }
+      }
+
       await tagsAPI.updateTag(String(selectedTagState.id), {
         name: formData.name,
         description: formData.description,
-        image: formData.image || undefined,
+        image: imageUrl || undefined,
       });
       toast.success(`Đã cập nhật chủ đề "${formData.name}"`);
       setShowEditDialog(false);
       setSelectedTagState(null);
-      // Refetch tags from backend
-      setLoading(true);
-      setError(null);
-      let data = await tagsAPI.getAllTags();
-      if (!Array.isArray(data)) {
-        if (data && Array.isArray(data.data)) {
-          data = data.data;
-        } else {
-          data = [];
-        }
-      }
-      setTags(data);
+      // Refetch
+      const data = await tagsAPI.getAllTags();
+      setTags(Array.isArray(data) ? data : (data.data || []));
     } catch (e) {
       toast.error('Cập nhật chủ đề thất bại');
     } finally {
@@ -166,13 +191,13 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
   };
 
   const handleDeleteTag = async () => {
+    // ... existing delete logic, no changes needed for upload
     if (!selectedTagState) return;
     try {
       await tagsAPI.deleteTag(String(selectedTagState.id));
       toast.success(`Đã xóa chủ đề "${selectedTagState.name}"`);
       setShowDeleteDialog(false);
       setSelectedTagState(null);
-      // Refetch tags from backend
       setLoading(true);
       setError(null);
       let data = await tagsAPI.getAllTags();
@@ -198,6 +223,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       description: tag.description,
       image: tag.image || ''
     });
+    setImageFile(null); // Reset new file on edit open
     setShowEditDialog(true);
   };
 
@@ -238,6 +264,9 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
             alt="Preview"
             className="w-full h-48 object-cover transition-opacity duration-300 group-hover:opacity-75"
           />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="text-white font-medium">Thay đổi ảnh</span>
+          </div>
         </div>
       )}
     </div>
