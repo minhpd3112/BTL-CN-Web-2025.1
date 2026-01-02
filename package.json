@@ -19,9 +19,12 @@
     "tailwindcss": "^4.1.17"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.86.0",
+    "axios": "^1.13.2",
     "jsonwebtoken": "^9.0.3",
     "lottie-react": "^2.4.1",
+    "react-markdown": "^10.1.0",
     "supabase": "^2.65.5"
   }
 }

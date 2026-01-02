@@ -2,6 +2,40 @@ import { supabaseAdmin } from '../config/supabase';
 import type { User } from '../types';
 
 export const UserModel = {
+      async ensureAdminExists() {
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        // Kiểm tra đã có admin chưa
+        let adminUser;
+        try {
+          adminUser = await UserModel.findByEmail(adminEmail);
+        } catch (e) {
+          adminUser = null;
+        }
+        if (!adminUser) {
+          // Tạo bản ghi admin mới
+          const newAdmin = {
+            username: 'admin',
+            email: adminEmail,
+            password: adminPassword,
+            role: 'admin',
+            name: 'Quản trị viên',
+            avatar: '',
+            joinedDate: new Date().toISOString(),
+            status: 'active',
+          };
+          await UserModel.create(newAdmin);
+        }
+      },
+    async findByEmail(email: string) {
+      const { data, error } = await supabaseAdmin
+        .from('user_profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+      if (error) throw error;
+      return data;
+    },
   async findAll() {
     const { data, error } = await supabaseAdmin
       .from('user_profiles')
