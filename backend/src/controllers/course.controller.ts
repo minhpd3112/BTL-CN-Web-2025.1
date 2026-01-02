@@ -57,9 +57,13 @@ export const courseController = {
   },
   async getCourses(req: Request, res: Response) {
     try {
-      const { status, visibility, owner_id, search, tag, sort, page = '1', pageSize = '9', isAdmin } = req.query;
+      const { status, visibility, owner_id, search, tag, sort, page = '1', pageSize, isAdmin } = req.query;
       // Nếu là admin thì không filter status/visibility
       const isAdminFlag = isAdmin === 'true';
+      let limit = 0;
+      if (pageSize) {
+        limit = parseInt(pageSize as string);
+      }
       const filters: any = {
         ...(isAdminFlag ? {} : {
           status: status || 'approved',
@@ -67,7 +71,7 @@ export const courseController = {
         }),
         search,
         page: parseInt(page as string) || 1,
-        limit: parseInt(pageSize as string) || 9,
+        limit,
         tag,
         sort,
         owner_id,
@@ -136,6 +140,24 @@ export const courseController = {
       };
 
       const course = await CourseModel.create(courseData);
+
+      // Nếu khoá học ở trạng thái 'pending', tạo thông báo cho admin
+      if (course?.status === 'pending') {
+        // Sử dụng email admin thực tế
+        const adminEmail = 'admin@gmail.com';
+        const { UserModel } = require('../models/user.model');
+        const adminUser = await UserModel.findByEmail(adminEmail);
+        if (adminUser && adminUser.id) {
+          const { NotificationModel } = require('../models/notification.model');
+          await NotificationModel.createNotification({
+            user_id: adminUser.id,
+            type: 'course_pending',
+            title: 'Khoá học cần duyệt',
+            message: `Khoá học "${course.title}" vừa được tạo và cần duyệt.`,
+            related_course_id: course.id,
+          });
+        }
+      }
 
       res.status(httpStatus.CREATED).json({
         success: true,

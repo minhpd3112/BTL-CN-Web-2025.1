@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { httpStatus } from '../utils/httpStatus';
 import { signAdminToken } from '../utils/jwt';
 
-// Đặt thông tin admin cố định ở đây hoặc lấy từ biến môi trường
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@gmail.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+// Sử dụng tài khoản admin thực tế đã tạo trong Supabase Auth
+const ADMIN_EMAIL = 'admin@gmail.com';
+
 
 export const adminController = {
   async login(req: Request, res: Response) {
@@ -15,28 +15,32 @@ export const adminController = {
         message: 'Email and password are required',
       });
     }
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      // Trả về thông tin admin và JWT
-      const user = {
-        id: 'admin-fixed-id',
-        username: 'admin',
-        email: ADMIN_EMAIL,
-        name: 'Quản trị viên',
-        avatar: '',
-        role: 'admin',
-        joinedDate: '2024-01-01T00:00:00.000Z',
-        status: 'active',
-        lastLogin: new Date().toISOString(),
-      };
-      const token = signAdminToken({ id: user.id, role: user.role, email: user.email });
-      return res.status(httpStatus.OK).json({
-        success: true,
-        data: {
-          user,
-          token,
-        },
-        message: 'Admin login successful',
-      });
+    // Đăng nhập admin: kiểm tra email, lấy thông tin từ user_profiles
+    if (email === ADMIN_EMAIL) {
+      const { UserModel } = require('../models/user.model');
+      const adminUser = await UserModel.findByEmail(email);
+      if (adminUser && adminUser.role === 'admin') {
+        const user = {
+          id: adminUser.id,
+          username: adminUser.username || 'admin',
+          email: adminUser.email,
+          name: adminUser.full_name || 'Quản trị viên',
+          avatar: adminUser.avatar_url || '',
+          role: 'admin',
+          joinedDate: adminUser.created_at || '',
+          status: 'active',
+          lastLogin: new Date().toISOString(),
+        };
+        const token = signAdminToken({ id: user.id, role: user.role, email: user.email });
+        return res.status(httpStatus.OK).json({
+          success: true,
+          data: {
+            user,
+            token,
+          },
+          message: 'Admin login successful',
+        });
+      }
     }
     return res.status(httpStatus.UNAUTHORIZED).json({
       success: false,

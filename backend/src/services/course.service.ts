@@ -46,14 +46,15 @@ export const courseService = {
     try {
       const {
         page = 1,
-        limit = 10,
+        limit = 0,
         search,
         status,
         visibility,
         tags,
       } = filters;
 
-      const offset = (page - 1) * limit;
+      // Nếu limit = 0 thì lấy toàn bộ khoá học, không phân trang
+      const offset = limit > 0 ? (page - 1) * limit : 0;
 
       // Nếu truyền owner_id thì trả về tất cả khoá học của owner đó (bỏ filter status/visibility)
       let query;
@@ -116,10 +117,11 @@ export const courseService = {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
       }
 
-      // Apply pagination and ordering
-      query = query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      // Apply pagination và ordering
+      query = query.order('created_at', { ascending: false });
+      if (limit > 0) {
+        query = query.range(offset, offset + limit - 1);
+      }
 
       const { data, error, count } = await query;
 

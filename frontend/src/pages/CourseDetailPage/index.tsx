@@ -55,11 +55,11 @@ interface Section {
 
 
 
+
 interface CourseDetailPageProps {
   course: Course;
   navigateTo: (page: Page) => void;
   currentUser: User;
-  isOwner: boolean;
   canAccess: boolean;
   enrollmentRequests?: any[];
   onEnrollRequest?: (request: any) => void;
@@ -71,12 +71,16 @@ export function CourseDetailPage({
   course,
   navigateTo,
   currentUser,
-  isOwner,
   canAccess,
   enrollmentRequests,
   onEnrollRequest,
   setSelectedUser
 }: CourseDetailPageProps) {
+  // Robust owner detection
+  const isOwner = currentUser && (
+    (course.ownerId && course.ownerId === currentUser.id) ||
+    (course.owner?.id && course.owner?.id === currentUser.id)
+  );
   // Loading state for access check
   // ...
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
@@ -239,7 +243,7 @@ export function CourseDetailPage({
         const response = await sectionsAPI.getByCourseId(course.id.toString());
         if (response.success && response.data) {
           setSections(response.data);
-          console.log('Loaded curriculum:', response.data);
+          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching curriculum:', error);
@@ -260,7 +264,7 @@ export function CourseDetailPage({
         const response = await coursesAPI.getCourseById(course.id.toString());
         if (response.success && response.data) {
           setFullCourse(response.data);
-          console.log('Loaded complete course data:', response.data);
+          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching course details:', error);
@@ -278,7 +282,7 @@ export function CourseDetailPage({
       try {
         // Backend now allows enrolled students to view count
         const response = await enrollmentsAPI.getByCourseId(course.id.toString());
-        console.log('Enrollments API response:', response);
+        // ...existing code...
 
         if (response.success && response.data) {
           // Filter for approved enrollments
@@ -287,9 +291,9 @@ export function CourseDetailPage({
             : [];
 
           setStudentCount(approvedEnrollments.length);
-          console.log('Approved student count:', approvedEnrollments.length);
+          // ...existing code...
         } else {
-          console.log('No enrollment data returned');
+          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching student count:', error);
@@ -367,12 +371,10 @@ export function CourseDetailPage({
   // Fetch user's review and check if they can review
   useEffect(() => {
     const checkReviewEligibility = async () => {
-      console.log('=== Check Review Eligibility ===');
-      console.log('currentUser:', currentUser);
-      console.log('isEnrolled:', isEnrolled);
+      // ...existing code...
 
       if (!currentUser || !isEnrolled) {
-        console.log('Early return: no user or not enrolled');
+        // ...existing code...
         setCanReview(false);
         return;
       }
@@ -385,10 +387,10 @@ export function CourseDetailPage({
         );
         if (reviewResponse.success && reviewResponse.data) {
           setMyReview(reviewResponse.data);
-          console.log('Found existing review:', reviewResponse.data);
+          // ...existing code...
         }
       } catch (error: any) {
-        console.log('No existing review (this is OK):', error.message);
+        // ...existing code...
         setMyReview(null);
       }
 
@@ -396,26 +398,25 @@ export function CourseDetailPage({
       try {
         const progressResponse = await enrollmentsAPI.getMyEnrollments();
         if (progressResponse.success && progressResponse.data) {
-          console.log('All enrollments:', progressResponse.data);
-          console.log('Looking for course_id:', course.id, 'type:', typeof course.id);
+          // ...existing code...
 
           const enrollment = progressResponse.data.find(
             (e: any) => {
-              console.log('Checking enrollment:', e.course_id, 'type:', typeof e.course_id, 'progress:', e.progress);
+              // ...existing code...
               return e.course_id === course.id || e.course_id.toString() === course.id.toString();
             }
           );
 
-          console.log('Found enrollment:', enrollment);
+          // ...existing code...
 
           if (enrollment?.progress) {
             const percentage = enrollment.progress.percentage || 0;
-            console.log('Setting course progress to:', percentage);
+            // ...existing code...
             setCourseProgress(percentage);
             // Can review if 100% complete
             setCanReview(percentage >= 100);
           } else {
-            console.log('No progress found in enrollment');
+            // ...existing code...
             setCourseProgress(0);
             setCanReview(false);
           }
@@ -619,15 +620,10 @@ export function CourseDetailPage({
                     />
                   </div>
                   <CardContent className="p-4">
-                    {isOwner ? (
-                      <Button
-                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
-                        onClick={() => navigateTo('course-dashboard')}
-                      >
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Tổng quan khóa học
-                      </Button>
-                    ) : currentUser?.role === 'admin' ? (
+                    {(() => {
+                      // ...existing code...
+                      return (isOwner || currentUser?.role === 'admin');
+                    })() ? (
                       <Button
                         className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
                         onClick={() => navigateTo('learning')}
