@@ -7,7 +7,8 @@ export const CourseModel = {
       .from('courses')
       .select(`
         *,
-        tags:course_tags(tag:tags(*))
+        tags:course_tags(tag:tags(*)),
+        owner:user_profiles!owner_id(id, full_name, avatar_url)
       `);
 
     if (filters?.status) {
@@ -34,7 +35,8 @@ export const CourseModel = {
         sections:sections(
           *,
           lessons:lessons(*)
-        )
+        ),
+        owner:user_profiles!owner_id(id, full_name, avatar_url)
       `)
       .eq('id', id)
       .single();

@@ -312,6 +312,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   </Button>
 
 
+
+                  
                 </CardContent>
                 <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
                   <p className="text-xs text-gray-500">

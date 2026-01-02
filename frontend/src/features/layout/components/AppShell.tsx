@@ -173,12 +173,14 @@ export function AppShell({ state, actions }: AppShellProps) {
                     <BarChart3 className="w-4 h-4 mr-2" /> Dashboard
                   </Button>
                 )}
-                <Button
-                  onClick={() => navigateTo('create-course')}
-                  className="bg-[#1E88E5] text-white hover:bg-[#1565C0] hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-300/50 transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4 mr-2" /> Tạo khóa học
-                </Button>
+                {currentRole !== 'admin' && (
+                  <Button
+                    onClick={() => navigateTo('create-course')}
+                    className="bg-[#1E88E5] text-white hover:bg-[#1565C0] hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-300/50 transition-all duration-200"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Tạo khóa học
+                  </Button>
+                )}
               </nav>
             </div>
 
@@ -247,7 +249,9 @@ export function AppShell({ state, actions }: AppShellProps) {
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-2" align="end">
                     <div className="space-y-1">
-                      <button onClick={() => navigateTo('my-courses')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md outline-none focus:outline-none"><BookOpen className="w-4 h-4" /> Khóa học của tôi</button>
+                      {currentRole !== 'admin' && (
+                        <button onClick={() => navigateTo('my-courses')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md outline-none focus:outline-none"><BookOpen className="w-4 h-4" /> Khóa học của tôi</button>
+                      )}
                       <button onClick={() => navigateTo('account-settings')} className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 rounded-md outline-none focus:outline-none"><User className="w-4 h-4" /> Tài khoản</button>
                       <Separator className="my-1" />
                       <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md outline-none focus:outline-none"><LogOut className="w-4 h-4" /> Đăng xuất</button>
@@ -320,13 +324,15 @@ export function AppShell({ state, actions }: AppShellProps) {
                   <span>Khóa học của tôi</span>
                 </button>
 
-                <button
-                  onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-                >
-                  <Plus className="w-5 h-5 text-[#1E88E5]" />
-                  <span>Tạo khóa học</span>
-                </button>
+                {currentRole !== 'admin' && (
+                  <button
+                    onClick={() => { navigateTo('create-course'); setSidebarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                  >
+                    <Plus className="w-5 h-5 text-[#1E88E5]" />
+                    <span>Tạo khóa học</span>
+                  </button>
+                )}
 
                 <Separator className="my-4" />
 
