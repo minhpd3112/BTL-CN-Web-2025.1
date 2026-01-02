@@ -54,6 +54,9 @@ export interface Course {
   description: string;
   overview?: string;
   ownerId: string; // uuid
+  owner_id?: string; // API field (snake_case)
+  ownerName?: string; // legacy field
+  ownerAvatar?: string; // legacy field  
   owner?: CourseOwner; // Thông tin owner trả về từ API mới
   rating: number;
   students: number;
