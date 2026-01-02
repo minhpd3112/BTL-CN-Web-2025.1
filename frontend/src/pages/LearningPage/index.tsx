@@ -30,7 +30,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
   const [sidebarWidth, setSidebarWidth] = useState(350);
   const [isResizing, setIsResizing] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
-  const [descriptionHeight, setDescriptionHeight] = useState(300);
+  const [descriptionHeight, setDescriptionHeight] = useState(180);
   const [isResizingDescription, setIsResizingDescription] = useState(false);
   const [resizeStartY, setResizeStartY] = useState(0);
   const [resizeStartHeight, setResizeStartHeight] = useState(0);
@@ -265,7 +265,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       const delta = resizeStartY - e.clientY;
       const newHeight = resizeStartHeight + delta;
 
-      if (newHeight >= 200 && newHeight <= 800) {
+      if (newHeight >= 100 && newHeight <= 600) {
         setDescriptionHeight(newHeight);
       }
     };
@@ -486,17 +486,26 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
             </div>
           )}
 
-          {/* PDF/Quiz Stage - Original flex-1 approach */}
+          {/* PDF/Quiz Stage - Fixed height layout */}
           {(selectedLesson.type === 'pdf' || selectedLesson.type === 'quiz') && (
-            <div className="flex-1 flex flex-col min-h-[50vh] transition-all duration-300">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {selectedLesson.type === 'pdf' && (
-                <div className="flex-1 bg-gray-100 flex items-center justify-center p-2 md:p-4 h-full">
-                  <div className="w-full h-full max-w-[95%] xl:max-w-[90%] bg-white rounded-lg shadow-lg overflow-hidden relative">
+                <div className="flex-1 bg-gray-100 flex items-center justify-center p-2 md:p-4 overflow-hidden">
+                  <div
+                    className="bg-white rounded-lg shadow-lg overflow-hidden relative"
+                    style={{
+                      width: '100%',
+                      maxWidth: '1400px',
+                      height: '100%',
+                      minHeight: '400px'
+                    }}
+                  >
                     {selectedLesson.pdfUrl && selectedLesson.pdfUrl !== '#' ? (
                       <>
                         <iframe
                           src={convertGoogleDriveUrl(selectedLesson.pdfUrl)}
                           className="w-full h-full"
+                          style={{ minHeight: '400px' }}
                           title={selectedLesson.title}
                           allow="autoplay"
                         />

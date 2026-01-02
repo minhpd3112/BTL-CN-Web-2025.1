@@ -4,13 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/services/api';
 import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
-import { mockUsers } from '@/services/mocks';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 
@@ -32,8 +29,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setIsLoading(true);
 
     try {
-      // Nếu là tài khoản admin (ví dụ: email là admin@edulearn.vn)
-      if (!isSignUp && email.trim().toLowerCase() === 'admin@edulearn.vn') {
+      // Nếu là tài khoản admin
+      if (!isSignUp && email.trim().toLowerCase() === 'admin@gmail.com') {
         const res = await adminAPI.login({ email, password });
         if (res.success) {
           const adminUser: User = {
@@ -98,7 +95,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             if (!profileError && profile?.created_at) {
               joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
             }
-          } catch (e) {}
+          } catch (e) { }
           // Debug log
           // eslint-disable-next-line no-console
           console.log('joinedDate for user', data.user.id, joinedDate);
@@ -131,11 +128,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
 
-
-  const handleQuickLogin = (user: User) => {
-    onLogin(user);
-    toast.success(`Đăng nhập nhanh thành công, ${user.name}!`);
-  };
 
   // Hàm handleGoogleLogin mới - Gọi trực tiếp Supabase và kích hoạt chuyển hướng
   const handleGoogleLogin = async () => {
@@ -319,56 +311,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     Đăng nhập với Google
                   </Button>
 
-                  <div className="relative">
-                    <Separator />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="bg-white px-3 text-sm text-gray-500">Hoặc sử dụng tài khoản demo</span>
-                    </div>
-                  </div>
 
-                  {/* Demo Accounts */}
-                  <div className="space-y-3">
-                    {mockUsers.map((user, index) => (
-                      <div
-                        key={user.id}
-                        style={{ animationDelay: `${index * 50}ms` }}
-                        className="animate-in slide-in-from-top-2"
-                      >
-                        <button
-                          className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 hover:border-[#1E88E5] hover:bg-[#1E88E5]/5 hover:scale-[1.02] transition-all text-left hover:shadow-md"
-                          onClick={() => handleQuickLogin(user)}
-                        >
-                          <Avatar className="w-12 h-12">
-                            <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white" style={{ fontSize: '1.125rem' }}>
-                              {user.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm truncate" style={{ fontWeight: 600 }}>{user.name}</div>
-                            <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                            <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${user.role === 'admin'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-blue-100 text-blue-700'
-                              }`}>
-                              {user.role === 'admin' ? '👑 Admin' : '👤 User'}
-                            </span>
-                          </div>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <AlertDescription className="text-sm text-blue-800 flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span><strong>Demo:</strong> Chọn tài khoản để trải nghiệm hệ thống</span>
-                    </AlertDescription>
-                  </Alert>
                 </CardContent>
                 <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
-                  <p>
-                    Chưa có tài khoản Google? <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="text-[#1E88E5] hover:underline">Tạo tài khoản</a>
-                  </p>
                   <p className="text-xs text-gray-500">
                     Bằng cách đăng nhập, bạn đồng ý với <a href="#" className="text-[#1E88E5] hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-[#1E88E5] hover:underline">Chính sách bảo mật</a>
                   </p>

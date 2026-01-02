@@ -98,8 +98,9 @@ export function CourseDashboardPage({
           </Button>
           <Button
             className="bg-gradient-to-r from-[#1E88E5] to-[#1565C0] text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-            onClick={() => navigateTo('course-detail', course)}
+            onClick={() => navigateTo('learning', course)}
           >
+            <Eye className="w-4 h-4 mr-2" />
             Xem với tư cách học viên
           </Button>
         </div>

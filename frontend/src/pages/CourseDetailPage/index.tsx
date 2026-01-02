@@ -26,10 +26,10 @@ import { toast } from 'sonner';
 import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogFooter as ConfirmDialogFooter } from '@/components/ui/dialog';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
-import { mockUsers } from '@/services/mocks';
 import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI } from '@/services/api';
 import { ReviewForm } from '@/components/shared/ReviewForm';
 import { StarRating } from '@/components/shared/StarRating';
+import ReactMarkdown from 'react-markdown';
 
 // Interfaces for curriculum data
 interface Lesson {
@@ -238,12 +238,24 @@ export function CourseDetailPage({
   };
 
   const handleOwnerClick = () => {
-    if (setSelectedUser) {
-      const owner = mockUsers.find(u => u.id === course.ownerId);
-      if (owner) {
-        setSelectedUser(owner);
-        navigateTo('user-detail');
-      }
+    if (setSelectedUser && course.ownerId) {
+      // Create user object from course owner data
+      const owner: User = {
+        id: course.ownerId,
+        username: course.ownerName?.toLowerCase().replace(/\s+/g, '') || 'unknown',
+        name: course.ownerName || 'Unknown',
+        email: '',
+        avatar: course.ownerAvatar || '',
+        role: 'user',
+        joinedDate: '',
+        coursesCreated: 0,
+        coursesEnrolled: 0,
+        totalStudents: 0,
+        status: 'active',
+        lastLogin: ''
+      };
+      setSelectedUser(owner);
+      navigateTo('user-detail');
     }
   };
 
@@ -801,23 +813,8 @@ export function CourseDetailPage({
               </CardHeader>
               <CardContent className="p-6">
                 {fullCourse.overview ? (
-                  <div className="prose max-w-none">
-                    {fullCourse.overview.split('\n').map((line: string, index: number) => {
-                      if (line.startsWith('## ')) {
-                        return <h2 key={index} className="text-xl font-semibold mt-6 mb-4 first:mt-0">{line.replace('## ', '')}</h2>;
-                      } else if (line.startsWith('- ')) {
-                        return (
-                          <div key={index} className="flex items-start gap-3 mb-3">
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span>{line.replace('- ', '')}</span>
-                          </div>
-                        );
-                      } else if (line.trim() === '') {
-                        return <div key={index} className="h-2"></div>;
-                      } else {
-                        return <p key={index} className="text-gray-600 mb-2">{line}</p>;
-                      }
-                    })}
+                  <div className="prose prose-sm prose-blue max-w-none prose-headings:text-[#1E88E5] prose-headings:mt-4 prose-headings:mb-2 prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-gray-600 prose-p:my-1 prose-li:text-gray-600 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2">
+                    <ReactMarkdown>{fullCourse.overview}</ReactMarkdown>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">

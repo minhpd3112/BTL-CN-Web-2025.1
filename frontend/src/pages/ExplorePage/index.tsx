@@ -9,7 +9,6 @@ import { CourseCard } from '@/components/shared/CourseCard';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataPagination } from '@/components/shared/DataPagination';
 import { usePagination } from '@/hooks/usePagination';
-import { mockCourses } from '@/services/mocks';
 import { Course, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { useCoursesQuery } from '@/hooks/useCoursesQuery';

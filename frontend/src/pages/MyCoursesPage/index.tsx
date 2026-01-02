@@ -75,7 +75,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
         }
       } catch (error) {
         console.error('Failed to fetch created courses:', error);
-        toast.error('Không thể tải khóa học của bạn');
+        // Không hiển thị toast error vì danh sách trống là bình thường
       } finally {
         setIsLoadingCreated(false);
       }
@@ -117,7 +117,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
         }
       } catch (error) {
         console.error('Failed to fetch enrolled courses:', error);
-        toast.error('Không thể tải khóa học đang học');
+        // Không hiển thị toast error vì danh sách trống là bình thường
       } finally {
         setIsLoadingEnrolled(false);
       }

@@ -1,18 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { supabase } from '@/services/api';
-import {
-  mockUsers,
-  mockCourses,
-  mockEnrollmentRequests,
-} from '@/services/mocks';
-
-// Helper to update enrolledUsers in mockCourses
-function addUserToCourseEnrolledUsers(courseId: string, userId: number) {
-  const course = mockCourses.find(c => c.id === courseId);
-  if (course && !course.enrolledUsers.includes(userId)) {
-    course.enrolledUsers.push(userId);
-  }
-}
+import { supabase, coursesAPI } from '@/services/api';
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
 
 // --- MOCK DATA (Giữ bên ngoài Hook) ---
@@ -30,14 +17,14 @@ export function useDemoAppState() {
     const saved = localStorage.getItem('user_data');
     return saved ? 'home' : 'login';
   });
-  const [selectedCourse, setSelectedCourse] = useState<Course>(mockCourses[0]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userGooglePicture, setUserGooglePicture] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>(mockEnrollmentRequests);
+  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
 
   // 2. EFFECT LẮNG NGHE AUTH
   useEffect(() => {
@@ -130,13 +117,22 @@ export function useDemoAppState() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
-  const handleNotificationClick = useCallback((notification: Notification) => {
+  const handleNotificationClick = useCallback(async (notification: Notification) => {
     markAsRead(notification.id);
     if (notification.action) {
       const { page, courseId } = notification.action;
       if (courseId) {
-        const course = mockCourses.find(c => c.id === courseId);
-        if (course) navigateTo(page as Page, course);
+        // Fetch course from API instead of mock
+        try {
+          const response = await coursesAPI.getCourseById(courseId);
+          if (response.success && response.data) {
+            navigateTo(page as Page, response.data);
+          } else {
+            navigateTo(page as Page);
+          }
+        } catch {
+          navigateTo(page as Page);
+        }
       } else {
         navigateTo(page as Page);
       }
@@ -161,10 +157,6 @@ export function useDemoAppState() {
     const status = isPublic ? 'approved' : 'pending';
     const newRequest = { ...request, id: Date.now(), status, requestedAt: new Date().toLocaleString() };
     setEnrollmentRequests(prev => [...prev, newRequest]);
-    // Nếu là public, cập nhật enrolledUsers trong mockCourses
-    if (isPublic && request.courseId && request.userId) {
-      addUserToCourseEnrolledUsers(String(request.courseId), Number(request.userId));
-    }
     // Gọi callback nếu có (để cập nhật UI ngay)
     if (request.onSuccess && typeof request.onSuccess === 'function') {
       request.onSuccess();

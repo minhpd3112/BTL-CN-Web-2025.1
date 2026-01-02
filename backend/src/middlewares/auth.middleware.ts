@@ -22,16 +22,23 @@ export const authenticate = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log('[Auth] Request to:', req.method, req.originalUrl);
+    console.log('[Auth] Auth header present:', !!authHeader);
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[Auth] FAIL: No Bearer token');
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
       });
     }
     const token = authHeader.substring(7);
+    console.log('[Auth] Token (first 20 chars):', token.substring(0, 20) + '...');
 
     // Thử xác thực bằng JWT admin trước
     const adminPayload = verifyAdminToken(token) as { id: string; email: string; role: string } | null;
+    console.log('[Auth] Admin JWT verify result:', adminPayload ? 'Valid admin token' : 'Not admin token');
+
     if (adminPayload && typeof adminPayload === 'object' && adminPayload.role === 'admin') {
       req.user = {
         id: adminPayload.id,
@@ -39,17 +46,32 @@ export const authenticate = async (
         role: 'admin',
         raw_user_meta_data: {},
       };
+      console.log('[Auth] SUCCESS: Admin user authenticated:', adminPayload.email);
       return next();
     }
 
     // Nếu không phải JWT admin thì xác thực Supabase như cũ
+    console.log('[Auth] Trying Supabase token verification...');
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) {
+
+    if (error) {
+      console.log('[Auth] FAIL: Supabase auth error:', error.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token',
+        debug: error.message,
+      });
+    }
+
+    if (!user) {
+      console.log('[Auth] FAIL: No user from Supabase');
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired token',
       });
     }
+
+    console.log('[Auth] SUCCESS: Supabase user authenticated:', user.email);
     req.user = {
       id: user.id,
       email: user.email!,
@@ -58,7 +80,7 @@ export const authenticate = async (
     };
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('[Auth] ERROR:', error);
     return res.status(401).json({
       success: false,
       message: 'Authentication failed',

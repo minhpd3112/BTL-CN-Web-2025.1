@@ -3,8 +3,8 @@ import { httpStatus } from '../utils/httpStatus';
 import { signAdminToken } from '../utils/jwt';
 
 // Đặt thông tin admin cố định ở đây hoặc lấy từ biến môi trường
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@edulearn.vn';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 
 export const adminController = {
   async login(req: Request, res: Response) {

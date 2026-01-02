@@ -5,7 +5,7 @@ import { httpStatus } from '@utils/httpStatus';
 
 export const EnrollmentController = {
   async leaveCourse(req: Request, res: Response) {
-      console.log('==> [leaveCourse] Controller called', req.method, req.originalUrl);
+    console.log('==> [leaveCourse] Controller called', req.method, req.originalUrl);
     try {
       const { id } = req.params;
       const userId = req.user!.id;
@@ -204,8 +204,12 @@ export const EnrollmentController = {
       const userId = req.user!.id;
       const { course_id, request_message } = req.body;
 
+      console.log('[Enrollment.create] Starting enrollment:', { userId, course_id });
+
       // Check if already enrolled
       const existing = await EnrollmentModel.findByUserId(userId);
+      console.log('[Enrollment.create] Existing enrollments:', existing.map((e: any) => e.course_id));
+
       if (existing.some((e: any) => e.course_id === course_id)) {
         return res.status(httpStatus.BAD_REQUEST).json({
           success: false,
@@ -214,13 +218,24 @@ export const EnrollmentController = {
       }
 
       // Check if course is public to auto-approve enrollment
-      const { data: course } = await supabaseAdmin
+      const { data: course, error: courseError } = await supabaseAdmin
         .from('courses')
         .select('visibility')
         .eq('id', course_id)
         .single();
 
+      console.log('[Enrollment.create] Course lookup:', { course, courseError });
+
+      if (courseError) {
+        console.error('[Enrollment.create] Course lookup error:', courseError);
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: 'Course not found',
+        });
+      }
+
       const isPublicCourse = course?.visibility === 'public';
+      console.log('[Enrollment.create] isPublicCourse:', isPublicCourse);
 
       const enrollment = await EnrollmentModel.create({
         user_id: userId,
@@ -230,13 +245,15 @@ export const EnrollmentController = {
         approved_by: isPublicCourse ? userId : undefined,
       });
 
+      console.log('[Enrollment.create] Created enrollment:', enrollment);
+
       res.status(httpStatus.CREATED).json({
         success: true,
         data: enrollment,
         message: isPublicCourse ? 'Bạn đã tham gia khóa học thành công!' : 'Đã gửi yêu cầu đăng ký khóa học',
       });
     } catch (error: any) {
-      console.error('Create enrollment error:', error);
+      console.error('[Enrollment.create] ERROR:', error);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to create enrollment',
