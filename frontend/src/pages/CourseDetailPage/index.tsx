@@ -634,8 +634,7 @@ export function CourseDetailPage({
                           Đã tham gia
                         </Button>
                         <Button
-                          className="w-full mt-2 bg-gray-200 text-gray-700 hover:bg-gray-300 h-10"
-                          variant="outline"
+                          className="w-full mt-2 border border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300 h-10 transition-all duration-200"
                           onClick={() => setShowLeaveDialog(true)}
                         >
                           Rời khóa học
