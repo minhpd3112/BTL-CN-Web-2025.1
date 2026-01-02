@@ -73,11 +73,28 @@ export const UserModel = {
     };
   },
   async findAll() {
-    const { data, error } = await supabaseAdmin
+    // 1. Lấy tất cả user_profiles
+    const { data: profiles, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .select('*');
-    if (error) throw error;
-    return data || [];
+    if (profileError) throw profileError;
+    if (!profiles || profiles.length === 0) return [];
+
+    // 2. Lấy tất cả users từ bảng auth.users
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    if (authError) throw authError;
+    // authUsers.users là mảng user
+
+    // 3. Merge role từ auth.users (user_metadata.role) vào profile
+    const merged = profiles.map((profile: any) => {
+      const authUser = authUsers.users.find((u: any) => u.id === profile.id);
+      let role = profile.role;
+      if (authUser && authUser.user_metadata && authUser.user_metadata.role) {
+        role = authUser.user_metadata.role;
+      }
+      return { ...profile, role };
+    });
+    return merged;
   },
 
   async findById(id: string) {

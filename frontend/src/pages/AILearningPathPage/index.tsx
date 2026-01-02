@@ -3,8 +3,8 @@ import { Sparkles, Rocket, Zap, Trophy, Briefcase, Code, Smartphone, Server, Dat
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { aiCourseAPI } from '@/services/api';
-import { User, Page } from '@/types';
+import { aiCourseAPI, coursesAPI } from '@/services/api';
+import { User, Page, Course } from '@/types';
 import './styles.css';
 
 interface AILearningPathPageProps {
@@ -211,8 +211,21 @@ export default function AILearningPathPage({ currentUser, navigateTo }: AILearni
 
             if (response.success && response.data) {
                 toast.success('Đã tạo khóa học thành công!');
-                // Navigate to the course dashboard
-                navigateTo('course-dashboard', { courseId: response.data.courseId });
+
+                // Fetch full course data before navigating
+                try {
+                    const courseRes = await coursesAPI.getCourseById(response.data.courseId);
+                    if (courseRes.success && courseRes.data) {
+                        // Navigate with full course data
+                        navigateTo('course-dashboard', courseRes.data as Course);
+                    } else {
+                        // Fallback: navigate without course data (will trigger loading)
+                        navigateTo('course-dashboard', { id: response.data.courseId } as any);
+                    }
+                } catch (fetchError) {
+                    console.error('Failed to fetch course:', fetchError);
+                    navigateTo('course-dashboard', { id: response.data.courseId } as any);
+                }
             } else {
                 throw new Error(response.message || 'Failed to generate course');
             }

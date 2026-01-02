@@ -641,35 +641,41 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
         setIsSaving(true);
         try {
+            // Determine if visibility is being changed from private to public
+            let statusUpdate = undefined;
+            if (course.visibility === 'private' && visibility === 'public') {
+                statusUpdate = 'pending'; // Require admin approval
+            }
+
             const updateData = {
                 title: courseName,
                 description: description,
                 overview: courseOverview || null,
                 visibility: visibility,
                 image_url: imageUrl || null,
+                ...(statusUpdate ? { status: statusUpdate } : {})
             };
 
             const response = await coursesAPI.updateCourse(course.id.toString(), updateData);
             if (response.success) {
                 // Save tags after course update
                 try {
-                    // Remove all existing tags first by calling addCourseTags with selected tags
-                    // The backend addTags will replace existing associations
                     if (selectedTags.length > 0) {
                         await coursesAPI.addCourseTags(course.id.toString(), selectedTags);
-                        console.log('Tags saved successfully:', selectedTags);
                     }
                 } catch (tagError) {
-                    console.error('Error saving tags:', tagError);
                     toast.warning('Đã lưu khóa học nhưng không thể cập nhật chủ đề');
                 }
 
-                toast.success('Đã lưu thay đổi!');
+                if (statusUpdate === 'pending') {
+                    toast.info('Khóa học đã chuyển sang công khai và đang chờ phê duyệt của quản trị viên.');
+                } else {
+                    toast.success('Đã lưu thay đổi!');
+                }
             } else {
                 toast.error(response.message || 'Không thể lưu thay đổi');
             }
         } catch (error: any) {
-            console.error('Error saving course:', error);
             toast.error('Không thể lưu thay đổi. Vui lòng thử lại.');
         } finally {
             setIsSaving(false);

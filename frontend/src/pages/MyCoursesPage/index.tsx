@@ -47,7 +47,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
         if (response.success) {
           // Defensive: ensure response.data is an array (API trả về data: Array)
           const courseList = Array.isArray(response.data) ? response.data : [];
-          console.log('[MyCoursesPage] courseList from API:', courseList);
+          // ...existing code...
           // Ẩn khoá học bị từ chối khỏi danh sách chính, nhưng lưu lại rejected để hiển thị lý do
           const rejectedCourses = courseList.filter((course: any) => course.status === 'rejected');
           const mappedCourses = courseList
@@ -118,7 +118,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               enrollmentId: enrollment.id, // Store enrollmentId
             }));
           setEnrolledCourses(courses);
-          console.log('Enrolled courses with progress:', courses.map((c: any) => ({ title: c.title, progress: c.progress, enrollmentId: c.enrollmentId })));
+          // ...existing code...
         }
       } catch (error) {
         console.error('Failed to fetch enrolled courses:', error);

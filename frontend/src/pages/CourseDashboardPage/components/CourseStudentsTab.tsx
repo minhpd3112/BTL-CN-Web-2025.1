@@ -20,7 +20,7 @@ interface CourseStudentsTabProps {
 export function CourseStudentsTab({
     course,
 }: CourseStudentsTabProps) {
-    console.log('=== CourseStudentsTab RENDER ===', { courseId: course.id });
+    // ...existing code...
     const [addStudentOpen, setAddStudentOpen] = useState(false);
     const [inviteeEmail, setInviteeEmail] = useState('');
     const [isInviting, setIsInviting] = useState(false);
@@ -32,16 +32,16 @@ export function CourseStudentsTab({
     const fetchEnrollments = useCallback(async () => {
         try {
             setIsLoading(true);
-            console.log('Fetching enrollments for course:', course.id);
+            // ...existing code...
             const response = await enrollmentsAPI.getByCourseId(course.id.toString());
-            console.log('Enrollments API response:', response);
+            // ...existing code...
             if (response.success) {
-                console.log('Enrollments data:', response.data);
+                // ...existing code...
                 const enrollmentsWithUsers = response.data || [];
                 // Fetch user profiles for each enrollment  
                 for (const enrollment of enrollmentsWithUsers) {
                     try {
-                        console.log('Fetching profile for user:', enrollment.user_id);
+                        // ...existing code...
                         // Fetch user profile
                         const { data: profiles, error: profileError } = await supabase
                             .from('user_profiles')
@@ -49,20 +49,20 @@ export function CourseStudentsTab({
                             .eq('id', enrollment.user_id)
                             .limit(1);
 
-                        console.log('Profile fetch result:', { user_id: enrollment.user_id, profiles, error: profileError });
+                        // ...existing code...
 
                         if (profiles && profiles.length > 0) {
                             enrollment.user = profiles[0];
-                            console.log('Set user profile:', profiles[0]);
+                            // ...existing code...
                         } else {
-                            console.log('No profile found for user:', enrollment.user_id);
+                            // ...existing code...
                             enrollment.user = {};
                         }
 
                         // Use email from backend response
                         if (enrollment.user_email) {
                             enrollment.user.email = enrollment.user_email;
-                            console.log('Set user email from backend:', enrollment.user_email);
+                            // ...existing code...
                         }
                     } catch (err) {
                         console.error('Could not fetch user data for:', enrollment.user_id, err);
@@ -93,7 +93,7 @@ export function CourseStudentsTab({
 
     // Fetch enrollments when component mounts or course.id changes
     useEffect(() => {
-        console.log('CourseStudentsTab mounted, fetching enrollments...');
+        // ...existing code...
         fetchEnrollments();
         fetchAverageProgress();
     }, [course.id, fetchEnrollments, fetchAverageProgress]);
@@ -101,8 +101,8 @@ export function CourseStudentsTab({
     const courseEnrollments = enrollments;
     const approvedStudents = courseEnrollments.filter(e => e.status === 'approved');
 
-    console.log('Total enrollments:', enrollments.length);
-    console.log('Approved students:', approvedStudents.length);
+    // ...existing code...
+    // ...existing code...
 
     // Remove approve/reject request handlers
 
