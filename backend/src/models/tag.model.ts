@@ -1,4 +1,4 @@
-import { supabase } from '@config/supabase';
+import { supabaseAdmin } from '@config/supabase';
 
 export interface Tag {
   id: string;
@@ -21,7 +21,7 @@ export interface UpdateTagRequest {
 
 export const TagModel = {
   async findAll() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('tags')
       .select('*');
 
@@ -30,7 +30,7 @@ export const TagModel = {
   },
 
   async findById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('tags')
       .select('*')
       .eq('id', id)
@@ -41,7 +41,7 @@ export const TagModel = {
   },
 
   async create(tagData: CreateTagRequest) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('tags')
       .insert([tagData])
       .select()
@@ -52,7 +52,7 @@ export const TagModel = {
   },
 
   async update(id: string, tagData: UpdateTagRequest) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('tags')
       .update(tagData)
       .eq('id', id)
@@ -64,7 +64,7 @@ export const TagModel = {
   },
 
   async delete(id: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('tags')
       .delete()
       .eq('id', id);

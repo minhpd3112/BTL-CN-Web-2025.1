@@ -43,7 +43,9 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     try {
       setIsLoading(true);
       setError(null);
-      const response = await coursesAPI.getAllCourses({ isAdmin: true });
+      const params: any = { isAdmin: true };
+      if (filterTag && filterTag !== 'all') params.tag = filterTag;
+      const response = await coursesAPI.getAllCourses(params);
       if (response.success) {
         const courseList = Array.isArray(response.data) ? response.data : [];
         const mappedCourses = courseList.map((course: any) => ({
@@ -72,9 +74,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     }
   };
 
-  // Fetch courses & tags on mount
+  // Fetch tags on mount
   useEffect(() => {
-    fetchCourses();
     async function fetchTags() {
       try {
         const tagsRes = await tagsAPI.getAllTags();
@@ -86,13 +87,17 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     fetchTags();
   }, []);
 
-  // Filter courses ở FE
+  // Fetch courses mỗi khi filterTag thay đổi
+  useEffect(() => {
+    fetchCourses();
+  }, [filterTag]);
+
+  // Filter courses ở FE (chỉ search và visibility)
   const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.ownerName?.toLowerCase?.().includes(searchQuery.toLowerCase()) ?? false);
+      (course.ownerName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
-    const matchTag = filterTag === 'all' || (course.tags && course.tags.some((t: any) => t.name === filterTag || t === filterTag));
-    return matchSearch && matchVisibility && matchTag;
+    return matchSearch && matchVisibility;
   });
 
   // Pagination FE

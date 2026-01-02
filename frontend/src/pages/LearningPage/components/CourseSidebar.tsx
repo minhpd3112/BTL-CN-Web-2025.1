@@ -46,7 +46,7 @@ export function CourseSidebar({
     };
 
     return (
-        <div className={cn("flex flex-col h-full bg-white border-l border-gray-200", className)}>
+        <div className={cn("flex flex-col h-full bg-white border-l border-gray-200 overflow-hidden", className)}>
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-[#1E88E5]/5 to-transparent sticky top-0 z-10">
                 <h3
                     style={{
@@ -62,7 +62,7 @@ export function CourseSidebar({
                 </h3>
             </div>
 
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col pb-20"> {/* Extra padding for bottom */}
                     {sections.map((section) => (
                         <div key={section.id} className="border-b border-gray-100 last:border-0">
@@ -145,7 +145,7 @@ export function CourseSidebar({
                         </div>
                     ))}
                 </div>
-            </ScrollArea>
+            </div>
         </div>
     );
 }

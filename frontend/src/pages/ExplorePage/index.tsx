@@ -180,6 +180,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
                     navigateTo('course-detail');
                   }}
                   currentUserId={currentUser?.id}
+                  currentRole={currentUser?.role}
                   isEnrolled={enrolledCourseIds.includes(course.id) || enrolledCourseIds.includes(String(course.id))}
                   onJoinSuccess={handleJoinSuccess}
                 />

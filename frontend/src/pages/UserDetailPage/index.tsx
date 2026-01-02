@@ -51,7 +51,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
       try {
         const res = await coursesAPI.getAllCourses({ isAdmin: true });
         // Filter courses by owner_id === user.id
-        const filtered = (res.data || []).filter((course: Course) => course.owner_id === user.id);
+        const filtered = (res.data || []).filter((course: Course) => course.ownerId === user.id);
         setUserCourses(filtered);
       } catch (e) {
         setCoursesError('Không thể tải danh sách khoá học');

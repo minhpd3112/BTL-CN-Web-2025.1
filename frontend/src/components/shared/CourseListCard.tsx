@@ -6,7 +6,7 @@ import { Eye, Globe, Lock, ArrowUpRight, Clock } from 'lucide-react';
 import { ReactNode } from 'react';
 
 interface CourseListCardProps {
-    course: Course & { progress?: number; completedLessons?: number };
+    course: Course & { progress?: number; completedLessons?: number; ownerName?: string; studentsCount?: number };
     onClick: () => void;
     action?: ReactNode;
     showProgress?: boolean;
@@ -15,6 +15,10 @@ interface CourseListCardProps {
 
 export function CourseListCard({ course, onClick, action, showProgress = false, disableInvite }: CourseListCardProps) {
     const isPending = course.status === 'pending';
+    // Support both studentsCount and students for compatibility, always cast to number
+    const totalStudents = Number(course.studentsCount ?? course.students ?? 0);
+    // Support both rating and fallback
+    const courseRating = (typeof course.rating === 'number' ? course.rating : 0);
     return (
         <Card
             className={`group overflow-hidden border-none shadow-sm transition-all duration-300 bg-white hover:shadow-xl`}
@@ -61,7 +65,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false, 
                                         {course.title}
                                     </h3>
                                     <p className="text-xs text-gray-500 font-medium">
-                                        Bởi <span className="text-gray-700">{course.ownerName}</span>
+                                        Bởi <span className="text-gray-700">{course.ownerName || course.owner?.full_name || 'Không rõ'}</span>
                                     </p>
                                 </div>
 
@@ -75,7 +79,7 @@ export function CourseListCard({ course, onClick, action, showProgress = false, 
                                 {course.description}
                             </p>
 
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 mb-2">
                                 {(Array.isArray(course.tags) ? course.tags : []).slice(0, 3).map((tag: any, idx) => {
                                     const tagName = typeof tag === 'string' ? tag : tag?.name;
                                     return (
@@ -93,6 +97,12 @@ export function CourseListCard({ course, onClick, action, showProgress = false, 
                                         +{course.tags.length - 3}
                                     </Badge>
                                 )}
+                            </div>
+
+                            {/* Thêm tổng học viên và rating trung bình */}
+                            <div className="flex gap-4 items-center text-xs text-gray-500 mb-2">
+                                <span><Eye className="inline w-4 h-4 mr-1" /> {totalStudents} học viên</span>
+                                <span><span className="inline-block align-middle text-yellow-500">★</span> {courseRating.toFixed(1)}</span>
                             </div>
                         </div>
 

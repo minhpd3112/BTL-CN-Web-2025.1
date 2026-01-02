@@ -13,10 +13,11 @@ interface CourseCardProps {
   onClick: () => void;
   isEnrolled?: boolean;
   currentUserId?: string;
+  currentRole?: string;
   onJoinSuccess?: () => void;
 }
 
-export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinSuccess }: CourseCardProps) {
+export function CourseCard({ course, onClick, isEnrolled, currentUserId, currentRole, onJoinSuccess }: CourseCardProps) {
   const [isJoining, setIsJoining] = useState(false);
 
   // Ưu tiên lấy image_url (chuẩn DB), fallback sang image (cũ)
@@ -108,7 +109,7 @@ export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinS
             </div>
 
             {/* Join Button for Public Courses */}
-            {course.visibility === 'public' && !isEnrolled && currentUserId && (
+            {course.visibility === 'public' && !isEnrolled && currentUserId && currentRole !== 'admin' && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                 <Button
                   size="sm"
