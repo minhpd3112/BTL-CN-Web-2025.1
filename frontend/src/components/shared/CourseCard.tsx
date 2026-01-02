@@ -18,6 +18,7 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, onClick, isEnrolled, currentUserId, currentRole, onJoinSuccess }: CourseCardProps) {
+    const isOwner = (course.owner?.id && currentUserId && course.owner.id === currentUserId) || (course.ownerId && currentUserId && course.ownerId === currentUserId);
   const [isJoining, setIsJoining] = useState(false);
 
   // Ưu tiên lấy image_url (chuẩn DB), fallback sang image (cũ)
@@ -109,22 +110,29 @@ export function CourseCard({ course, onClick, isEnrolled, currentUserId, current
             </div>
 
             {/* Join Button for Public Courses */}
-            {course.visibility === 'public' && !isEnrolled && currentUserId && currentRole !== 'admin' && (
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <Button
-                  size="sm"
-                  className="bg-[#1E88E5] hover:bg-[#1565C0] text-white shadow-lg"
-                  disabled={isJoining}
-                  onClick={handleJoinCourse}
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  {isJoining ? 'Đang tham gia...' : 'Tham gia ngay'}
-                </Button>
-              </div>
-            )}
+            {(() => {
+              const showJoin = !isOwner && course.visibility === 'public' && !isEnrolled && currentUserId && currentRole !== 'admin';
+              if (showJoin) {
+                // ...existing code...
+                return (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <Button
+                      size="sm"
+                      className="bg-[#1E88E5] hover:bg-[#1565C0] text-white shadow-lg"
+                      disabled={isJoining}
+                      onClick={handleJoinCourse}
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      {isJoining ? 'Đang tham gia...' : 'Tham gia ngay'}
+                    </Button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* Play Icon Overlay (for other cases) */}
-            {!(course.visibility === 'public' && !isEnrolled && currentUserId) && (
+            {((currentRole === 'admin' || isOwner) || !(course.visibility === 'public' && !isEnrolled && currentUserId)) && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
                 <div className="bg-white/30 backdrop-blur-md p-3 rounded-full shadow-lg">
                   <Eye className="w-10 h-10 text-white" />
