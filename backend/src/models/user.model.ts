@@ -2,31 +2,6 @@ import { supabaseAdmin } from '../config/supabase';
 import type { User } from '../types';
 
 export const UserModel = {
-      async ensureAdminExists() {
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const adminPassword = process.env.ADMIN_PASSWORD;
-        // Kiểm tra đã có admin chưa
-        let adminUser;
-        try {
-          adminUser = await UserModel.findByEmail(adminEmail);
-        } catch (e) {
-          adminUser = null;
-        }
-        if (!adminUser) {
-          // Tạo bản ghi admin mới
-          const newAdmin = {
-            username: 'admin',
-            email: adminEmail,
-            password: adminPassword,
-            role: 'admin',
-            name: 'Quản trị viên',
-            avatar: '',
-            joinedDate: new Date().toISOString(),
-            status: 'active',
-          };
-          await UserModel.create(newAdmin);
-        }
-      },
     async findByEmail(email: string) {
       const { data, error } = await supabaseAdmin
         .from('user_profiles')
@@ -37,11 +12,28 @@ export const UserModel = {
       return data;
     },
   async findAll() {
-    const { data, error } = await supabaseAdmin
+    // 1. Lấy tất cả user_profiles
+    const { data: profiles, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .select('*');
-    if (error) throw error;
-    return data || [];
+    if (profileError) throw profileError;
+    if (!profiles || profiles.length === 0) return [];
+
+    // 2. Lấy tất cả users từ bảng auth.users
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    if (authError) throw authError;
+    // authUsers.users là mảng user
+
+    // 3. Merge role từ auth.users (user_metadata.role) vào profile
+    const merged = profiles.map((profile: any) => {
+      const authUser = authUsers.users.find((u: any) => u.id === profile.id);
+      let role = profile.role;
+      if (authUser && authUser.user_metadata && authUser.user_metadata.role) {
+        role = authUser.user_metadata.role;
+      }
+      return { ...profile, role };
+    });
+    return merged;
   },
 
   async findById(id: string) {

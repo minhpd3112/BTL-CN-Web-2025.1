@@ -68,9 +68,10 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
         await usersAPI.delete(userToDelete.id);
         setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
         toast.success(`Đã xóa người dùng "${userToDelete.full_name}"`);
+        setShowDeleteDialog(false);
+        setUserToDelete(null);
       } catch (err: any) {
         toast.error('Xóa người dùng thất bại: ' + (err?.message || 'Không xác định'));
-      } finally {
         setShowDeleteDialog(false);
         setUserToDelete(null);
       }
@@ -135,12 +136,13 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
                       {user.full_name}
                     </h3>
                     <Badge
-                      className={user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 text-xs'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs'
+                      className={
+                        (user.role && String(user.role).toLowerCase() === 'admin')
+                          ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 text-xs'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs'
                       }
                     >
-                      {user.role === 'admin' ? 'Admin' : 'User'}
+                      {(user.role && String(user.role).toLowerCase() === 'admin') ? 'Admin' : 'User'}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">{user.email}</p>

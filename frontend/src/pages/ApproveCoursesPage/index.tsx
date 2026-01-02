@@ -102,7 +102,7 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
       ) : pendingCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pendingCourses.map(course => (
-            <div key={course.id}>
+            <div key={course.id} className="mb-6">
               <CourseCard
                 course={course}
                 onClick={() => {
