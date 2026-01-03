@@ -46,14 +46,15 @@ export const courseService = {
     try {
       const {
         page = 1,
-        limit = 10,
+        limit = 0,
         search,
         status,
         visibility,
         tags,
       } = filters;
 
-      const offset = (page - 1) * limit;
+      // Nếu limit = 0 thì lấy toàn bộ khoá học, không phân trang
+      const offset = limit > 0 ? (page - 1) * limit : 0;
 
       // Nếu truyền owner_id thì trả về tất cả khoá học của owner đó (bỏ filter status/visibility)
       let query;
@@ -64,7 +65,8 @@ export const courseService = {
             *,
             course_tags(
               tags(*)
-            )
+            ),
+            owner:user_profiles!owner_id(id, full_name, avatar_url)
           `, { count: 'exact' })
           .eq('owner_id', filters.owner_id);
       } else {
@@ -76,7 +78,8 @@ export const courseService = {
             *,
             course_tags(
               tags(*)
-            )
+            ),
+            owner:user_profiles!owner_id(id, full_name, avatar_url)
           `, { count: 'exact' });
         if (status) {
           query = query.eq('status', status);
@@ -114,10 +117,8 @@ export const courseService = {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
       }
 
-      // Apply pagination and ordering
-      query = query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      // Fetch all data first (without pagination) to calculate students and rating before sorting
+      query = query.order('created_at', { ascending: false });
 
       const { data, error, count } = await query;
 
@@ -127,17 +128,78 @@ export const courseService = {
       }
 
       // Transform data
+      // Lấy tất cả course_id
+      const courseIds = (data || []).map((course: any) => course.id);
+      // Query enrollments 1 lần cho tất cả course_id
+      let studentsMap: Record<string, number> = {};
+      if (courseIds.length > 0) {
+        const { data: enrollmentsData, error: enrollmentsError } = await supabaseAdmin
+          .from('enrollments')
+          .select('course_id, status')
+          .in('course_id', courseIds)
+          .eq('status', 'approved');
+        console.log('EnrollmentsData:', enrollmentsData);
+        if (!enrollmentsError && Array.isArray(enrollmentsData)) {
+          // Đếm số học viên cho từng khoá học
+          studentsMap = enrollmentsData.reduce((acc: Record<string, number>, e: any) => {
+            acc[e.course_id] = (acc[e.course_id] || 0) + 1;
+            return acc;
+          }, {});
+          console.log('StudentsMap:', studentsMap);
+        }
+      }
+
+      // Fetch average rating for all courses
+      const ReviewModel = require('../models/review.model').ReviewModel;
+      const ratingMap: Record<string, number> = {};
+      if (courseIds.length > 0) {
+        for (const courseId of courseIds) {
+          try {
+            const stats = await ReviewModel.getCourseAverageRating(courseId);
+            ratingMap[courseId] = stats.average;
+          } catch (err) {
+            ratingMap[courseId] = 0;
+          }
+        }
+      }
+
       const courses = (data || []).map((course: any) => ({
         ...course,
         visibility: typeof course.visibility === 'string'
           ? course.visibility.trim().toLowerCase() === 'private' ? 'private' : 'public'
           : 'public',
         tags: course.course_tags?.map((ct: any) => ct.tags).filter(Boolean) || [],
-        enrollmentCount: 0,
+        students: studentsMap[course.id] || 0,
+        owner: course.owner || undefined,
+        rating: ratingMap[course.id] || 0,
       }));
 
+      // Apply sorting based on filters.sort parameter
+      const sortBy = filters.sort || 'newest';
+      let sortedCourses = [...courses];
+      
+      switch (sortBy) {
+        case 'popular':
+          // Sort by number of students (descending)
+          sortedCourses.sort((a, b) => (b.students || 0) - (a.students || 0));
+          break;
+        case 'rating':
+          // Sort by rating (descending)
+          sortedCourses.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          break;
+        case 'newest':
+        default:
+          // Sort by created_at (descending) - already sorted by query
+          break;
+      }
+
+      // Apply pagination AFTER sorting
+      const paginatedCourses = limit > 0 
+        ? sortedCourses.slice(offset, offset + limit)
+        : sortedCourses;
+
       return {
-        data: courses,
+        data: paginatedCourses,
         total: count || 0,
         page,
         limit,

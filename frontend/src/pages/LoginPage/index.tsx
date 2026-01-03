@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/services/api';
 import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
-import { mockUsers } from '@/services/mocks';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 
@@ -319,51 +318,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     Đăng nhập với Google
                   </Button>
 
-                  <div className="relative">
-                    <Separator />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="bg-white px-3 text-sm text-gray-500">Hoặc sử dụng tài khoản demo</span>
-                    </div>
-                  </div>
 
-                  {/* Demo Accounts */}
-                  <div className="space-y-3">
-                    {mockUsers.map((user, index) => (
-                      <div
-                        key={user.id}
-                        style={{ animationDelay: `${index * 50}ms` }}
-                        className="animate-in slide-in-from-top-2"
-                      >
-                        <button
-                          className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 hover:border-[#1E88E5] hover:bg-[#1E88E5]/5 hover:scale-[1.02] transition-all text-left hover:shadow-md"
-                          onClick={() => handleQuickLogin(user)}
-                        >
-                          <Avatar className="w-12 h-12">
-                            <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white" style={{ fontSize: '1.125rem' }}>
-                              {user.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm truncate" style={{ fontWeight: 600 }}>{user.name}</div>
-                            <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                            <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${user.role === 'admin'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-blue-100 text-blue-700'
-                              }`}>
-                              {user.role === 'admin' ? '👑 Admin' : '👤 User'}
-                            </span>
-                          </div>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
 
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <AlertDescription className="text-sm text-blue-800 flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span><strong>Demo:</strong> Chọn tài khoản để trải nghiệm hệ thống</span>
-                    </AlertDescription>
-                  </Alert>
+                  
                 </CardContent>
                 <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
                   <p>

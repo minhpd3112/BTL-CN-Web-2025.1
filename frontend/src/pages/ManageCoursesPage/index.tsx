@@ -43,7 +43,9 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     try {
       setIsLoading(true);
       setError(null);
-      const response = await coursesAPI.getAllCourses({ isAdmin: true });
+      const params: any = { isAdmin: true };
+      if (filterTag && filterTag !== 'all') params.tag = filterTag;
+      const response = await coursesAPI.getAllCourses(params);
       if (response.success) {
         const courseList = Array.isArray(response.data) ? response.data : [];
         const mappedCourses = courseList.map((course: any) => ({
@@ -51,13 +53,18 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           title: course.title,
           description: course.description || '',
           image: course.image_url || '/placeholder-course.jpg',
+          image_url: course.image_url,
           ownerId: course.owner_id,
+          owner_id: course.owner_id,
           ownerName: course.owner?.full_name || 'Unknown',
           ownerAvatar: course.owner?.avatar_url || '',
-          tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
+          owner: course.owner,
+          tags: course.tags?.map((t: any) => t.tag?.name || t.name).filter(Boolean) || [],
           visibility: course.visibility as 'public' | 'private',
           status: course.status,
-          studentsCount: 0,
+          students: course.students || 0,
+          rating: course.rating || 0,
+          studentsCount: course.students || 0,
           lessonsCount: 0,
         }));
         setCourses(mappedCourses);
@@ -72,9 +79,8 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     }
   };
 
-  // Fetch courses & tags on mount
+  // Fetch tags on mount
   useEffect(() => {
-    fetchCourses();
     async function fetchTags() {
       try {
         const tagsRes = await tagsAPI.getAllTags();
@@ -86,13 +92,17 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
     fetchTags();
   }, []);
 
-  // Filter courses ở FE
+  // Fetch courses mỗi khi filterTag thay đổi
+  useEffect(() => {
+    fetchCourses();
+  }, [filterTag]);
+
+  // Filter courses ở FE (chỉ search và visibility)
   const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.ownerName?.toLowerCase?.().includes(searchQuery.toLowerCase()) ?? false);
+      (course.ownerName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
-    const matchTag = filterTag === 'all' || (course.tags && course.tags.some((t: any) => t.name === filterTag || t === filterTag));
-    return matchSearch && matchVisibility && matchTag;
+    return matchSearch && matchVisibility;
   });
 
   // Pagination FE

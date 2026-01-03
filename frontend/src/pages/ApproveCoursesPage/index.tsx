@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, Users, BookOpen, FileCheck } from 'lucide-react';
+import { CheckCircle, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { CourseCard } from '@/components/shared/CourseCard';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,109 +78,7 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
     }
   };
 
-  const CoursePreviewCard = ({ course }: { course: Course }) => (
-    <>
-      <style>{`
-        @keyframes border-rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
-      <div className="group relative h-full">
-        {/* Animated Moving Light Border (Visible on Hover) */}
-        <div className="absolute -inset-[2px] rounded-xl overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_340deg,#1E88E5_360deg)] animate-[border-rotate_4s_linear_infinite]" />
-        </div>
-
-        {/* Static Blue Glow */}
-        <div className="absolute -inset-[1px] rounded-xl bg-[#1E88E5]/20 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
-
-        <Card
-          className="relative z-10 h-full flex flex-col overflow-hidden border-[#1E88E5]/30 bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
-          onClick={() => {
-            setSelectedCourse(course);
-            navigateTo('course-detail');
-          }}
-        >
-          {/* Image Area */}
-          <div className="relative aspect-video overflow-hidden">
-            <img
-              src={course.image}
-              alt={course.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-
-            {/* Play Icon Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
-              <div className="bg-white/30 backdrop-blur-md p-3 rounded-full shadow-lg">
-                <Eye className="w-10 h-10 text-white" />
-              </div>
-            </div>
-          </div>
-
-          <CardContent className="flex flex-col flex-grow p-5 gap-3">
-
-            <h3
-              className="font-bold text-lg leading-snug line-clamp-2 group-hover:text-[#1E88E5] transition-colors duration-200"
-              title={course.title}
-            >
-              {course.title}
-            </h3>
-
-            {/* Description */}
-            <p className="text-gray-500 text-sm line-clamp-2 flex-grow">
-              {course.description}
-            </p>
-
-            {/* Author & Stats */}
-            <div className="flex items-center gap-3 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6 border border-gray-100">
-                  <AvatarFallback className="text-[10px] bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white">
-                    {course.ownerAvatar}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-medium truncate max-w-[100px]">{course.ownerName}</span>
-              </div>
-              <span className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                {course.students}
-              </span>
-              <span className="flex items-center gap-1">
-                <BookOpen className="w-4 h-4" />
-                {course.lessons}
-              </span>
-            </div>
-
-            <div className="mt-3 pt-4 border-t border-gray-100 flex gap-2">
-              <Button
-                size="sm"
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleApproveCourse(course);
-                }}
-              >
-                Phê duyệt
-              </Button>
-              <Button
-                size="sm"
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRejectCourse(course);
-                }}
-              >
-                Từ chối
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
-  );
+  // Removed CoursePreviewCard, will use CourseCard instead
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -205,7 +102,37 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
       ) : pendingCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pendingCourses.map(course => (
-            <CoursePreviewCard key={course.id} course={course} />
+            <div key={course.id} className="mb-6">
+              <CourseCard
+                course={course}
+                onClick={() => {
+                  setSelectedCourse(course);
+                  navigateTo('course-detail');
+                }}
+              />
+              <div className="mt-3 flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleApproveCourse(course);
+                  }}
+                >
+                  Phê duyệt
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleRejectCourse(course);
+                  }}
+                >
+                  Từ chối
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       ) : (

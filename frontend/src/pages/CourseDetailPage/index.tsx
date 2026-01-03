@@ -27,7 +27,7 @@ import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogH
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { mockUsers } from '@/services/mocks';
-import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI } from '@/services/api';
+import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI, usersAPI } from '@/services/api';
 import { ReviewForm } from '@/components/shared/ReviewForm';
 import { StarRating } from '@/components/shared/StarRating';
 
@@ -53,70 +53,13 @@ interface Section {
   lessons: Lesson[];
 }
 
-// Mock lessons for curriculum display
-const mockLessons = [
-  { id: 1, title: 'Giới thiệu khóa học', type: 'video', duration: '10:00', completed: true },
-  { id: 2, title: 'Cài đặt môi trường', type: 'video', duration: '15:00', completed: true },
-  { id: 3, title: 'Concepts cơ bản', type: 'video', duration: '20:00', completed: false },
-  { id: 4, title: 'Tài liệu tham khảo', type: 'pdf', duration: '5 phút', completed: false },
-  { id: 5, title: 'Quiz kiểm tra', type: 'quiz', duration: '10 phút', completed: false }
-];
 
 
-// Mock course sections with full content for admin preview
-const mockCourseSections = [
-  {
-    id: 1,
-    title: 'Giới thiệu',
-    lessons: [
-      { id: 1, title: 'Chào mừng đến với khóa học', type: 'video' as const, duration: '10:00', youtubeUrl: 'dQw4w9WgXcQ' },
-      { id: 2, title: 'Tổng quan nội dung', type: 'text' as const, duration: '5:00', content: '# Tổng quan khóa học\n\nTrong khóa học này, bạn sẽ học được:\n\n- Các khái niệm cơ bản\n- Cách áp dụng vào thực tế\n- Best practices trong ngành\n\nHãy cùng bắt đầu nhé!' },
-    ]
-  },
-  {
-    id: 2,
-    title: 'Kiến thức cơ bản',
-    lessons: [
-      { id: 3, title: 'Video hướng dẫn chi tiết', type: 'video' as const, duration: '15:00', youtubeUrl: 'dQw4w9WgXcQ' },
-      { id: 4, title: 'Tài liệu PDF tham khảo', type: 'pdf' as const, duration: '10:00', pdfUrl: 'sample-document.pdf' },
-      {
-        id: 5,
-        title: 'Bài kiểm tra kiến thức',
-        type: 'quiz' as const,
-        duration: '10 phút',
-        quizQuestions: [
-          {
-            question: 'React là gì?',
-            type: 'single' as const,
-            options: ['Library JavaScript', 'Framework', 'Ngôn ngữ lập trình', 'Database'],
-            correctAnswers: [0],
-            explanation: 'React là một JavaScript library để xây dựng giao diện người dùng (UI).'
-          },
-          {
-            question: 'Chọn các hooks cơ bản của React:',
-            type: 'multiple' as const,
-            options: ['useState', 'useEffect', 'useContext', 'useDatabase'],
-            correctAnswers: [0, 1, 2],
-            explanation: 'useState, useEffect và useContext là các hooks cơ bản được tích hợp sẵn trong React. useDatabase không phải là hook của React.'
-          },
-          {
-            question: 'JSX là viết tắt của gì?',
-            type: 'single' as const,
-            options: ['JavaScript XML', 'Java Syntax Extension', 'JSON XML', 'JavaScript Extension'],
-            correctAnswers: [0],
-            explanation: 'JSX là viết tắt của JavaScript XML, là một cú pháp mở rộng cho JavaScript.'
-          }
-        ]
-      },
-    ]
-  }
-];
 
 interface CourseDetailPageProps {
   course: Course;
   navigateTo: (page: Page) => void;
   currentUser: User;
-  isOwner: boolean;
   canAccess: boolean;
   enrollmentRequests?: any[];
   onEnrollRequest?: (request: any) => void;
@@ -128,15 +71,24 @@ export function CourseDetailPage({
   course,
   navigateTo,
   currentUser,
-  isOwner,
   canAccess,
   enrollmentRequests,
   onEnrollRequest,
   setSelectedUser
 }: CourseDetailPageProps) {
+  // Robust owner detection
+  const isOwner = currentUser && (
+    (course.ownerId && course.ownerId === currentUser.id) ||
+    (course.owner?.id && course.owner?.id === currentUser.id)
+  );
+  // Loading state for access check
+  // ...
+  const [isLoadingAccess, setIsLoadingAccess] = useState(true);
+  // Dialog state for leaving course
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState('');
-  const [expandedSections, setExpandedSections] = useState<number[]>([1]);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
   // Curriculum state
@@ -160,26 +112,30 @@ export function CourseDetailPage({
   const [reviewCount, setReviewCount] = useState<number>(0);
 
   // Actual access control based on enrollment
-  const [actualCanAccess, setActualCanAccess] = useState<boolean>(canAccess);
+  const [actualCanAccess, setActualCanAccess] = useState<boolean>(() => {
+    // Ưu tiên quyền overrideAccess nếu có
+    if ((course as any).overrideAccess) return true;
+    return canAccess;
+  });
+  // ...
 
-  // Check if user has pending request (initialized from props, updated via state)
-  const [hasPendingRequest, setHasPendingRequest] = useState(
+  // Check if user has pending request
+  const [hasPendingRequest, setHasPendingRequest] = useState(() =>
     enrollmentRequests?.some(
       (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
     ) || false
   );
 
-  // Leave course dialog state
-  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
-
   // Check if user is already enrolled (will be updated via API)
   const [isEnrolled, setIsEnrolled] = useState(false);
 
-  // Enrollment ID for leaving course
-  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
 
   // Check if user is owner or admin
   const canManage = isOwner || currentUser?.role === 'admin';
+
+  // Handler for leaving the course
+  // Find enrollment id for this user & course
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
 
   // Fetch enrollments from backend on mount and after join
   useEffect(() => {
@@ -191,6 +147,7 @@ export function CourseDetailPage({
           (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
         )
         : undefined;
+      setEnrollmentId(found?.id || null);
       setIsEnrolled(!!found);
     });
     // Only update hasPendingRequest from prop
@@ -199,7 +156,7 @@ export function CourseDetailPage({
         (req: any) => req.courseId === course.id && req.userId === Number(currentUser?.id) && req.status === 'pending'
       ) || false
     );
-  }, [course.id, currentUser?.id]);
+  }, [course.id, currentUser?.id, isEnrolled]);
 
   const handleEnrollRequest = async () => {
     // For public courses, no message required
@@ -223,6 +180,7 @@ export function CourseDetailPage({
         )
         : undefined;
       setIsEnrolled(!!found);
+      if (!!found) setActualCanAccess(true);
       setHasPendingRequest(false);
       toast.success('Bạn đã tham gia khóa học thành công!');
     } catch (err: any) {
@@ -237,17 +195,65 @@ export function CourseDetailPage({
     setEnrollMessage('');
   };
 
-  const handleOwnerClick = () => {
-    if (setSelectedUser) {
-      const owner = mockUsers.find(u => u.id === course.ownerId);
-      if (owner) {
-        setSelectedUser(owner);
+  const handleOwnerClick = async () => {
+    if (setSelectedUser && fullCourse?.owner) {
+      try {
+        // Fetch full user data from API
+        const usersRes = await usersAPI.getAllUsers();
+        const fullUser = usersRes.data?.find((u: User) => u.id === fullCourse.owner.id);
+        
+        if (fullUser) {
+          setSelectedUser(fullUser);
+          navigateTo('user-detail');
+        } else {
+          // Fallback: create user object from owner data if API fails
+          const ownerUser: User = {
+            id: fullCourse.owner.id,
+            username: fullCourse.owner.full_name,
+            name: fullCourse.owner.full_name,
+            fullName: fullCourse.owner.full_name,
+            full_name: fullCourse.owner.full_name,
+            email: '', // Not available from course owner
+            avatar: fullCourse.owner.avatar_url || '',
+            avatar_url: fullCourse.owner.avatar_url,
+            role: 'user',
+            joinedDate: '',
+            coursesCreated: 0,
+            coursesEnrolled: 0,
+            totalStudents: 0,
+            status: 'active',
+            lastLogin: ''
+          };
+          setSelectedUser(ownerUser);
+          navigateTo('user-detail');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Use fallback data on error
+        const ownerUser: User = {
+          id: fullCourse.owner.id,
+          username: fullCourse.owner.full_name,
+          name: fullCourse.owner.full_name,
+          fullName: fullCourse.owner.full_name,
+          full_name: fullCourse.owner.full_name,
+          email: '',
+          avatar: fullCourse.owner.avatar_url || '',
+          avatar_url: fullCourse.owner.avatar_url,
+          role: 'user',
+          joinedDate: '',
+          coursesCreated: 0,
+          coursesEnrolled: 0,
+          totalStudents: 0,
+          status: 'active',
+          lastLogin: ''
+        };
+        setSelectedUser(ownerUser);
         navigateTo('user-detail');
       }
     }
   };
 
-  const toggleSection = (sectionId: number) => {
+  const toggleSection = (sectionId: string) => {
     setExpandedSections(prev =>
       prev.includes(sectionId)
         ? prev.filter(id => id !== sectionId)
@@ -273,7 +279,7 @@ export function CourseDetailPage({
         const response = await sectionsAPI.getByCourseId(course.id.toString());
         if (response.success && response.data) {
           setSections(response.data);
-          console.log('Loaded curriculum:', response.data);
+          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching curriculum:', error);
@@ -294,7 +300,7 @@ export function CourseDetailPage({
         const response = await coursesAPI.getCourseById(course.id.toString());
         if (response.success && response.data) {
           setFullCourse(response.data);
-          console.log('Loaded complete course data:', response.data);
+          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching course details:', error);
@@ -312,7 +318,7 @@ export function CourseDetailPage({
       try {
         // Backend now allows enrolled students to view count
         const response = await enrollmentsAPI.getByCourseId(course.id.toString());
-        console.log('Enrollments API response:', response);
+        // ...existing code...
 
         if (response.success && response.data) {
           // Filter for approved enrollments
@@ -321,9 +327,9 @@ export function CourseDetailPage({
             : [];
 
           setStudentCount(approvedEnrollments.length);
-          console.log('Approved student count:', approvedEnrollments.length);
+          // ...existing code...
         } else {
-          console.log('No enrollment data returned');
+          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching student count:', error);
@@ -337,9 +343,16 @@ export function CourseDetailPage({
 
   // Check actual enrollment status for non-owners
   useEffect(() => {
+    // Nếu overrideAccess thì luôn cho truy cập
+    if ((course as any).overrideAccess) {
+      setActualCanAccess(true);
+      setIsLoadingAccess(false);
+      return;
+    }
     const checkEnrollment = async () => {
       if (!currentUser || isOwner || currentUser.role === 'admin') {
         setActualCanAccess(true);
+        setIsLoadingAccess(false);
         return;
       }
 
@@ -359,11 +372,13 @@ export function CourseDetailPage({
       } catch (error: any) {
         console.error('Error checking enrollment:', error);
         setActualCanAccess(course.visibility === 'public');
+      } finally {
+        setIsLoadingAccess(false);
       }
     };
 
     checkEnrollment();
-  }, [course.id, currentUser, isOwner, course.visibility]);
+  }, [course.id, currentUser, isOwner, course.visibility, course]);
 
   // Fetch course reviews
   useEffect(() => {
@@ -392,12 +407,10 @@ export function CourseDetailPage({
   // Fetch user's review and check if they can review
   useEffect(() => {
     const checkReviewEligibility = async () => {
-      console.log('=== Check Review Eligibility ===');
-      console.log('currentUser:', currentUser);
-      console.log('isEnrolled:', isEnrolled);
+      // ...existing code...
 
       if (!currentUser || !isEnrolled) {
-        console.log('Early return: no user or not enrolled');
+        // ...existing code...
         setCanReview(false);
         return;
       }
@@ -410,10 +423,10 @@ export function CourseDetailPage({
         );
         if (reviewResponse.success && reviewResponse.data) {
           setMyReview(reviewResponse.data);
-          console.log('Found existing review:', reviewResponse.data);
+          // ...existing code...
         }
       } catch (error: any) {
-        console.log('No existing review (this is OK):', error.message);
+        // ...existing code...
         setMyReview(null);
       }
 
@@ -421,26 +434,28 @@ export function CourseDetailPage({
       try {
         const progressResponse = await enrollmentsAPI.getMyEnrollments();
         if (progressResponse.success && progressResponse.data) {
-          console.log('All enrollments:', progressResponse.data);
-          console.log('Looking for course_id:', course.id, 'type:', typeof course.id);
+          // ...existing code...
 
           const enrollment = progressResponse.data.find(
             (e: any) => {
-              console.log('Checking enrollment:', e.course_id, 'type:', typeof e.course_id, 'progress:', e.progress);
+              // ...existing code...
               return e.course_id === course.id || e.course_id.toString() === course.id.toString();
             }
           );
 
-          console.log('Found enrollment:', enrollment);
+          // ...existing code...
 
           if (enrollment?.progress) {
             const percentage = enrollment.progress.percentage || 0;
-            console.log('Setting course progress to:', percentage);
+            const completed = enrollment.progress.completed || 0;
+            const total = enrollment.progress.total || 0;
+            // ...existing code...
             setCourseProgress(percentage);
-            // Can review if 100% complete
-            setCanReview(percentage >= 100);
+            // Can review if completed all lessons OR percentage is 100
+            const isCompleted = total > 0 && completed >= total;
+            setCanReview(isCompleted || percentage >= 100);
           } else {
-            console.log('No progress found in enrollment');
+            // ...existing code...
             setCourseProgress(0);
             setCanReview(false);
           }
@@ -509,6 +524,14 @@ export function CourseDetailPage({
     return `https://www.youtube.com/embed/${videoId}`;
   };
 
+  if (isLoadingAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E88E5] mr-4" />
+        <span className="text-[#1E88E5] text-lg font-medium">Đang kiểm tra quyền truy cập...</span>
+      </div>
+    );
+  }
   if (!actualCanAccess) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -527,9 +550,6 @@ export function CourseDetailPage({
       </div>
     );
   }
-
-  // Handler for leaving the course
-  // Note: enrollmentId state is declared at top of component with other useState hooks
 
   const handleLeaveCourse = async () => {
     if (!enrollmentId) {
@@ -597,10 +617,17 @@ export function CourseDetailPage({
                     onClick={handleOwnerClick}
                   >
                     <Avatar className="w-8 h-8 border-2 border-white/20">
-                      <AvatarImage src={course.ownerAvatar} />
-                      <AvatarFallback className="bg-white text-[#1E88E5] font-bold">{course.ownerName?.[0]}</AvatarFallback>
+                      {fullCourse?.owner?.avatar_url ? (
+                        <img
+                          src={fullCourse.owner.avatar_url}
+                          alt={fullCourse.owner.full_name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-white text-[#1E88E5] font-bold">{fullCourse?.owner?.full_name?.[0] || 'G'}</AvatarFallback>
+                      )}
                     </Avatar>
-                    <span className="font-medium hover:underline decoration-1 underline-offset-2">{course.ownerName}</span>
+                    <span className="font-medium hover:underline decoration-1 underline-offset-2">{fullCourse?.owner?.full_name || 'Giảng viên'}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -632,15 +659,10 @@ export function CourseDetailPage({
                     />
                   </div>
                   <CardContent className="p-4">
-                    {isOwner ? (
-                      <Button
-                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
-                        onClick={() => navigateTo('course-dashboard')}
-                      >
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Tổng quan khóa học
-                      </Button>
-                    ) : currentUser?.role === 'admin' ? (
+                    {(() => {
+                      // ...existing code...
+                      return (isOwner || currentUser?.role === 'admin');
+                    })() ? (
                       <Button
                         className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
                         onClick={() => navigateTo('learning')}
@@ -784,6 +806,7 @@ export function CourseDetailPage({
               Tổng quan
             </TabsTrigger>
 
+            {/* Luôn hiển thị tab Đánh giá cho owner, admin, học viên */}
             <TabsTrigger
               value="reviews"
               className="relative z-10 flex-1 min-w-[120px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
@@ -940,8 +963,9 @@ export function CourseDetailPage({
 
           {/* Reviews Tab */}
           <TabsContent value="reviews">
-            {/* Review Form - Only show if user can review */}
-            {canReview && !myReview && (
+
+            {/* Review Form - Chỉ cho phép học viên đã học, không phải owner/admin */}
+            {canReview && !myReview && !isOwner && currentUser?.role !== 'admin' && (
               <ReviewForm
                 courseId={course.id.toString()}
                 onSuccess={() => {
@@ -983,8 +1007,9 @@ export function CourseDetailPage({
               />
             )}
 
-            {/* Message for non-eligible users */}
-            {isEnrolled && !canReview && (
+
+            {/* Message for non-eligible users (chỉ cho học viên, không phải owner/admin) */}
+            {isEnrolled && !canReview && !isOwner && currentUser?.role !== 'admin' && (
               <Alert className="mb-6">
                 <AlertDescription>
                   Bạn cần hoàn thành 100% khóa học để có thể đánh giá.
@@ -1077,8 +1102,8 @@ export function CourseDetailPage({
             </Card>
           </TabsContent>
 
-          {/* Admin Content Preview Tab */}
-          {currentUser?.role === 'admin' && (
+          {/* Admin Content Preview Tab - Disabled: Requires proper mock data or real implementation */}
+          {false && currentUser?.role === 'admin' && (
             <TabsContent value="content-preview">
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 {/* Left: Lesson List (2 columns) */}
@@ -1090,7 +1115,7 @@ export function CourseDetailPage({
                     <CardContent className="p-4">
                       <ScrollArea className="h-[600px] pr-4">
                         <div className="space-y-3">
-                          {mockCourseSections.map((section) => (
+                          {sections.map((section) => (
                             <Card key={section.id} className="border">
                               <Collapsible
                                 open={expandedSections.includes(section.id)}
@@ -1123,10 +1148,10 @@ export function CourseDetailPage({
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 text-sm">
-                                              {lesson.type === 'video' && <Video className="w-4 h-4 text-[#1E88E5]" />}
-                                              {lesson.type === 'text' && <FileText className="w-4 h-4 text-green-600" />}
-                                              {lesson.type === 'pdf' && <FileText className="w-4 h-4 text-red-600" />}
-                                              {lesson.type === 'quiz' && <Award className="w-4 h-4 text-orange-600" />}
+                                              {lesson.content_type === 'video' && <Video className="w-4 h-4 text-[#1E88E5]" />}
+                                              {lesson.content_type === 'text' && <FileText className="w-4 h-4 text-green-600" />}
+                                              {lesson.content_type === 'pdf' && <FileText className="w-4 h-4 text-red-600" />}
+                                              {lesson.content_type === 'quiz' && <Award className="w-4 h-4 text-orange-600" />}
                                               <span className="truncate">{lesson.title}</span>
                                             </div>
                                             <div className="text-xs text-gray-500">{lesson.duration}</div>
@@ -1162,12 +1187,12 @@ export function CourseDetailPage({
                   ) : (
                     <div className="space-y-4">
                       {/* Video Preview */}
-                      {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
+                      {selectedLesson.content_type === 'video' && selectedLesson.content_url && (
                         <Card>
                           <CardContent className="p-0">
                             <div className="aspect-video rounded-lg overflow-hidden bg-black">
                               <iframe
-                                src={getYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
+                                src={getYouTubeEmbedUrl(selectedLesson.content_url)}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
@@ -1178,12 +1203,12 @@ export function CourseDetailPage({
                       )}
 
                       {/* Text Preview */}
-                      {selectedLesson.type === 'text' && selectedLesson.content && (
+                      {selectedLesson.content_type === 'text' && selectedLesson.content_text && (
                         <Card>
                           <CardContent className="p-6">
                             <div className="prose max-w-none">
                               <div className="p-6 bg-gray-50 rounded-lg border">
-                                <pre className="whitespace-pre-wrap text-sm">{selectedLesson.content}</pre>
+                                <pre className="whitespace-pre-wrap text-sm">{selectedLesson.content_text}</pre>
                               </div>
                             </div>
                           </CardContent>
@@ -1191,20 +1216,20 @@ export function CourseDetailPage({
                       )}
 
                       {/* PDF Preview */}
-                      {selectedLesson.type === 'pdf' && (
+                      {selectedLesson.content_type === 'pdf' && (
                         <Card>
                           <CardContent className="p-6">
                             <div className="space-y-4">
                               <Alert className="bg-blue-50 border-blue-200">
                                 <AlertDescription className="text-blue-800 text-sm">
-                                  📄 <strong>Tài liệu PDF:</strong> {selectedLesson.pdfUrl}
+                                  📄 <strong>Tài liệu PDF:</strong> {selectedLesson.content_url}
                                 </AlertDescription>
                               </Alert>
                               <div className="aspect-[3/4] rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
                                 <div className="text-center text-gray-500">
                                   <FileText className="w-20 h-20 text-gray-300 mx-auto mb-3" />
                                   <p className="text-sm">PDF Preview</p>
-                                  <p className="text-xs mt-1">{selectedLesson.pdfUrl}</p>
+                                  <p className="text-xs mt-1">{selectedLesson.content_url}</p>
                                 </div>
                               </div>
                             </div>
@@ -1213,7 +1238,7 @@ export function CourseDetailPage({
                       )}
 
                       {/* Quiz Preview */}
-                      {selectedLesson.type === 'quiz' && selectedLesson.quizQuestions && (
+                      {selectedLesson.content_type === 'quiz' && selectedLesson.quizQuestions && (
                         <div className="space-y-6">
                           {selectedLesson.quizQuestions.map((q: any, qIdx: number) => (
                             <Card key={qIdx} className="border-2">

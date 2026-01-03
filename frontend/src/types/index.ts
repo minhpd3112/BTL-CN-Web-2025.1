@@ -42,22 +42,28 @@ export interface Tag {
   image?: string;
 }
 
+export interface CourseOwner {
+  id: string;
+  full_name: string;
+  avatar_url: string;
+}
+
 export interface Course {
   id: string; // uuid
   title: string;
   description: string;
   overview?: string;
-  ownerName: string;
   ownerId: string; // uuid
-  owner_id?: string; // API field
-  ownerAvatar: string;
+  ownerName?: string; // For mock data compatibility
+  ownerAvatar?: string; // For mock data compatibility
+  owner?: CourseOwner; // Thông tin owner trả về từ API mới
   rating: number;
   students: number;
   duration: string;
   image: string;
   image_url?: string; // for Supabase storage URLs
   tags: string[];
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'draft' | 'pending' | 'approved' | 'rejected';
   visibility: 'public' | 'private';
   lessons: number;
   enrolledUsers: number[];
@@ -138,13 +144,23 @@ export interface Review {
   helpful: number;
 }
 
+
+// Notification types for users
+export type NotificationType =
+  | 'course_approved'
+  | 'course_rejected'
+  | 'student_joined'
+  | 'course_completed';
+
 export interface Notification {
   id: string; // uuid
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   courseId?: string; // uuid
   userId?: string; // uuid
+  user_id?: string; // API field
+  related_course_id?: string; // API field
   timestamp: string;
   read: boolean;
   icon: string;
@@ -188,4 +204,5 @@ export type Page =
   | 'manage-tags'
   | 'course-students'
   | 'account-settings'
-  | 'tag-detail';
+  | 'tag-detail'
+  | 'ai-learning-path';

@@ -91,6 +91,12 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
     const [showDeleteCourseDialog, setShowDeleteCourseDialog] = useState(false);
 
+    // Video upload states
+    const [videoSource, setVideoSource] = useState<'youtube' | 'upload'>('youtube');
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [videoPreview, setVideoPreview] = useState<string>('');
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+
     // Inline editing states
     const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
     const [editSectionTitle, setEditSectionTitle] = useState('');
@@ -219,6 +225,51 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         setShowAddSection(true);
     };
 
+    // Upload video function
+    const uploadVideo = async (file: File): Promise<string | null> => {
+        try {
+            const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+            if (file.size > MAX_SIZE) {
+                toast.error('Kích thước video không được vượt quá 50MB');
+                return null;
+            }
+
+            console.log('Starting video upload...', { fileName: file.name, size: file.size });
+            setIsUploadingVideo(true);
+            toast.info('Đang upload video... Vui lòng đợi.');
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+            const { data, error } = await supabase.storage
+                .from('course-videos')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (error) {
+                console.error('Video upload error:', error);
+                toast.error(`Upload thất bại: ${error.message}`);
+                return null;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('course-videos')
+                .getPublicUrl(fileName);
+
+            console.log('Video uploaded successfully:', publicUrl);
+            toast.success('Upload video thành công!');
+            return publicUrl;
+        } catch (error: any) {
+            console.error('Video upload failed:', error);
+            toast.error(`Upload video thất bại: ${error?.message || 'Unknown error'}`);
+            return null;
+        } finally {
+            setIsUploadingVideo(false);
+        }
+    };
+
     const handleAddSection = async () => {
         if (sectionTitle.trim()) {
             try {
@@ -265,7 +316,20 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
         // Load content based on type
         if (lesson.content_type === 'video') {
-            setYoutubeUrl(lesson.content_url || '');
+            const contentUrl = lesson.content_url || '';
+            // Detect if it's YouTube or uploaded video
+            const isYouTubeUrl = contentUrl.includes('youtube.com') || contentUrl.includes('youtu.be');
+            if (isYouTubeUrl || !contentUrl) {
+                setVideoSource('youtube');
+                setYoutubeUrl(contentUrl);
+                setVideoFile(null);
+                setVideoPreview('');
+            } else {
+                setVideoSource('upload');
+                setYoutubeUrl('');
+                setVideoFile(null);
+                setVideoPreview(contentUrl); // Show existing uploaded video
+            }
         } else if (lesson.content_type === 'article' || lesson.content_type === 'text') {
             setLessonContent(lesson.content_text || '');
         } else if (lesson.content_type === 'pdf') {
@@ -342,13 +406,31 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             }
 
             try {
+                // Handle video upload if needed
+                let videoContentUrl = youtubeUrl;
+                if (lessonType === 'video' && videoSource === 'upload') {
+                    if (videoFile) {
+                        const uploadedUrl = await uploadVideo(videoFile);
+                        if (!uploadedUrl) {
+                            return; // Upload failed, error already shown
+                        }
+                        videoContentUrl = uploadedUrl;
+                    } else if (videoPreview && !videoPreview.startsWith('blob:')) {
+                        // Use existing uploaded video URL
+                        videoContentUrl = videoPreview;
+                    } else {
+                        toast.error('Vui lòng chọn file video');
+                        return;
+                    }
+                }
+
                 if (editingLesson) {
                     // Update existing lesson
                     const updateData: any = {
                         title: lessonTitle,
                         content_type: lessonType === 'text' ? 'article' : lessonType,
                     };
-                    if (lessonType === 'video') updateData.content_url = youtubeUrl;
+                    if (lessonType === 'video') updateData.content_url = videoContentUrl;
                     if (lessonType === 'text') updateData.content_text = lessonContent;
                     if (lessonType === 'pdf') updateData.content_url = pdfUrl;
 
@@ -378,7 +460,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                         is_free: false,
                     };
                     // Map to correct database columns
-                    if (lessonType === 'video') newLessonData.content_url = youtubeUrl;
+                    if (lessonType === 'video') newLessonData.content_url = videoContentUrl;
                     if (lessonType === 'text') newLessonData.content_text = lessonContent;
                     if (lessonType === 'pdf') newLessonData.content_url = pdfUrl;
 
@@ -559,35 +641,41 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
 
         setIsSaving(true);
         try {
+            // Determine if visibility is being changed from private to public
+            let statusUpdate = undefined;
+            if (course.visibility === 'private' && visibility === 'public') {
+                statusUpdate = 'pending'; // Require admin approval
+            }
+
             const updateData = {
                 title: courseName,
                 description: description,
                 overview: courseOverview || null,
                 visibility: visibility,
                 image_url: imageUrl || null,
+                ...(statusUpdate ? { status: statusUpdate } : {})
             };
 
             const response = await coursesAPI.updateCourse(course.id.toString(), updateData);
             if (response.success) {
                 // Save tags after course update
                 try {
-                    // Remove all existing tags first by calling addCourseTags with selected tags
-                    // The backend addTags will replace existing associations
                     if (selectedTags.length > 0) {
                         await coursesAPI.addCourseTags(course.id.toString(), selectedTags);
-                        console.log('Tags saved successfully:', selectedTags);
                     }
                 } catch (tagError) {
-                    console.error('Error saving tags:', tagError);
                     toast.warning('Đã lưu khóa học nhưng không thể cập nhật chủ đề');
                 }
 
-                toast.success('Đã lưu thay đổi!');
+                if (statusUpdate === 'pending') {
+                    toast.info('Khóa học đã chuyển sang công khai và đang chờ phê duyệt của quản trị viên.');
+                } else {
+                    toast.success('Đã lưu thay đổi!');
+                }
             } else {
                 toast.error(response.message || 'Không thể lưu thay đổi');
             }
         } catch (error: any) {
-            console.error('Error saving course:', error);
             toast.error('Không thể lưu thay đổi. Vui lòng thử lại.');
         } finally {
             setIsSaving(false);
@@ -919,6 +1007,10 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                             setLessonContent('');
                                             setPdfUrl('');
                                             setQuizQuestions([]);
+                                            // Reset video states
+                                            setVideoSource('youtube');
+                                            setVideoFile(null);
+                                            setVideoPreview('');
                                         }
                                     }}>
                                         <DialogTrigger asChild>
@@ -980,22 +1072,177 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                                                 </div>
 
                                                 {lessonType === 'video' && (
-                                                    <div>
-                                                        <Label htmlFor="youtube-url">Link YouTube * (tối đa 200 ký tự)</Label>
-                                                        <div className="flex gap-2 mt-2">
-                                                            <LinkIcon className="w-5 h-5 text-gray-400 mt-2" />
-                                                            <Input
-                                                                id="youtube-url"
-                                                                placeholder="https://www.youtube.com/watch?v=..."
-                                                                value={youtubeUrl}
-                                                                onChange={(e) => setYoutubeUrl(e.target.value)}
-                                                                maxLength={200}
-                                                            />
+                                                    <div className="space-y-4">
+                                                        {/* Video Source Toggle */}
+                                                        <div>
+                                                            <Label>Nguồn video *</Label>
+                                                            <div className="mt-2 flex gap-4">
+                                                                <label
+                                                                    className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${videoSource === 'youtube'
+                                                                        ? 'border-[#1E88E5] bg-[#1E88E5]/5'
+                                                                        : 'border-gray-200 hover:border-gray-300'
+                                                                        }`}
+                                                                    onClick={() => setVideoSource('youtube')}
+                                                                >
+                                                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${videoSource === 'youtube' ? 'border-[#1E88E5]' : 'border-gray-400'
+                                                                        }`}>
+                                                                        {videoSource === 'youtube' && (
+                                                                            <div className="w-2 h-2 rounded-full bg-[#1E88E5]"></div>
+                                                                        )}
+                                                                    </div>
+                                                                    <LinkIcon className="w-4 h-4" />
+                                                                    <span className="font-medium text-sm">YouTube URL</span>
+                                                                </label>
+                                                                <label
+                                                                    className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${videoSource === 'upload'
+                                                                        ? 'border-[#1E88E5] bg-[#1E88E5]/5'
+                                                                        : 'border-gray-200 hover:border-gray-300'
+                                                                        }`}
+                                                                    onClick={() => setVideoSource('upload')}
+                                                                >
+                                                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${videoSource === 'upload' ? 'border-[#1E88E5]' : 'border-gray-400'
+                                                                        }`}>
+                                                                        {videoSource === 'upload' && (
+                                                                            <div className="w-2 h-2 rounded-full bg-[#1E88E5]"></div>
+                                                                        )}
+                                                                    </div>
+                                                                    <Upload className="w-4 h-4" />
+                                                                    <span className="font-medium text-sm">Upload từ máy</span>
+                                                                </label>
+                                                            </div>
                                                         </div>
-                                                        <p className="text-xs text-gray-500 mt-1">{youtubeUrl.length}/200 ký tự</p>
-                                                        <p className="text-sm text-gray-600 mt-2">
-                                                            💡 Có thể nhập link đầy đủ hoặc chỉ ID video
-                                                        </p>
+
+                                                        {/* YouTube URL Input */}
+                                                        {videoSource === 'youtube' && (
+                                                            <div>
+                                                                <Label htmlFor="youtube-url">Link YouTube * (tối đa 200 ký tự)</Label>
+                                                                <div className="flex gap-2 mt-2">
+                                                                    <LinkIcon className="w-5 h-5 text-gray-400 mt-2" />
+                                                                    <Input
+                                                                        id="youtube-url"
+                                                                        placeholder="https://www.youtube.com/watch?v=..."
+                                                                        value={youtubeUrl}
+                                                                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                                                                        maxLength={200}
+                                                                    />
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mt-1">{youtubeUrl.length}/200 ký tự</p>
+                                                                <p className="text-sm text-gray-600 mt-2">
+                                                                    💡 Có thể nhập link đầy đủ hoặc chỉ ID video
+                                                                </p>
+
+                                                                {/* YouTube Preview */}
+                                                                {youtubeUrl && (() => {
+                                                                    // Extract video ID from various YouTube URL formats
+                                                                    let videoId = '';
+                                                                    if (youtubeUrl.includes('youtube.com/watch?v=')) {
+                                                                        videoId = youtubeUrl.split('v=')[1]?.split('&')[0] || '';
+                                                                    } else if (youtubeUrl.includes('youtu.be/')) {
+                                                                        videoId = youtubeUrl.split('youtu.be/')[1]?.split('?')[0] || '';
+                                                                    } else if (youtubeUrl.includes('youtube.com/embed/')) {
+                                                                        videoId = youtubeUrl.split('embed/')[1]?.split('?')[0] || '';
+                                                                    } else if (/^[a-zA-Z0-9_-]{11}$/.test(youtubeUrl.trim())) {
+                                                                        // Just the video ID
+                                                                        videoId = youtubeUrl.trim();
+                                                                    }
+
+                                                                    if (videoId) {
+                                                                        return (
+                                                                            <div className="mt-4">
+                                                                                <Label className="text-sm text-gray-700 mb-2 block">Xem trước video:</Label>
+                                                                                <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black">
+                                                                                    <iframe
+                                                                                        src={`https://www.youtube.com/embed/${videoId}`}
+                                                                                        title="YouTube video preview"
+                                                                                        className="absolute inset-0 w-full h-full"
+                                                                                        frameBorder="0"
+                                                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                                        allowFullScreen
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Video Upload Input */}
+                                                        {videoSource === 'upload' && (
+                                                            <div>
+                                                                <Label>Chọn file video *</Label>
+                                                                <div className="mt-2 space-y-3">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <Input
+                                                                            id="edit-video-file"
+                                                                            type="file"
+                                                                            accept="video/mp4,video/webm,video/ogg"
+                                                                            onChange={(e) => {
+                                                                                const file = e.target.files?.[0];
+                                                                                if (file) {
+                                                                                    if (file.size > 50 * 1024 * 1024) {
+                                                                                        toast.error('Kích thước video không được vượt quá 50MB');
+                                                                                        return;
+                                                                                    }
+                                                                                    setVideoFile(file);
+                                                                                    setVideoPreview(URL.createObjectURL(file));
+                                                                                }
+                                                                            }}
+                                                                            className="hidden"
+                                                                            disabled={isUploadingVideo}
+                                                                        />
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            onClick={() => document.getElementById('edit-video-file')?.click()}
+                                                                            disabled={isUploadingVideo}
+                                                                            className="flex items-center gap-2"
+                                                                        >
+                                                                            <Upload className="w-4 h-4" />
+                                                                            {videoFile ? 'Thay đổi video' : 'Chọn video'}
+                                                                        </Button>
+                                                                        {videoFile && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-sm text-gray-600 truncate max-w-[200px]">
+                                                                                    {videoFile.name}
+                                                                                </span>
+                                                                                <span className="text-xs text-gray-500">
+                                                                                    ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
+                                                                                </span>
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => {
+                                                                                        setVideoFile(null);
+                                                                                        setVideoPreview('');
+                                                                                    }}
+                                                                                    className="text-red-600 hover:text-red-700 p-1 h-auto"
+                                                                                >
+                                                                                    <X className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Video Preview */}
+                                                                    {videoPreview && (
+                                                                        <div className="relative w-full rounded-lg border-2 border-dashed border-gray-300 overflow-hidden">
+                                                                            <video
+                                                                                src={videoPreview}
+                                                                                controls
+                                                                                className="w-full max-h-[200px]"
+                                                                            />
+                                                                        </div>
+                                                                    )}
+
+                                                                    <p className="text-sm text-gray-600">
+                                                                        💡 Hỗ trợ: MP4, WebM, OGG. Tối đa 50MB
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 
@@ -1252,7 +1499,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     />
                     <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{course.title}</p>
-                        <p className="text-sm text-gray-500">Giảng viên: {course.ownerName}</p>
+                        <p className="text-sm text-gray-500">Giảng viên: {course.owner?.full_name || 'Không xác định'}</p>
                     </div>
                 </div>
             </DeleteConfirmDialog>

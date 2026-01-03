@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import Markdown from 'react-markdown';
 import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award, ChevronDown, GripVertical } from 'lucide-react';
 import { LearningHeader } from './components/LearningHeader';
 import { CourseSidebar } from './components/CourseSidebar';
@@ -79,16 +80,38 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
               const lessonsResponse = await lessonsAPI.getBySectionId(section.id.toString());
               const lessons = lessonsResponse.success ? lessonsResponse.data || [] : [];
 
-              const mappedLessons = lessons.map((lesson: any) => ({
-                ...lesson,
-                type: lesson.content_type || lesson.type || 'video',
-                youtubeUrl: lesson.content_url || '',
-                pdfUrl: lesson.content_type === 'pdf' ? lesson.content_url || '' : '',
-                content_text: lesson.content_text || '',
-                completed: progressMap[lesson.id] || false, // Use loaded progress
-                isCompleted: progressMap[lesson.id] || false,
-                isLocked: false,
-              }));
+              const mappedLessons = lessons.map((lesson: any) => {
+                // Ensure content_text is always a safe string
+                let contentText = '';
+                if (typeof lesson.content_text === 'string') {
+                  contentText = lesson.content_text;
+                } else if (!lesson.content_text) {
+                  contentText = '';
+                } else if (typeof lesson.content_text === 'number' || typeof lesson.content_text === 'boolean') {
+                  contentText = String(lesson.content_text);
+                } else if (lesson.content_text.$$typeof) {
+                  // This is a React element - don't render it, just show empty
+                  contentText = '';
+                } else if (typeof lesson.content_text === 'object') {
+                  // Try to extract text or stringify
+                  if (lesson.content_text.toString && lesson.content_text.toString() !== '[object Object]') {
+                    contentText = lesson.content_text.toString();
+                  } else {
+                    contentText = '';
+                  }
+                }
+                
+                return {
+                  ...lesson,
+                  type: lesson.content_type || lesson.type || 'video',
+                  youtubeUrl: lesson.content_url || '',
+                  pdfUrl: lesson.content_type === 'pdf' ? lesson.content_url || '' : '',
+                  content_text: contentText,
+                  completed: progressMap[lesson.id] || false, // Use loaded progress
+                  isCompleted: progressMap[lesson.id] || false,
+                  isLocked: false,
+                };
+              });
 
               return {
                 ...section,
@@ -454,12 +477,37 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* 2. Main Content Area */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          {/* Video Stage with Custom Controls */}
+          {/* Video Stage - Supports both YouTube and uploaded videos */}
           {selectedLesson.type === 'video' && selectedLesson.youtubeUrl && (
-            <CustomYouTubePlayer
-              videoUrl={selectedLesson.youtubeUrl}
-              title={selectedLesson.title}
-            />
+            (() => {
+              const videoUrl = selectedLesson.youtubeUrl;
+              // Check if it's a YouTube URL or direct video URL
+              const isYouTubeUrl = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+
+              if (isYouTubeUrl) {
+                return (
+                  <CustomYouTubePlayer
+                    videoUrl={videoUrl}
+                    title={selectedLesson.title}
+                  />
+                );
+              } else {
+                // Direct video URL (from Supabase Storage or other sources)
+                return (
+                  <div className="flex-1 bg-black flex items-center justify-center">
+                    <video
+                      src={videoUrl}
+                      controls
+                      autoPlay
+                      className="w-full h-full max-h-[70vh] object-contain"
+                      controlsList="nodownload"
+                    >
+                      Trình duyệt của bạn không hỗ trợ video.
+                    </video>
+                  </div>
+                );
+              }
+            })()
           )}
 
           {/* Text/Article Content */}
@@ -469,10 +517,19 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                 <Card>
                   <CardContent className="p-6 md:p-8">
                     {selectedLesson.content_text ? (
-                      <div className="prose max-w-none">
-                        <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700">
-                          {selectedLesson.content_text}
-                        </pre>
+                      <div className="markdown-content">
+                        {(() => {
+                          try {
+                            const content = typeof selectedLesson.content_text === 'string' 
+                              ? selectedLesson.content_text 
+                              : '';
+                            if (!content) return <p className="text-gray-500">Nội dung trống</p>;
+                            return <Markdown children={content} />;
+                          } catch (error) {
+                            console.error('❌ Markdown render error:', error);
+                            return <p className="text-gray-500">Lỗi hiển thị nội dung</p>;
+                          }
+                        })()}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 text-gray-500">
@@ -562,16 +619,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
             }}
             className="bg-white text-gray-700 border-t border-gray-200 relative overflow-auto flex-shrink-0"
           >
-            {/* Resize Handle */}
-            <div
-              onMouseDown={handleDescriptionMouseDown}
-              className={`absolute top-0 left-0 right-0 h-1 hover:h-1.5 bg-gray-300 hover:bg-[#1E88E5] cursor-row-resize z-50 group transition-all ${isResizingDescription ? 'h-1.5 bg-[#1E88E5]' : ''
-                }`}
-            >
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rotate-90">
-                <GripVertical className="w-4 h-4 text-[#1E88E5]" />
-              </div>
-            </div>
+            {/* Resize Handle removed */}
 
             <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto p-2 md:p-4 pt-4">
               <div className="flex items-start justify-between mb-8 pb-8 border-b border-gray-200">
@@ -630,7 +678,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
         {/* 3. Right Sidebar */}
         <div
           style={{ width: isSidebarOpen ? `${sidebarWidth}px` : 0 }}
-          className={`hidden md:block flex-shrink-0 h-full transition-opacity duration-300 ease-in-out relative ${isSidebarOpen ? 'opacity-100' : 'opacity-0 overflow-hidden'
+          className={`hidden md:block flex-shrink-0 h-full overflow-hidden transition-opacity duration-300 ease-in-out relative ${isSidebarOpen ? 'opacity-100' : 'opacity-0'
             }`}
         >
           {/* Resize Handle */}
