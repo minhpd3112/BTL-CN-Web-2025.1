@@ -43,9 +43,15 @@ export const tagService = {
 
   async createTag(tagData: CreateTagRequest): Promise<Tag> {
     try {
+      // Only include valid fields that exist in database schema
+      const validData = {
+        name: tagData.name,
+        description: tagData.description,
+      };
+
       const { data, error } = await supabaseAdmin
         .from('tags')
-        .insert(tagData)
+        .insert(validData)
         .select()
         .single();
 
