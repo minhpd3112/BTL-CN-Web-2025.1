@@ -1,4 +1,4 @@
-import { Search, Plus, TrendingUp, BookOpen, Users, Tag } from 'lucide-react';
+import { Search, Plus, TrendingUp, BookOpen, Users, Tag, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/shared/CourseCard';
@@ -32,6 +32,13 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [allTags, setAllTags] = useState<TagType[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
+
+  // Debug: log publicCourses when it changes
+  useEffect(() => {
+    if (!loadingCourses) {
+      // ...existing code...
+    }
+  }, [publicCourses, loadingCourses]);
   // Fetch all tags from backend
   useEffect(() => {
     setLoadingTags(true);
@@ -142,15 +149,28 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                 <Search className="w-5 h-5 mr-2" />
                 Khám phá khóa học
               </Button>
-              <Button
-                size="lg"
-                className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
-                style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
-                onClick={() => navigateTo('create-course')}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Tạo khóa học
-              </Button>
+              {currentUser?.role !== 'admin' && (
+                <>
+                  <Button
+                    size="lg"
+                    className="bg-white text-[#1E88E5] hover:bg-gray-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
+                    onClick={() => navigateTo('create-course')}
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Tạo khóa học
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    style={{ fontSize: '1.125rem', padding: '1.5rem 2rem' }}
+                    onClick={() => navigateTo('ai-learning-path')}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Tạo lộ trình AI
+                  </Button>
+                </>
+              )}
             </div>
           </div >
         </div >
@@ -188,7 +208,10 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
           ) : publicCourses.length === 0 ? (
             <div className="col-span-3 text-center py-8 text-gray-500">Không có khoá học nổi bật nào.</div>
           ) : (
-            publicCourses.slice(0, 6).map((course, index) => (
+            [...publicCourses]
+              .sort((a, b) => (b.students || 0) - (a.students || 0))
+              .slice(0, 6)
+              .map((course, index) => (
               <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
                 <ChristmasCardWrapper>
                   <CourseCard
@@ -198,6 +221,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                       navigateTo('course-detail');
                     }}
                     currentUserId={currentUser?.id}
+                    currentRole={currentUser?.role}
                     isEnrolled={enrolledCourseIds.includes(course.id)}
                     onJoinSuccess={handleJoinSuccess}
                   />
@@ -228,7 +252,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
             ) : allTags.length === 0 ? (
               <div className="col-span-4 text-center py-8 text-gray-500">Không có chủ đề nào.</div>
             ) : (
-              allTags.slice(0, 8).map((tag, index) => (
+              allTags.map((tag, index) => (
                 <AnimatedSection key={tag.id} animation="fade-up" delay={index * 50}>
                   <Card
                     className="home-category-card cursor-pointer"

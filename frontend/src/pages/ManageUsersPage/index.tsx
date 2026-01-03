@@ -62,11 +62,19 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
     resetPage();
   }, [searchQuery, resetPage]);
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (userToDelete) {
-      toast.success(`Đã xóa người dùng "${userToDelete.full_name}"`);
-      setShowDeleteDialog(false);
-      setUserToDelete(null);
+      try {
+        await usersAPI.delete(userToDelete.id);
+        setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+        toast.success(`Đã xóa người dùng "${userToDelete.full_name}"`);
+        setShowDeleteDialog(false);
+        setUserToDelete(null);
+      } catch (err: any) {
+        toast.error('Xóa người dùng thất bại: ' + (err?.message || 'Không xác định'));
+        setShowDeleteDialog(false);
+        setUserToDelete(null);
+      }
     }
   };
 
@@ -107,17 +115,14 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
                 {/* Avatar Section */}
                 <div className="relative">
                   <Avatar className="w-12 h-12 ring-2 ring-gray-100 group-hover:ring-[#1E88E5]/50 transition-all">
-                    {user.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt={user.full_name || 'avatar'}
-                        className="w-12 h-12 object-cover rounded-full"
-                      />
-                    ) : (
-                      <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
-                        {(user.full_name?.[0] || '?').toUpperCase()}
-                      </AvatarFallback>
-                    )}
+                    <img
+                      src={user.avatar_url || '/placeholder-user.jpg'}
+                      alt={user.full_name || 'avatar'}
+                      className="w-12 h-12 object-cover rounded-full"
+                      onError={e => {
+                        (e.target as HTMLImageElement).src = '/placeholder-user.jpg';
+                      }}
+                    />
                   </Avatar>
                   {user.status === 'active' && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -131,12 +136,13 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
                       {user.full_name}
                     </h3>
                     <Badge
-                      className={user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 text-xs'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs'
+                      className={
+                        (user.role && String(user.role).toLowerCase() === 'admin')
+                          ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 text-xs'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs'
                       }
                     >
-                      {user.role === 'admin' ? 'Admin' : 'User'}
+                      {(user.role && String(user.role).toLowerCase() === 'admin') ? 'Admin' : 'User'}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">{user.email}</p>
@@ -192,17 +198,14 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
         {userToDelete && (
           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
             <Avatar className="w-12 h-12">
-              {userToDelete?.avatar_url ? (
-                <img
-                  src={userToDelete.avatar_url}
-                  alt={userToDelete.full_name || 'avatar'}
-                  className="w-12 h-12 object-cover rounded-full"
-                />
-              ) : (
-                <AvatarFallback className="bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
-                  {(userToDelete.full_name?.[0] || '?').toUpperCase()}
-                </AvatarFallback>
-              )}
+              <img
+                src={userToDelete?.avatar_url || '/placeholder-user.jpg'}
+                alt={userToDelete?.full_name || 'avatar'}
+                className="w-12 h-12 object-cover rounded-full"
+                onError={e => {
+                  (e.target as HTMLImageElement).src = '/placeholder-user.jpg';
+                }}
+              />
             </Avatar>
             <div>
               <p className="font-medium">{userToDelete.full_name}</p>

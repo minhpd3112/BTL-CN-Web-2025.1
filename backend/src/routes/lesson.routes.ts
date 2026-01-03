@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { LessonController } from '@controllers/lesson.controller';
+import { authenticate } from '@middlewares/auth.middleware';
 
 const router = Router();
 
@@ -7,15 +8,15 @@ const router = Router();
 router.get('/section/:sectionId', LessonController.getBySectionId);
 router.get('/:id', LessonController.getById);
 
-// Protected routes (TEMPORARY - no auth)
-router.post('/', LessonController.create);
-router.patch('/:id', LessonController.update);
-router.delete('/:id', LessonController.delete);
-router.post('/reorder', LessonController.reorder);
+// Protected routes - Requires authentication
+router.post('/', authenticate, LessonController.create);
+router.patch('/:id', authenticate, LessonController.update);
+router.delete('/:id', authenticate, LessonController.delete);
+router.post('/reorder', authenticate, LessonController.reorder);
 
-// Quiz routes
-router.post('/:id/quiz', LessonController.addQuizQuestions);
-router.patch('/quiz/:questionId', LessonController.updateQuizQuestion);
-router.delete('/quiz/:questionId', LessonController.deleteQuizQuestion);
+// Quiz routes - Requires authentication
+router.post('/:id/quiz', authenticate, LessonController.addQuizQuestions);
+router.patch('/quiz/:questionId', authenticate, LessonController.updateQuizQuestion);
+router.delete('/quiz/:questionId', authenticate, LessonController.deleteQuizQuestion);
 
 export default router;

@@ -20,11 +20,11 @@ interface CourseStudentsTabProps {
 export function CourseStudentsTab({
     course,
 }: CourseStudentsTabProps) {
-    console.log('=== CourseStudentsTab RENDER ===', { courseId: course.id });
+    // ...existing code...
     const [addStudentOpen, setAddStudentOpen] = useState(false);
     const [inviteeEmail, setInviteeEmail] = useState('');
     const [isInviting, setIsInviting] = useState(false);
-    const [activeStudentTab, setActiveStudentTab] = useState<'enrolled' | 'pending'>('enrolled');
+    // Only show enrolled students, remove pending tab
     // Fetch real enrollments from API
     const [enrollments, setEnrollments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -32,16 +32,16 @@ export function CourseStudentsTab({
     const fetchEnrollments = useCallback(async () => {
         try {
             setIsLoading(true);
-            console.log('Fetching enrollments for course:', course.id);
+            // ...existing code...
             const response = await enrollmentsAPI.getByCourseId(course.id.toString());
-            console.log('Enrollments API response:', response);
+            // ...existing code...
             if (response.success) {
-                console.log('Enrollments data:', response.data);
+                // ...existing code...
                 const enrollmentsWithUsers = response.data || [];
                 // Fetch user profiles for each enrollment  
                 for (const enrollment of enrollmentsWithUsers) {
                     try {
-                        console.log('Fetching profile for user:', enrollment.user_id);
+                        // ...existing code...
                         // Fetch user profile
                         const { data: profiles, error: profileError } = await supabase
                             .from('user_profiles')
@@ -49,20 +49,20 @@ export function CourseStudentsTab({
                             .eq('id', enrollment.user_id)
                             .limit(1);
 
-                        console.log('Profile fetch result:', { user_id: enrollment.user_id, profiles, error: profileError });
+                        // ...existing code...
 
                         if (profiles && profiles.length > 0) {
                             enrollment.user = profiles[0];
-                            console.log('Set user profile:', profiles[0]);
+                            // ...existing code...
                         } else {
-                            console.log('No profile found for user:', enrollment.user_id);
+                            // ...existing code...
                             enrollment.user = {};
                         }
 
                         // Use email from backend response
                         if (enrollment.user_email) {
                             enrollment.user.email = enrollment.user_email;
-                            console.log('Set user email from backend:', enrollment.user_email);
+                            // ...existing code...
                         }
                     } catch (err) {
                         console.error('Could not fetch user data for:', enrollment.user_id, err);
@@ -93,38 +93,18 @@ export function CourseStudentsTab({
 
     // Fetch enrollments when component mounts or course.id changes
     useEffect(() => {
-        console.log('CourseStudentsTab mounted, fetching enrollments...');
+        // ...existing code...
         fetchEnrollments();
         fetchAverageProgress();
     }, [course.id, fetchEnrollments, fetchAverageProgress]);
 
     const courseEnrollments = enrollments;
-    const pendingRequests = courseEnrollments.filter(e => e.status === 'pending');
     const approvedStudents = courseEnrollments.filter(e => e.status === 'approved');
 
-    console.log('Total enrollments:', enrollments.length);
-    console.log('Approved students:', approvedStudents.length);
-    console.log('Pending requests:', pendingRequests.length);
+    // ...existing code...
+    // ...existing code...
 
-    const handleApproveRequest = async (enrollmentId: string) => {
-        try {
-            await enrollmentsAPI.updateStatus(enrollmentId, 'approved');
-            toast.success('Đã chấp nhận học viên');
-            fetchEnrollments(); // Refresh list
-        } catch (error) {
-            toast.error('Không thể chấp nhận học viên');
-        }
-    };
-
-    const handleRejectRequest = async (enrollmentId: string) => {
-        try {
-            await enrollmentsAPI.updateStatus(enrollmentId, 'rejected', 'Rejected by instructor');
-            toast.success('Đã từ chối học viên');
-            fetchEnrollments(); // Refresh list
-        } catch (error) {
-            toast.error('Không thể từ chối học viên');
-        }
-    };
+    // Remove approve/reject request handlers
 
     const handleRemoveStudent = async (enrollmentId: string) => {
         try {
@@ -173,7 +153,7 @@ export function CourseStudentsTab({
         <div className="py-6">
             {/* Stats */}
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* Total Students Card */}
                 <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-[#1E88E5] overflow-hidden relative">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -193,34 +173,6 @@ export function CourseStudentsTab({
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Pending Requests Card */}
-                <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 overflow-hidden relative ${pendingRequests.length > 0 ? 'border-l-orange-500' : 'border-l-gray-300'}`}>
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Clock className={`w-24 h-24 ${pendingRequests.length > 0 ? 'text-orange-500' : 'text-gray-400'}`} />
-                    </div>
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Yêu cầu chờ duyệt</p>
-                                <div className="flex items-baseline gap-2">
-                                    <p className={`text-4xl font-bold ${pendingRequests.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-                                        {pendingRequests.length}
-                                    </p>
-                                    {pendingRequests.length > 0 && (
-                                        <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full animate-pulse">
-                                            Cần xử lý
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className={`w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${pendingRequests.length > 0 ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-200' : 'bg-gray-100'}`}>
-                                <Clock className={`w-6 h-6 ${pendingRequests.length > 0 ? 'text-white' : 'text-gray-400'}`} />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
                 {/* Average Progress Card */}
                 <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 overflow-hidden relative">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -242,226 +194,140 @@ export function CourseStudentsTab({
                 </Card>
             </div>
 
-            <Tabs defaultValue="enrolled" onValueChange={(v) => setActiveStudentTab(v as 'enrolled' | 'pending')}>
-                <TabsList className="mb-6 bg-[#1E88E5]/10 p-0 rounded-full h-auto inline-flex relative overflow-hidden">
-                    {/* Sliding indicator */}
-                    <div
-                        className="absolute top-0 bottom-0 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] rounded-full shadow-lg shadow-blue-300/50 transition-all duration-300 ease-out"
-                        style={{
-                            left: activeStudentTab === 'enrolled' ? '0px' : '50%',
-                            width: '50%',
-                        }}
-                    />
-                    <TabsTrigger
-                        value="enrolled"
-                        className="relative z-10 flex-1 min-w-[140px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-                        style={{ color: activeStudentTab === 'enrolled' ? '#FFFFFF' : '#1E88E5' }}
-                    >
-                        Đã tham gia ({approvedStudents.length})
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="pending"
-                        className="relative z-10 flex-1 min-w-[140px] px-4 py-2.5 rounded-full font-medium transition-all duration-300 hover:bg-[#1E88E5]/10 data-[state=active]:bg-transparent data-[state=active]:shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-                        style={{ color: activeStudentTab === 'pending' ? '#FFFFFF' : '#1E88E5' }}
-                    >
-                        Chờ duyệt ({pendingRequests.length})
-                    </TabsTrigger>
-                </TabsList>
+            {/* Only show enrolled students, no tabs */}
+            <div>
+                <Card className="hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Học viên đã tham gia</CardTitle>
+                            <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        className="bg-[#1E88E5] hover:bg-[#1565C0] text-white"
+                                        disabled={course.status === 'pending' || course.status === 'rejected'}
+                                        title={course.status === 'pending' || course.status === 'rejected' ? 'Không thể mời học viên khi khóa học đang chờ duyệt hoặc bị từ chối' : ''}
+                                    >
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Thêm học viên
+                                    </Button>
+                                </DialogTrigger>
+                                {(course.status === 'approved' || course.status === 'draft') && (
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>Mời học viên vào khóa học</DialogTitle>
+                                            <DialogDescription>
+                                                Nhập email của học viên để thêm vào khóa học riêng tư
+                                            </DialogDescription>
+                                        </DialogHeader>
 
-                <TabsContent value="enrolled">
-                    <Card className="hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg font-bold text-[#1E88E5]">Học viên đã tham gia</CardTitle>
-                                <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            className="bg-[#1E88E5] hover:bg-[#1565C0] text-white"
-                                            disabled={course.status !== 'approved'}
-                                            title={course.status !== 'approved' ? 'Chỉ mời học viên khi khoá học đã được duyệt' : ''}
-                                        >
-                                            <UserPlus className="w-4 h-4 mr-2" />
-                                            Thêm học viên
-                                        </Button>
-                                    </DialogTrigger>
-                                    {course.status === 'approved' && (
-                                        <DialogContent className="max-w-md">
-                                            <DialogHeader>
-                                                <DialogTitle>Mời học viên vào khóa học</DialogTitle>
-                                                <DialogDescription>
-                                                    Nhập email của học viên để thêm vào khóa học riêng tư
-                                                </DialogDescription>
-                                            </DialogHeader>
-
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <Label htmlFor="invitee-email">Email học viên *</Label>
-                                                    <Input
-                                                        id="invitee-email"
-                                                        type="email"
-                                                        placeholder="student@example.com"
-                                                        value={inviteeEmail}
-                                                        onChange={(e) => setInviteeEmail(e.target.value)}
-                                                        className="mt-2"
-                                                        disabled={isInviting}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-2">
-                                                💡 Học viên cần đã có tài khoản trong hệ thống
-                                            </p>
-                                            <div className="flex justify-end gap-2 mt-6">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setAddStudentOpen(false);
-                                                        setInviteeEmail('');
-                                                    }}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label htmlFor="invitee-email">Email học viên *</Label>
+                                                <Input
+                                                    id="invitee-email"
+                                                    type="email"
+                                                    placeholder="student@example.com"
+                                                    value={inviteeEmail}
+                                                    onChange={(e) => setInviteeEmail(e.target.value)}
+                                                    className="mt-2"
                                                     disabled={isInviting}
-                                                >
-                                                    Hủy
-                                                </Button>
-                                                <Button
-                                                    className="bg-[#1E88E5] hover:bg-[#1565C0]"
-                                                    onClick={handleInviteStudent}
-                                                    disabled={isInviting}
-                                                >
-                                                    {isInviting ? (
-                                                        <>
-                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                                            Đang thêm...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <UserPlus className="w-4 h-4 mr-2" />
-                                                            Mời
-                                                        </>
-                                                    )}
-                                                </Button>
+                                                />
                                             </div>
-                                        </DialogContent>
-                                    )}
-                                </Dialog>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            💡 Học viên cần đã có tài khoản trong hệ thống
+                                        </p>
+                                        <div className="flex justify-end gap-2 mt-6">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setAddStudentOpen(false);
+                                                    setInviteeEmail('');
+                                                }}
+                                                disabled={isInviting}
+                                            >
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                className="bg-[#1E88E5] hover:bg-[#1565C0]"
+                                                onClick={handleInviteStudent}
+                                                disabled={isInviting}
+                                            >
+                                                {isInviting ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                        Đang thêm...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <UserPlus className="w-4 h-4 mr-2" />
+                                                        Mời
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </DialogContent>
+                                )}
+                            </Dialog>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? (
+                            <div className="text-center py-12">
+                                <div className="w-12 h-12 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                <p className="text-gray-600">Đang tải...</p>
                             </div>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="w-12 h-12 border-4 border-[#1E88E5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                                    <p className="text-gray-600">Đang tải...</p>
-                                </div>
-                            ) : approvedStudents.length > 0 ? (
-                                <div className="space-y-4">
-                                    {approvedStudents.map((enrollment: any) => {
-                                        // Prefer full_name from user profile, fallback to partial ID
-                                        const userName = enrollment.user?.full_name || `User ${enrollment.user_id.substring(0, 8)}`;
-                                        const userInitial = userName.charAt(0).toUpperCase();
-                                        const enrolledDate = new Date(enrollment.enrolled_at).toLocaleDateString('vi-VN');
+                        ) : approvedStudents.length > 0 ? (
+                            <div className="space-y-4">
+                                {approvedStudents.map((enrollment: any) => {
+                                    // Prefer full_name from user profile, fallback to partial ID
+                                    const userName = enrollment.user?.full_name || `User ${enrollment.user_id.substring(0, 8)}`;
+                                    const userInitial = userName.charAt(0).toUpperCase();
+                                    const enrolledDate = new Date(enrollment.enrolled_at).toLocaleDateString('vi-VN');
 
-                                        return (<div key={enrollment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                            <div className="flex items-center gap-4">
-                                                <Avatar>
-                                                    <AvatarFallback className="bg-[#1E88E5] text-white">
-                                                        {userInitial}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{userName}</div>
-                                                    <div className="text-sm text-gray-600">
-                                                        {enrollment.user?.email || 'Email không có sẵn'}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Tham gia: {enrolledDate}
-                                                    </div>
+                                    return (<div key={enrollment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                        <div className="flex items-center gap-4">
+                                            <Avatar>
+                                                <AvatarFallback className="bg-[#1E88E5] text-white">
+                                                    {userInitial}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div className="font-medium">{userName}</div>
+                                                <div className="text-sm text-gray-600">
+                                                    {enrollment.user?.email || 'Email không có sẵn'}
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="text-right">
-                                                    <div className="text-sm text-gray-600">Tiến độ</div>
-                                                    <div className="font-medium">{enrollment.progress?.percentage || 0}%</div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleRemoveStudent(enrollment.id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p>Chưa có học viên nào tham gia</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="pending">
-                    <Card className="hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="border-b bg-gradient-to-r from-[#1E88E5]/5 to-transparent">
-                            <CardTitle className="text-lg font-bold text-[#1E88E5]">Yêu cầu đăng ký chờ duyệt</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {pendingRequests.length > 0 ? (
-                                <div className="space-y-4">
-                                    {pendingRequests.map((request: any) => (
-                                        <div key={request.id} className="p-4 border rounded-lg">
-                                            <div className="flex items-start gap-3">
-                                                <Avatar>
-                                                    <AvatarFallback className="bg-[#1E88E5] text-white">
-                                                        {request.userAvatar}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1">
-                                                    <div className="font-medium mb-1">{request.userName}</div>
-                                                    <div className="text-sm text-gray-600 mb-2">{request.userEmail}</div>
-                                                    {request.message && (
-                                                        <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                                                            <p className="text-sm text-gray-700 italic">"{request.message}"</p>
-                                                        </div>
-                                                    )}
-                                                    <div className="text-xs text-gray-500">
-                                                        Đăng ký lúc: {request.requestedAt}
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-500 hover:bg-green-600"
-                                                        onClick={() => handleApproveRequest(request.id)}
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                                        Chấp nhận
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => handleRejectRequest(request.id)}
-                                                    >
-                                                        <XCircle className="w-4 h-4 mr-1" />
-                                                        Từ chối
-                                                    </Button>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    Tham gia: {enrolledDate}
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p>Không có yêu cầu đăng ký mới</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <div className="text-sm text-gray-600">Tiến độ</div>
+                                                <div className="font-medium">{enrollment.progress?.percentage || 0}%</div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveStudent(enrollment.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4 text-red-500" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-500">
+                                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p>Chưa có học viên nào tham gia</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div >
     );
 }

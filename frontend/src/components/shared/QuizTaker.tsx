@@ -44,7 +44,15 @@ interface QuizTakerProps {
 
 export function QuizTaker({ lessonId, quizData, onSubmit, onClose }: QuizTakerProps) {
     const { lesson, questions } = quizData;
-    const settings = lesson.quiz_settings;
+
+    // Default settings if lesson or quiz_settings is null
+    const defaultSettings: QuizSettings = {
+        quizType: 'practice',
+        timeLimit: undefined,
+        passingScore: 50
+    };
+
+    const settings = lesson?.quiz_settings || defaultSettings;
 
     const [started, setStarted] = useState(false);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -126,7 +134,7 @@ export function QuizTaker({ lessonId, quizData, onSubmit, onClose }: QuizTakerPr
         return (
             <Card className="max-w-2xl mx-auto">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">{lesson.title}</CardTitle>
+                    <CardTitle className="text-2xl">{lesson?.title || 'Quiz'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
@@ -185,6 +193,22 @@ export function QuizTaker({ lessonId, quizData, onSubmit, onClose }: QuizTakerPr
                             Bắt đầu làm bài
                         </Button>
                     </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    // Check if questions array is empty or currentQuestion is undefined
+    if (!questions || questions.length === 0 || !currentQuestion) {
+        return (
+            <Card className="max-w-2xl mx-auto">
+                <CardContent className="p-8 text-center">
+                    <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold mb-2">Không có câu hỏi</h3>
+                    <p className="text-gray-600 mb-4">Quiz này chưa có câu hỏi nào. Vui lòng liên hệ giảng viên.</p>
+                    <Button onClick={onClose} className="bg-[#1E88E5] hover:bg-[#1565C0] text-white">
+                        Quay lại
+                    </Button>
                 </CardContent>
             </Card>
         );

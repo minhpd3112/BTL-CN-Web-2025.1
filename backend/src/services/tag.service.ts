@@ -1,10 +1,10 @@
-import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import type { Tag, CreateTagRequest, UpdateTagRequest } from '../models/tag.model';
 
 export const tagService = {
   async getAllTags(): Promise<Tag[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('tags')
         .select('*, course_tags(count)')
         .order('name');
@@ -23,7 +23,7 @@ export const tagService = {
 
   async getTagById(id: string): Promise<Tag | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('tags')
         .select('*, course_tags(count)')
         .eq('id', id)
@@ -43,9 +43,15 @@ export const tagService = {
 
   async createTag(tagData: CreateTagRequest): Promise<Tag> {
     try {
-      const { data, error } = await supabase
+      // Only include valid fields that exist in database schema
+      const validData = {
+        name: tagData.name,
+        description: tagData.description,
+      };
+
+      const { data, error } = await supabaseAdmin
         .from('tags')
-        .insert(tagData)
+        .insert(validData)
         .select()
         .single();
 
@@ -67,7 +73,7 @@ export const tagService = {
 
   async updateTag(id: string, updateData: UpdateTagRequest): Promise<Tag | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('tags')
         .update({
           ...updateData,
@@ -91,7 +97,7 @@ export const tagService = {
 
   async deleteTag(id: string): Promise<boolean> {
     try {
-      const { count } = await supabase
+      const { count } = await supabaseAdmin
         .from('course_tags')
         .select('*', { count: 'exact', head: true })
         .eq('tag_id', id);
@@ -100,7 +106,7 @@ export const tagService = {
         throw new Error('Cannot delete tag that is being used by courses');
       }
 
-      const { error } = await supabase.from('tags').delete().eq('id', id);
+      const { error } = await supabaseAdmin.from('tags').delete().eq('id', id);
 
       if (error) {
         console.error('Delete tag error:', error);

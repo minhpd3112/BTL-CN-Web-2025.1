@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { SectionController } from '@controllers/section.controller';
-// import { authenticate, requireOwnerOrAdmin } from '@middlewares/auth.middleware';
-// import { validateSectionCreate } from '@middlewares/validation.middleware';
+import { authenticate } from '@middlewares/auth.middleware';
 
 const router = Router();
 
@@ -9,15 +8,10 @@ const router = Router();
 router.get('/course/:courseId', SectionController.getByCourseId);
 router.get('/:id', SectionController.getById);
 
-// Protected routes (TEMPORARY - no auth)
-router.post('/', SectionController.create);
-router.patch('/:id', SectionController.update);
-router.delete('/:id', SectionController.delete);
-router.post('/reorder', SectionController.reorder);
-
-// TODO: Add auth later
-// router.post('/', authenticate, validateSectionCreate, SectionController.create);
-// router.patch('/:id', authenticate, requireOwnerOrAdmin('section'), SectionController.update);
-// router.delete('/:id', authenticate, requireOwnerOrAdmin('section'), SectionController.delete);
+// Protected routes - Requires authentication
+router.post('/', authenticate, SectionController.create);
+router.patch('/:id', authenticate, SectionController.update);
+router.delete('/:id', authenticate, SectionController.delete);
+router.post('/reorder', authenticate, SectionController.reorder);
 
 export default router;

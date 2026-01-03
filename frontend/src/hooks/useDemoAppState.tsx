@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { supabase } from '@/services/api';
+import { supabase, notificationsAPI } from '@/services/api';
 import {
   mockUsers,
   mockCourses,
@@ -30,28 +30,29 @@ export function useDemoAppState() {
     const saved = localStorage.getItem('user_data');
     return saved ? 'home' : 'login';
   });
-  const [selectedCourse, setSelectedCourse] = useState<Course>(mockCourses[0]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userGooglePicture, setUserGooglePicture] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>(mockEnrollmentRequests);
 
-  // 2. EFFECT LẮNG NGHE AUTH
+
+
+  // 2. EFFECT LẮNG NGHE AUTH & FETCH NOTIFICATIONS
   useEffect(() => {
+    // Listen for login events (for social login)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && event === 'SIGNED_IN' && !currentUser) {
-        // Lấy profile từ user_profiles
+        // ...existing code for login event...
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-
         const metadata = session.user.user_metadata;
-        // Lấy ngày tạo tài khoản từ profile (ưu tiên created_at), fallback về ngày hiện tại nếu không có
         let joinedDate = '';
         if (profile?.created_at) {
           joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
@@ -79,6 +80,24 @@ export function useDemoAppState() {
       }
     });
     return () => subscription.unsubscribe();
+  }, [currentUser]);
+
+  // Always fetch notifications when currentUser changes (login, reload, etc)
+  useEffect(() => {
+    if (currentUser) {
+      notificationsAPI.getMyNotifications()
+        .then(res => {
+          // Map is_read from backend to read for FE logic
+          const notifications = (res.data || []).map((n: any) => ({
+            ...n,
+            read: n.read !== undefined ? n.read : n.is_read
+          }));
+          setNotifications(notifications);
+        })
+        .catch(() => setNotifications([]));
+    } else {
+      setNotifications([]);
+    }
   }, [currentUser]);
 
   // 3. TẤT CẢ CÁC HÀM LOGIC (useCallback)
@@ -122,26 +141,85 @@ export function useDemoAppState() {
     return course.ownerId === currentUser.id || course.enrolledUsers?.includes(Number(currentUser.id));
   }, [currentUser]);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await notificationsAPI.markAsRead(id);
+      // Always fetch notifications from backend after marking as read
+      const res = await notificationsAPI.getMyNotifications();
+      const notifications = (res.data || []).map((n: any) => ({
+        ...n,
+        read: n.read !== undefined ? n.read : n.is_read
+      }));
+      setNotifications(notifications);
+    } catch { }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await notificationsAPI.markAllAsRead();
+      // Always fetch notifications from backend after marking all as read
+      const res = await notificationsAPI.getMyNotifications();
+      const notifications = (res.data || []).map((n: any) => ({
+        ...n,
+        read: n.read !== undefined ? n.read : n.is_read
+      }));
+      setNotifications(notifications);
+    } catch { }
   }, []);
 
   const handleNotificationClick = useCallback((notification: Notification) => {
     markAsRead(notification.id);
-    if (notification.action) {
-      const { page, courseId } = notification.action;
-      if (courseId) {
-        const course = mockCourses.find(c => c.id === courseId);
-        if (course) navigateTo(page as Page, course);
-      } else {
-        navigateTo(page as Page);
-      }
+    let page = notification.action?.page;
+    // Override page for course-related notifications
+    if (
+      notification.type === 'student_joined' ||
+      notification.type === 'course_completed' ||
+      notification.type === 'course_approved'
+    ) {
+      page = 'course-detail';
+    } else if (notification.type === 'course_rejected') {
+      page = 'my-courses';
+    } else if (notification.type === 'course_pending_review') {
+      // Admin click vào notification khóa học cần duyệt -> chuyển đến trang approve courses
+      page = 'approve-courses';
     }
-  }, [markAsRead, navigateTo]);
+    if (page === 'course-detail') {
+      const courseId = notification.related_course_id;
+      if (courseId) {
+        import('@/services/api').then(async ({ coursesAPI, enrollmentsAPI }) => {
+          const [courseRes, enrollmentsRes] = await Promise.all([
+            coursesAPI.getCourseById(courseId),
+            enrollmentsAPI.getMyEnrollments()
+          ]);
+          // ...
+          let canAccess = false;
+          if (enrollmentsRes && enrollmentsRes.success && enrollmentsRes.data) {
+            canAccess = enrollmentsRes.data.some(
+              (e: any) => (e.course_id === courseId || e.courseId === courseId) && e.status === 'approved'
+            );
+          }
+          // ...
+          if (courseRes && courseRes.success && courseRes.data) {
+            // Nếu là chủ khoá học, luôn set overrideAccess
+            const isOwner = courseRes.data.ownerId === currentUser?.id || courseRes.data.owner_id === currentUser?.id;
+            const courseWithAccess = (courseRes.data.visibility === 'private' && (canAccess || isOwner))
+              ? { ...courseRes.data, overrideAccess: true }
+              : courseRes.data;
+            // ...
+            setSelectedCourse(courseWithAccess);
+            if (courseRes.data.visibility === 'private' && !canAccess && !isOwner) {
+              import('sonner').then(({ toast }) => toast.error('Bạn không có quyền truy cập khoá học này.'));
+              return;
+            }
+            navigateTo('course-detail', courseWithAccess);
+          }
+        });
+      }
+    } else if (page) {
+      navigateTo(page as Page);
+    }
+  }, [markAsRead, navigateTo, setSelectedCourse, currentUser]);
 
   const handleApproveRequest = useCallback((requestId: string) => {
     setEnrollmentRequests(prev => prev.map(req =>
@@ -174,7 +252,7 @@ export function useDemoAppState() {
   // 4. COMPUTED VALUES
   const currentRole = currentUser?.role || 'user';
   const userNotifications = useMemo(() =>
-    currentRole === 'admin' ? notifications : notifications.filter(n => n.userId === currentUser?.id),
+    currentRole === 'admin' ? notifications : notifications.filter(n => n.user_id === currentUser?.id),
     [currentRole, notifications, currentUser?.id]
   );
   const unreadCount = useMemo(() => userNotifications.filter(n => !n.read).length, [userNotifications]);

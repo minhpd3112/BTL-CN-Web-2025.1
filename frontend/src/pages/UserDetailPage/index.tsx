@@ -18,6 +18,54 @@ interface UserDetailPageProps {
 }
 
 export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDetailPageProps) {
+  // State for user's courses
+  const [userCourses, setUserCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(userCourses.length / COURSES_PER_PAGE);
+  const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
+  const paginatedCourses = userCourses.slice(startIndex, startIndex + COURSES_PER_PAGE);
+
+  // Fetch all courses and filter by owner_id in FE
+  useEffect(() => {
+    async function fetchUserCourses() {
+      if (!user?.id) {
+        return;
+      }
+      setLoadingCourses(true);
+      setCoursesError(null);
+      try {
+        const res = await coursesAPI.getAllCourses({ isAdmin: true });
+        // Filter courses by owner_id === user.id (API returns owner_id in snake_case)
+        const filtered = (res.data || []).filter((course: any) => {
+          return course.owner_id === user.id || course.ownerId === user.id;
+        });
+        setUserCourses(filtered);
+      } catch (e) {
+        console.error('Error fetching courses:', e);
+        setCoursesError('Không thể tải danh sách khoá học');
+        setUserCourses([]);
+      } finally {
+        setLoadingCourses(false);
+      }
+    }
+    fetchUserCourses();
+  }, [user?.id]);
+
+  // Helper function to get display name
+  const getFullName = () => {
+    return user?.full_name || user?.fullName || user?.name || user?.username || 'Không rõ';
+  };
+
+  // Helper function to get email
+  const getEmail = () => {
+    // Trim and check for empty string
+    const email = user?.email?.trim();
+    return email && email.length > 0 ? email : 'Không rõ';
+  };
+
   if (!user) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -33,36 +81,6 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
     );
   }
 
-  // State for user's courses
-  const [userCourses, setUserCourses] = useState<Course[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-  const [coursesError, setCoursesError] = useState<string | null>(null);
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(userCourses.length / COURSES_PER_PAGE);
-  const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
-  const paginatedCourses = userCourses.slice(startIndex, startIndex + COURSES_PER_PAGE);
-
-  // Fetch all courses and filter by owner_id in FE
-  useEffect(() => {
-    async function fetchUserCourses() {
-      setLoadingCourses(true);
-      setCoursesError(null);
-      try {
-        const res = await coursesAPI.getAllCourses({ isAdmin: true });
-        // Filter courses by owner_id === user.id
-        const filtered = (res.data || []).filter((course: Course) => course.owner_id === user.id);
-        setUserCourses(filtered);
-      } catch (e) {
-        setCoursesError('Không thể tải danh sách khoá học');
-        setUserCourses([]);
-      } finally {
-        setLoadingCourses(false);
-      }
-    }
-    if (user?.id) fetchUserCourses();
-  }, [user?.id]);
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
 
@@ -74,70 +92,56 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             {/* Avatar */}
             <div className="relative mx-auto md:mx-0">
               <Avatar className="w-24 h-24 ring-4 ring-[#1E88E5]/20">
-                {user.avatar_url ? (
+                {user?.avatar_url || user?.avatar ? (
                   <img
-                    src={user.avatar_url}
-                    alt={user.full_name || 'avatar'}
+                    src={user.avatar_url || user.avatar || '/placeholder-user.jpg'}
+                    alt={getFullName()}
                     className="w-24 h-24 object-cover rounded-full"
                   />
                 ) : (
                   <AvatarFallback className="text-3xl bg-gradient-to-br from-[#1E88E5] to-[#0D47A1] text-white font-bold">
-                    {(user.full_name?.[0] || '?').toUpperCase()}
+                    {(getFullName()?.[0] || '?').toUpperCase()}
                   </AvatarFallback>
                 )}
               </Avatar>
-              {user.status === 'active' && (
-                <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-white" />
-              )}
             </div>
 
             {/* User Info */}
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900">{user.full_name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{getFullName()}</h1>
                 <div className="flex items-center justify-center md:justify-start gap-2">
                   <Badge
-                    className={user.role === 'admin'
+                    className={user?.role === 'admin'
                       ? 'bg-purple-100 text-purple-700'
                       : 'bg-gray-100 text-gray-600'
                     }
                   >
-                    {user.role === 'admin' ? 'Admin' : 'User'}
+                    {user?.role === 'admin' ? 'Admin' : 'User'}
                   </Badge>
-                  {user.status === 'active' && (
-                    <Badge className="bg-green-100 text-green-700">
-                      Đang hoạt động
-                    </Badge>
-                  )}
                 </div>
               </div>
 
               {/* Bio */}
-              {user.bio && (
-                <p className="text-gray-600 mb-4">{user.bio}</p>
-              )}
+              <p className="text-gray-600 mb-4">{user?.bio || 'Chưa có mô tả'}</p>
 
               {/* Quick Info Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Mail className="w-4 h-4 text-[#1E88E5]" />
-                  <span className="truncate">{user.email}</span>
+                  <span className="truncate">{getEmail()}</span>
                 </div>
-                {user.phone && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4 text-[#1E88E5]" />
-                    <span>{user.phone}</span>
-                  </div>
-                )}
-                {user.address && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <MapPin className="w-4 h-4 text-[#1E88E5]" />
-                    <span>{user.address}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Phone className="w-4 h-4 text-[#1E88E5]" />
+                  <span>{user?.phone || 'Chưa cập nhật'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="w-4 h-4 text-[#1E88E5]" />
+                  <span className="truncate">{user?.address || user?.location || 'Chưa cập nhật'}</span>
+                </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="w-4 h-4 text-[#1E88E5]" />
-                  <span>Tham gia: {user.created_at ? user.created_at.slice(0, 10) : ''}</span>
+                  <span>Tham gia: {user?.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : (user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A')}</span>
                 </div>
               </div>
 
@@ -145,7 +149,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
                 <Clock className="w-4 h-4" />
                 <span>
-                  Đăng nhập gần đây: {user.updated_at ? new Date(user.updated_at).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : ''}
+                  Đăng nhập gần đây: {user?.updated_at ? new Date(user.updated_at).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : (user?.updatedAt ? new Date(user.updatedAt).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A')}
                 </span>
               </div>
             </div>
@@ -163,7 +167,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Khóa học đã tạo</p>
-                <p className="text-3xl font-bold text-gray-900">{userCourses.length}</p>
+                <p className="text-3xl font-bold text-gray-900">{userCourses?.length || 0}</p>
               </div>
               <div className="w-12 h-12 bg-[#1E88E5] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                 <BookOpen className="w-6 h-6" />
@@ -180,7 +184,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tổng học viên</p>
-                <p className="text-3xl font-bold text-gray-900">{user.totalStudents ?? '-'}</p>
+                <p className="text-3xl font-bold text-gray-900">{userCourses.reduce((sum, course) => sum + (course.students || 0), 0)}</p>
               </div>
               <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-500/30">
                 <Users className="w-6 h-6" />
@@ -197,7 +201,14 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Đánh giá TB</p>
-                <p className="text-3xl font-bold text-gray-900">-</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {(() => {
+                    const coursesWithRating = userCourses.filter(course => course.rating && course.rating > 0);
+                    return coursesWithRating.length > 0
+                      ? (coursesWithRating.reduce((sum, course) => sum + course.rating, 0) / coursesWithRating.length).toFixed(1)
+                      : '-';
+                  })()}
+                </p>
               </div>
               <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-yellow-500/30">
                 <Star className="w-6 h-6" />

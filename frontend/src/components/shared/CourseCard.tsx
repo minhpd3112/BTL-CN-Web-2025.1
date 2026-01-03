@@ -13,19 +13,35 @@ interface CourseCardProps {
   onClick: () => void;
   isEnrolled?: boolean;
   currentUserId?: string;
+  currentRole?: string;
   onJoinSuccess?: () => void;
 }
 
-export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinSuccess }: CourseCardProps) {
+export function CourseCard({ course, onClick, isEnrolled, currentUserId, currentRole, onJoinSuccess }: CourseCardProps) {
+    const isOwner = (course.owner?.id && currentUserId && course.owner.id === currentUserId) || (course.ownerId && currentUserId && course.ownerId === currentUserId);
   const [isJoining, setIsJoining] = useState(false);
 
-  // Ưu tiên lấy image_url, sau đó image
+  // Ưu tiên lấy image_url (chuẩn DB), fallback sang image (cũ)
   let imageUrl = course.image_url || course.image;
-  // Nếu là tên file hoặc path ngắn, build public URL từ bucket
   if (imageUrl && !/^https?:\/\//.test(imageUrl)) {
     imageUrl = supabase.storage.from('course-images').getPublicUrl(imageUrl).data.publicUrl || '/placeholder-course.jpg';
   }
   if (!imageUrl) imageUrl = '/placeholder-course.jpg';
+
+  // Lấy thông tin owner từ API mới (object owner)
+  const ownerName = course.owner?.full_name || 'Giảng viên';
+  const ownerAvatar = course.owner?.avatar_url
+    ? (
+        <img
+          src={course.owner.avatar_url}
+          alt={ownerName}
+          className="w-6 h-6 rounded-full object-cover border border-gray-100"
+        />
+      )
+    : (ownerName?.[0] || 'G');
+  const rating = typeof course.rating === 'number' ? course.rating : 0;
+  const students = typeof course.students === 'number' ? course.students : 0;
+  const description = course.description || 'Chưa có mô tả cho khoá học này.';
 
   const handleJoinCourse = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,22 +110,29 @@ export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinS
             </div>
 
             {/* Join Button for Public Courses */}
-            {course.visibility === 'public' && !isEnrolled && currentUserId && (
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <Button
-                  size="sm"
-                  className="bg-[#1E88E5] hover:bg-[#1565C0] text-white shadow-lg"
-                  disabled={isJoining}
-                  onClick={handleJoinCourse}
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  {isJoining ? 'Đang tham gia...' : 'Tham gia ngay'}
-                </Button>
-              </div>
-            )}
+            {(() => {
+              const showJoin = !isOwner && course.visibility === 'public' && !isEnrolled && currentUserId && currentRole !== 'admin';
+              if (showJoin) {
+                // ...existing code...
+                return (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <Button
+                      size="sm"
+                      className="bg-[#1E88E5] hover:bg-[#1565C0] text-white shadow-lg"
+                      disabled={isJoining}
+                      onClick={handleJoinCourse}
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      {isJoining ? 'Đang tham gia...' : 'Tham gia ngay'}
+                    </Button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* Play Icon Overlay (for other cases) */}
-            {!(course.visibility === 'public' && !isEnrolled && currentUserId) && (
+            {((currentRole === 'admin' || isOwner) || !(course.visibility === 'public' && !isEnrolled && currentUserId)) && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
                 <div className="bg-white/30 backdrop-blur-md p-3 rounded-full shadow-lg">
                   <Eye className="w-10 h-10 text-white" />
@@ -124,34 +147,42 @@ export function CourseCard({ course, onClick, isEnrolled, currentUserId, onJoinS
               className="font-bold text-lg leading-snug line-clamp-2 group-hover:text-[#1E88E5] transition-colors duration-200"
               title={course.title}
             >
-              {course.title}
+              {course.title || 'Khoá học không tên'}
             </h3>
 
             {/* Description */}
             <p className="text-gray-500 text-sm line-clamp-2 flex-grow">
-              {course.description}
+              {description}
             </p>
 
             {/* Author */}
             <div className="flex items-center gap-2 mt-1">
               <Avatar className="w-6 h-6 border border-gray-100">
-                <AvatarFallback className="text-[10px] bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white">
-                  {course.ownerAvatar}
-                </AvatarFallback>
+                {course.owner?.avatar_url ? (
+                  <img
+                    src={course.owner.avatar_url}
+                    alt={ownerName}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <AvatarFallback className="text-[10px] bg-gradient-to-br from-[#1E88E5] to-[#1565C0] text-white">
+                    {ownerName?.[0] || 'G'}
+                  </AvatarFallback>
+                )}
               </Avatar>
-              <span className="text-xs text-gray-500 font-medium truncate max-w-[150px]">{course.ownerName}</span>
+              <span className="text-xs text-gray-500 font-medium truncate max-w-[150px]">{ownerName}</span>
             </div>
 
             {/* Footer */}
             <div className="mt-3 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1 font-semibold text-gray-700">
-                  {course.rating}
+                  {rating}
                   <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                 </span>
                 <span className="flex items-center gap-1 text-gray-400 text-xs">
                   <Users className="w-3.5 h-3.5" />
-                  {course.students}
+                  {students}
                 </span>
               </div>
 

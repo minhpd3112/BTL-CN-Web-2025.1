@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { EnrollmentModel } from '@models/enrollment.model';
+import { NotificationModel } from '@models/notification.model';
 import { supabase, supabaseAdmin } from '@config/supabase';
 import { httpStatus } from '@utils/httpStatus';
 
@@ -53,8 +54,10 @@ export const EnrollmentController = {
         enrollments = enrollments.filter((e: any) => e.status === status);
       }
 
-      // Fetch owner profiles for each course
+
+      // Fetch owner profiles and students count for each course
       for (const enrollment of enrollments) {
+        // Owner profile
         if (enrollment.course && enrollment.course.owner_id) {
           try {
             const { data: ownerProfile } = await supabaseAdmin
@@ -63,12 +66,31 @@ export const EnrollmentController = {
               .eq('id', enrollment.course.owner_id)
               .limit(1)
               .single();
-
             if (ownerProfile) {
               enrollment.course.owner = ownerProfile;
             }
           } catch (err) {
             console.log('Could not fetch owner profile for:', enrollment.course.owner_id);
+          }
+        }
+        // Students count
+        if (enrollment.course && enrollment.course.id) {
+          try {
+            const { data: studentsList, error: studentsError } = await supabaseAdmin
+              .from('enrollments')
+              .select('id')
+              .eq('course_id', enrollment.course.id)
+              .eq('status', 'approved');
+            enrollment.course.students = Array.isArray(studentsList) ? studentsList.length : 0;
+          } catch (err) {
+            enrollment.course.students = 0;
+          }
+          // Average rating
+          try {
+            const { average } = await require('@models/review.model').ReviewModel.getCourseAverageRating(enrollment.course.id);
+            enrollment.course.rating = average;
+          } catch (err) {
+            enrollment.course.rating = 0;
           }
         }
       }
@@ -230,10 +252,41 @@ export const EnrollmentController = {
         approved_by: isPublicCourse ? userId : undefined,
       });
 
+      // Send notification if auto-approved (public course)
+      if (enrollment && isPublicCourse) {
+        // Get user info
+        const { data: userProfile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .single();
+        const { data: courseProfile } = await supabaseAdmin
+          .from('courses')
+          .select('title, owner_id')
+          .eq('id', course_id)
+          .single();
+        // Notify student
+        await NotificationModel.createNotification({
+          user_id: userId,
+          type: 'student_joined',
+          title: 'Bạn đã tham gia khoá học',
+          message: `Bạn đã tham gia khoá học "${courseProfile?.title || ''}" thành công!`,
+          related_course_id: course_id,
+        });
+        // Notify course owner
+        await NotificationModel.createNotification({
+          user_id: courseProfile?.owner_id,
+          type: 'student_joined',
+          title: 'Học viên mới tham gia khoá học',
+          message: `${userProfile?.full_name || 'Một học viên'} đã tham gia khoá học "${courseProfile?.title || ''}"`,
+          related_course_id: course_id,
+        });
+      }
+
       res.status(httpStatus.CREATED).json({
         success: true,
         data: enrollment,
-        message: isPublicCourse ? 'Bạn đã tham gia khóa học thành công!' : 'Đã gửi yêu cầu đăng ký khóa học',
+        message: isPublicCourse ? 'Bạn đã tham gia khoá học thành công!' : 'Đã gửi yêu cầu đăng ký khoá học',
       });
     } catch (error: any) {
       console.error('Create enrollment error:', error);
@@ -286,6 +339,37 @@ export const EnrollmentController = {
         userId,
         rejection_reason
       );
+
+      // Send notification if approved
+      if (enrollment && status === 'approved') {
+        // Get user info
+        const { data: userProfile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('full_name')
+          .eq('id', enrollment.user_id)
+          .single();
+        const { data: courseProfile } = await supabaseAdmin
+          .from('courses')
+          .select('title, owner_id')
+          .eq('id', enrollment.course_id)
+          .single();
+        // Notify student
+        await NotificationModel.createNotification({
+          user_id: enrollment.user_id,
+          type: 'student_joined',
+          title: 'Bạn đã được duyệt vào khoá học',
+          message: `Bạn đã được duyệt vào khoá học "${courseProfile?.title || ''}"`,
+          related_course_id: enrollment.course_id,
+        });
+        // Notify course owner
+        await NotificationModel.createNotification({
+          user_id: courseProfile?.owner_id,
+          type: 'student_joined',
+          title: 'Học viên mới tham gia khoá học',
+          message: `${userProfile?.full_name || 'Một học viên'} đã tham gia khoá học "${courseProfile?.title || ''}"`,
+          related_course_id: enrollment.course_id,
+        });
+      }
 
       res.json({
         success: true,
@@ -520,6 +604,30 @@ export const EnrollmentController = {
       if (createError) {
         throw createError;
       }
+
+      // Send notifications to both student and owner
+      // Get user info
+      const { data: userProfile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', inviteeUser.id)
+        .single();
+      // Notify student
+      await NotificationModel.createNotification({
+        user_id: inviteeUser.id,
+        type: 'student_joined',
+        title: 'Bạn đã được thêm vào khoá học',
+        message: `Bạn đã được thêm vào khoá học "${course.title || ''}"!`,
+        related_course_id: course_id,
+      });
+      // Notify course owner
+      await NotificationModel.createNotification({
+        user_id: course.owner_id,
+        type: 'student_joined',
+        title: 'Học viên mới tham gia khoá học',
+        message: `${userProfile?.full_name || 'Một học viên'} đã được thêm vào khoá học "${course.title || ''}"`,
+        related_course_id: course_id,
+      });
 
       res.status(httpStatus.CREATED).json({
         success: true,
