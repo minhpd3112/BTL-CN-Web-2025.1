@@ -211,8 +211,6 @@ export default function AILearningPathPage({ currentUser, navigateTo }: AILearni
 
             if (response.success && response.data) {
                 toast.success('Đã tạo khóa học thành công!');
-
-                // Fetch full course data before navigating
                 try {
                     const courseRes = await coursesAPI.getCourseById(response.data.courseId);
                     if (courseRes.success && courseRes.data) {

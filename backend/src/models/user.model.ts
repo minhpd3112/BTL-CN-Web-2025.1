@@ -85,14 +85,20 @@ export const UserModel = {
     if (authError) throw authError;
     // authUsers.users là mảng user
 
-    // 3. Merge role từ auth.users (user_metadata.role) vào profile
+    // 3. Merge role và email từ auth.users vào profile
     const merged = profiles.map((profile: any) => {
       const authUser = authUsers.users.find((u: any) => u.id === profile.id);
       let role = profile.role;
-      if (authUser && authUser.user_metadata && authUser.user_metadata.role) {
-        role = authUser.user_metadata.role;
+      let email = profile.email;
+      if (authUser) {
+        if (authUser.user_metadata && authUser.user_metadata.role) {
+          role = authUser.user_metadata.role;
+        }
+        if (authUser.email) {
+          email = authUser.email;
+        }
       }
-      return { ...profile, role };
+      return { ...profile, role, email };
     });
     return merged;
   },

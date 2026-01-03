@@ -2,6 +2,10 @@
 export type NotificationType =
   | 'course_approved'
   | 'course_rejected'
+  | 'course_pending_review'
+  | 'enrollment_request'
+  | 'enrollment_approved'
+  | 'enrollment_rejected'
   | 'student_joined'
   | 'course_completed';
 
