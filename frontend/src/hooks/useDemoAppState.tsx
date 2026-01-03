@@ -180,6 +180,9 @@ export function useDemoAppState() {
       page = 'course-detail';
     } else if (notification.type === 'course_rejected') {
       page = 'my-courses';
+    } else if (notification.type === 'course_pending_review') {
+      // Admin click vào notification khóa học cần duyệt -> chuyển đến trang approve courses
+      page = 'approve-courses';
     }
     if (page === 'course-detail') {
       const courseId = notification.related_course_id;

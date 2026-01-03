@@ -225,10 +225,10 @@ export function AppShell({ state, actions }: AppShellProps) {
                       {unreadCount > 0 && <button onClick={markAllAsRead} className="text-sm text-[#1E88E5] hover:underline">Đánh dấu đã đọc</button>}
                     </div>
                     {currentRole === 'admin'
-                      ? (notifications.filter(n => n.type === 'course_pending').length > 0 ? (
+                      ? (notifications.filter(n => n.type === 'course_pending_review').length > 0 ? (
                           <ScrollArea className="h-[400px]">
                             <div className="divide-y">
-                              {notifications.filter(n => n.type === 'course_pending').map(notification => {
+                              {notifications.filter(n => n.type === 'course_pending_review').map(notification => {
                                 const isRead = notification.read || readSet.has(String(notification.id));
                                 return (
                                   <button
