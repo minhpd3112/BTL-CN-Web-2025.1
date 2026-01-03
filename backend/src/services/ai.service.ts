@@ -40,7 +40,7 @@ export const aiService = {
    * Generate a complete course outline using Gemini AI
    */
   generateCourseOutline: async (input: GenerateCourseInput): Promise<CourseOutline> => {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     const levelText = {
       beginner: 'người mới bắt đầu, chưa có kinh nghiệm',

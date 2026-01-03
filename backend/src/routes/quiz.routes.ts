@@ -4,8 +4,8 @@ import { authenticate, optionalAuth } from '@middlewares/auth.middleware';
 
 const router = Router();
 
-// Create or update quiz for a lesson (instructor only - but we rely on RLS/business logic)
-router.post('/:lessonId', QuizController.createOrUpdateQuiz);
+// Create or update quiz for a lesson (requires authentication - course owner check in controller)
+router.post('/:lessonId', authenticate, QuizController.createOrUpdateQuiz);
 // Get quiz by lesson ID (optional auth - can view without login, but shows previous attempts if logged in)
 router.get('/:lessonId', optionalAuth, QuizController.getQuizByLessonId);
 // Submit quiz answers (requires authentication)

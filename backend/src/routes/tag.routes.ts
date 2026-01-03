@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { tagController } from '@controllers/tag.controller';
+import { authenticate, requireAdmin } from '@middlewares/auth.middleware';
 
 const router = Router();
 
@@ -7,11 +8,9 @@ const router = Router();
 router.get('/', tagController.getTags);
 router.get('/:id', tagController.getTagById);
 
-// Protected routes (Admin only - sẽ cần role middleware)
-// router.use(authMiddleware, roleMiddleware('admin')); // Uncomment sau
-
-router.post('/', tagController.createTag);
-router.patch('/:id', tagController.updateTag);
-router.delete('/:id', tagController.deleteTag);
+// Protected routes - Admin only
+router.post('/', authenticate, requireAdmin, tagController.createTag);
+router.patch('/:id', authenticate, requireAdmin, tagController.updateTag);
+router.delete('/:id', authenticate, requireAdmin, tagController.deleteTag);
 
 export default router;

@@ -27,7 +27,7 @@ import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogH
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
 import { mockUsers } from '@/services/mocks';
-import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI } from '@/services/api';
+import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI, usersAPI } from '@/services/api';
 import { ReviewForm } from '@/components/shared/ReviewForm';
 import { StarRating } from '@/components/shared/StarRating';
 
@@ -195,11 +195,59 @@ export function CourseDetailPage({
     setEnrollMessage('');
   };
 
-  const handleOwnerClick = () => {
-    if (setSelectedUser) {
-      const owner = mockUsers.find(u => u.id === course.ownerId);
-      if (owner) {
-        setSelectedUser(owner);
+  const handleOwnerClick = async () => {
+    if (setSelectedUser && fullCourse?.owner) {
+      try {
+        // Fetch full user data from API
+        const usersRes = await usersAPI.getAllUsers();
+        const fullUser = usersRes.data?.find((u: User) => u.id === fullCourse.owner.id);
+        
+        if (fullUser) {
+          setSelectedUser(fullUser);
+          navigateTo('user-detail');
+        } else {
+          // Fallback: create user object from owner data if API fails
+          const ownerUser: User = {
+            id: fullCourse.owner.id,
+            username: fullCourse.owner.full_name,
+            name: fullCourse.owner.full_name,
+            fullName: fullCourse.owner.full_name,
+            full_name: fullCourse.owner.full_name,
+            email: '', // Not available from course owner
+            avatar: fullCourse.owner.avatar_url || '',
+            avatar_url: fullCourse.owner.avatar_url,
+            role: 'user',
+            joinedDate: '',
+            coursesCreated: 0,
+            coursesEnrolled: 0,
+            totalStudents: 0,
+            status: 'active',
+            lastLogin: ''
+          };
+          setSelectedUser(ownerUser);
+          navigateTo('user-detail');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Use fallback data on error
+        const ownerUser: User = {
+          id: fullCourse.owner.id,
+          username: fullCourse.owner.full_name,
+          name: fullCourse.owner.full_name,
+          fullName: fullCourse.owner.full_name,
+          full_name: fullCourse.owner.full_name,
+          email: '',
+          avatar: fullCourse.owner.avatar_url || '',
+          avatar_url: fullCourse.owner.avatar_url,
+          role: 'user',
+          joinedDate: '',
+          coursesCreated: 0,
+          coursesEnrolled: 0,
+          totalStudents: 0,
+          status: 'active',
+          lastLogin: ''
+        };
+        setSelectedUser(ownerUser);
         navigateTo('user-detail');
       }
     }
@@ -399,10 +447,13 @@ export function CourseDetailPage({
 
           if (enrollment?.progress) {
             const percentage = enrollment.progress.percentage || 0;
+            const completed = enrollment.progress.completed || 0;
+            const total = enrollment.progress.total || 0;
             // ...existing code...
             setCourseProgress(percentage);
-            // Can review if 100% complete
-            setCanReview(percentage >= 100);
+            // Can review if completed all lessons OR percentage is 100
+            const isCompleted = total > 0 && completed >= total;
+            setCanReview(isCompleted || percentage >= 100);
           } else {
             // ...existing code...
             setCourseProgress(0);

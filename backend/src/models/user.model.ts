@@ -1,6 +1,23 @@
 import { supabaseAdmin } from '../config/supabase';
 import type { User } from '../types';
 
+// Normalize user data to ensure all fields are present
+const normalizeUser = (profile: any, authUser?: any): any => {
+  return {
+    id: profile.id,
+    full_name: profile.full_name || null,
+    avatar_url: profile.avatar_url || null,
+    phone: profile.phone || null,
+    address: profile.address || null,
+    bio: profile.bio || null,
+    email: authUser?.email || profile.email || null,
+    role: authUser?.user_metadata?.role || profile.role || 'user',
+    status: 'active', // Default status
+    created_at: profile.created_at || authUser?.created_at || null,
+    updated_at: profile.updated_at || authUser?.updated_at || null,
+  };
+};
+
 export const UserModel = {
     async findByEmail(email: string) {
       const { data, error } = await supabaseAdmin
@@ -27,29 +44,23 @@ export const UserModel = {
     // 3. Merge role và email từ auth.users vào profile
     const merged = profiles.map((profile: any) => {
       const authUser = authUsers.users.find((u: any) => u.id === profile.id);
-      let role = profile.role;
-      let email = profile.email;
-      if (authUser) {
-        if (authUser.user_metadata && authUser.user_metadata.role) {
-          role = authUser.user_metadata.role;
-        }
-        if (authUser.email) {
-          email = authUser.email;
-        }
-      }
-      return { ...profile, role, email };
+      return normalizeUser(profile, authUser);
     });
+    
     return merged;
   },
 
   async findById(id: string) {
-    const { data, error } = await supabaseAdmin
+    const { data: profile, error } = await supabaseAdmin
       .from('user_profiles')
       .select('*')
       .eq('id', id)
       .single();
     if (error) throw error;
-    return data;
+    
+    // Get auth user data for email and metadata
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(id);
+    return normalizeUser(profile, authData?.user);
   },
 
   async create(userData: Partial<User>) {

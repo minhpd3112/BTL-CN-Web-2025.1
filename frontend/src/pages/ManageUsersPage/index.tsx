@@ -106,9 +106,6 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
             key={user.id}
             className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white cursor-pointer gap-0"
             onClick={() => {
-              console.log('=== Clicked User in ManageUsersPage ===');
-              console.log('user:', user);
-              console.log('user keys:', Object.keys(user));
               setSelectedUser(user);
               navigateTo('user-detail');
             }}

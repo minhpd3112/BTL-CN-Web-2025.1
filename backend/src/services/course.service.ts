@@ -117,11 +117,8 @@ export const courseService = {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
       }
 
-      // Apply pagination và ordering
+      // Fetch all data first (without pagination) to calculate students and rating before sorting
       query = query.order('created_at', { ascending: false });
-      if (limit > 0) {
-        query = query.range(offset, offset + limit - 1);
-      }
 
       const { data, error, count } = await query;
 
@@ -177,8 +174,32 @@ export const courseService = {
         rating: ratingMap[course.id] || 0,
       }));
 
+      // Apply sorting based on filters.sort parameter
+      const sortBy = filters.sort || 'newest';
+      let sortedCourses = [...courses];
+      
+      switch (sortBy) {
+        case 'popular':
+          // Sort by number of students (descending)
+          sortedCourses.sort((a, b) => (b.students || 0) - (a.students || 0));
+          break;
+        case 'rating':
+          // Sort by rating (descending)
+          sortedCourses.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          break;
+        case 'newest':
+        default:
+          // Sort by created_at (descending) - already sorted by query
+          break;
+      }
+
+      // Apply pagination AFTER sorting
+      const paginatedCourses = limit > 0 
+        ? sortedCourses.slice(offset, offset + limit)
+        : sortedCourses;
+
       return {
-        data: courses,
+        data: paginatedCourses,
         total: count || 0,
         page,
         limit,
