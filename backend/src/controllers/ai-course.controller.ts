@@ -110,8 +110,7 @@ export const aiCourseController = {
                     }
                 }
             }
-
-            // Find the first video thumbnail to use as course image
+                  // Find the first video thumbnail to use as course image
             let courseImageUrl = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'; // Default placeholder
             for (const section of courseOutline.sections) {
                 for (const lesson of section.lessons) {
@@ -122,7 +121,6 @@ export const aiCourseController = {
                 }
                 if (courseImageUrl !== 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80') break;
             }
-
             // Create course in database
             const { data: course, error: courseError } = await supabase
                 .from('courses')
