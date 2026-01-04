@@ -64,18 +64,23 @@ const clearAuthToken = () => {
 };
 
 // Axios request interceptor to attach token
-api.interceptors.request.use(async (config) => {
-  let token: string | null = null;
-  
-  // Try to get token from secure storage
-  if (isWebCryptoAvailable()) {
-    token = await getSecureItem('auth_token');
-  } else {
-    token = getSecureItemFallback('auth_token');
-  }
-  
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Note: Uses sync fallback for better interceptor compatibility
+api.interceptors.request.use((config) => {
+  try {
+    // Try to get token from sync backup first (for interceptor compatibility)
+    let token = getSecureItemFallback('auth_token_sync_backup');
+    
+    // Fallback to non-backup if needed
+    if (!token) {
+      token = getSecureItemFallback('auth_token');
+    }
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (error) {
+    // Log error but don't fail the request
+    console.error('Error retrieving auth token from interceptor:', error);
   }
   return config;
 });

@@ -6,6 +6,13 @@
  * Uses Web Crypto API for encryption with AES-GCM
  */
 
+/**
+ * Utility to check if Web Crypto API is available
+ */
+export const isWebCryptoAvailable = (): boolean => {
+  return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined';
+};
+
 // Generate or get encryption key
 const getEncryptionKey = async (): Promise<CryptoKey> => {
   const keyString = 'edulearn_app_key_v1'; // In production, use a dynamic key from server
@@ -36,38 +43,54 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
 
 /**
  * Encrypts a value and stores it as a JSON object with IV (initialization vector)
+ * Also stores a synchronously-retrievable backup for use in sync contexts (like axios interceptors)
  */
 export const setSecureItem = async (key: string, value: string): Promise<void> => {
   try {
-    const encryptionKey = await getEncryptionKey();
-    const encoder = new TextEncoder();
-    const data = encoder.encode(value);
+    // ALWAYS store sync backup first (required for interceptor to work)
+    setSecureItemFallback(`${key}_sync_backup`, value);
     
-    // Generate a random IV for each encryption
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    
-    const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      encryptionKey,
-      data
-    );
-    
-    // Store as base64-encoded JSON with IV
-    const encryptedArray = new Uint8Array(encrypted);
-    const encryptedBase64 = btoa(String.fromCharCode.apply(null, Array.from(encryptedArray)));
-    const ivBase64 = btoa(String.fromCharCode.apply(null, Array.from(iv)));
-    
-    const storageData = JSON.stringify({
-      encrypted: encryptedBase64,
-      iv: ivBase64,
-      version: 1,
-    });
-    
-    localStorage.setItem(`secure_${key}`, storageData);
+    // Then try to store encrypted version if Web Crypto available
+    if (isWebCryptoAvailable()) {
+      try {
+        const encryptionKey = await getEncryptionKey();
+        const encoder = new TextEncoder();
+        const data = encoder.encode(value);
+        
+        // Generate a random IV for each encryption
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        
+        const encrypted = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          encryptionKey,
+          data
+        );
+        
+        // Store as base64-encoded JSON with IV
+        const encryptedArray = new Uint8Array(encrypted);
+        const encryptedBase64 = btoa(String.fromCharCode.apply(null, Array.from(encryptedArray)));
+        const ivBase64 = btoa(String.fromCharCode.apply(null, Array.from(iv)));
+        
+        const storageData = JSON.stringify({
+          encrypted: encryptedBase64,
+          iv: ivBase64,
+          version: 1,
+        });
+        
+        localStorage.setItem(`secure_${key}`, storageData);
+      } catch (encryptError) {
+        console.warn(`Failed to store encrypted ${key}, using fallback only:`, encryptError);
+        // Sync backup already stored, so continue
+      }
+    }
   } catch (error) {
-    console.error(`Failed to encrypt and store ${key}:`, error);
-    // Fallback: don't store if encryption fails
-    throw error;
+    console.error(`Failed to store ${key}:`, error);
+    // Try fallback at least
+    try {
+      setSecureItemFallback(`${key}_sync_backup`, value);
+    } catch (fallbackError) {
+      console.error(`Even fallback storage failed for ${key}:`, fallbackError);
+    }
   }
 };
 
@@ -112,10 +135,11 @@ export const getSecureItem = async (key: string): Promise<string | null> => {
 };
 
 /**
- * Removes a secure item from storage
+ * Removes a secure item from storage (both encrypted and sync backup)
  */
 export const removeSecureItem = (key: string): void => {
   localStorage.removeItem(`secure_${key}`);
+  localStorage.removeItem(`secure_${key}_sync_backup`);
 };
 
 /**
@@ -169,13 +193,6 @@ export const getSecureItemFallback = (key: string): string | null => {
   const encoded = localStorage.getItem(`secure_${key}`);
   if (!encoded) return null;
   return decodeSimple(encoded);
-};
-
-/**
- * Utility to check if Web Crypto API is available
- */
-export const isWebCryptoAvailable = (): boolean => {
-  return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined';
 };
 
 /**
