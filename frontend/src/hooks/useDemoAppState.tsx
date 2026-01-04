@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase, notificationsAPI } from '@/services/api';
-import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback } from '@/utils/secureStorage';
+import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, getSecureItemFast, setSecureItemFast } from '@/utils/secureStorage';
 import {
   mockUsers,
   mockCourses,
@@ -24,11 +24,22 @@ const mockNotifications: Notification[] = [
 export function useDemoAppState() {
   // 1. TẤT CẢ KHAI BÁO STATE NẰM Ở ĐẦU
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    // User will be loaded from Supabase session in useEffect
+    // Try to restore user from secure storage on page refresh
+    // Use fast retrieval for state initializer (can't use async)
+    const userData = getSecureItemFast('user_data');
+    if (userData) {
+      try {
+        return JSON.parse(userData);
+      } catch (e) {
+        console.error('Failed to parse saved user data:', e);
+      }
+    }
+    // Will be loaded from Supabase session in useEffect if not found
     return null;
   });
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const token = getSecureItemFallback('auth_token');
+    // Check for token in sync backup (where it's always stored for interceptor)
+    const token = getSecureItemFallback('auth_token_sync_backup');
     return token ? 'home' : 'login';
   });
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -74,16 +85,9 @@ export function useDemoAppState() {
           coursesCreated: 0,
           totalStudents: 0
         };
-        const storeAuthData = async () => {
-          if (isWebCryptoAvailable()) {
-            await setSecureItem('auth_token', session.access_token);
-            await setSecureItem('user_id', session.user.id);
-          } else {
-            setSecureItemFallback('auth_token', session.access_token);
-            setSecureItemFallback('user_id', session.user.id);
-          }
-        };
-        storeAuthData();
+        // Store auth data immediately (fast sync-only, no expensive encryption)
+        setSecureItemFallback('auth_token', session.access_token);
+        setSecureItemFallback('user_id', session.user.id);
         setCurrentUser(user as any);
         setCurrentPage('home');
       }
@@ -120,8 +124,10 @@ export function useDemoAppState() {
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
     setCurrentUser(user);
     if (googlePicture) setUserGooglePicture(googlePicture);
-    // Store ONLY user ID - not full user data (auth_token is already stored securely elsewhere)
-    localStorage.setItem('user_id', user.id);
+    // Store user data (fast - uses obfuscation only)
+    setSecureItemFast('user_data', JSON.stringify(user));
+    // Store user_id (fast sync-only, no expensive encryption)
+    setSecureItemFallback('user_id', user.id);
     navigateTo('home');
   }, [navigateTo]);
 
@@ -129,7 +135,7 @@ export function useDemoAppState() {
     try { await supabase.auth.signOut(); } catch (e) { console.error(e); }
     removeSecureItem('auth_token');
     removeSecureItem('user_id');
-    localStorage.removeItem('user_data');
+    removeSecureItem('user_data');
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');

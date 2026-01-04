@@ -15,7 +15,7 @@ export const usersAPI = {
 };
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
-import { getSecureItem, setSecureItem, removeSecureItem, clearSecureStorage, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, removeSecureItem as removeSecureItemUtil, getAuthTokenAsync, getUserIdAsync } from '@/utils/secureStorage';
+import { getSecureItem, setSecureItem, removeSecureItem, clearSecureStorage, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, removeSecureItem as removeSecureItemUtil, getAuthTokenAsync, getUserIdAsync, getSecureItemFast, setSecureItemFast } from '@/utils/secureStorage';
 
 // Environment variables 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -59,7 +59,7 @@ const setAuthToken = async (token: string) => {
 const clearAuthToken = () => {
   removeSecureItem('auth_token');
   removeSecureItem('user_id');
-  localStorage.removeItem('user_data');
+  removeSecureItem('user_data');
   clearSecureStorage();
 };
 
@@ -208,14 +208,14 @@ export const authAPI = {
   },
 
   getStoredUser() {
-    const userData = localStorage.getItem('user_data');
+    const userData = getSecureItemFallback('user_data');
     if (!userData) {
-      console.log('[getStoredUser] user_data not found in localStorage');
+      console.log('[getStoredUser] user_data not found in secure storage');
       return null;
     }
     try {
       const user = JSON.parse(userData);
-      console.log('[getStoredUser] user loaded from localStorage:', user);
+      console.log('[getStoredUser] user loaded from secure storage:', user);
       return user;
     } catch (e) {
       console.error('[getStoredUser] Failed to parse user_data:', e, userData);
@@ -243,17 +243,11 @@ export const adminAPI = {
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/admin/login', data);
     if (response.data.success) {
-      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
-      if (response.data.data.session?.access_token) {
-        // Store auth token and user ID securely (encrypted)
-        if (isWebCryptoAvailable()) {
-          await setSecureItem('auth_token', response.data.data.session.access_token);
-          await setSecureItem('user_id', response.data.data.user.id);
-        } else {
-          setSecureItemFallback('auth_token', response.data.data.session.access_token);
-          setSecureItemFallback('user_id', response.data.data.user.id);
-        }
-      }
+      // Store auth data immediately (fast sync-only, no expensive encryption)
+      setSecureItemFallback('auth_token', response.data.data.session?.access_token || '');
+      setSecureItemFallback('user_id', response.data.data.user.id);
+      // Store user data (fast - uses obfuscation only)
+      setSecureItemFast('user_data', JSON.stringify(response.data.data.user));
     }
     return response.data;
   },

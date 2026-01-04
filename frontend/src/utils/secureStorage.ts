@@ -13,20 +13,37 @@ export const isWebCryptoAvailable = (): boolean => {
   return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined';
 };
 
-// Generate or get encryption key
+// Cache the encryption key to avoid expensive PBKDF2 re-derivation on every call
+let cachedEncryptionKey: CryptoKey | null = null;
+let keyDerivationPromise: Promise<CryptoKey> | null = null;
+
+// Generate or get encryption key (with caching)
 const getEncryptionKey = async (): Promise<CryptoKey> => {
-  const keyString = 'edulearn_app_key_v1'; // In production, use a dynamic key from server
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(keyString);
+  // Return cached key if available
+  if (cachedEncryptionKey) {
+    return cachedEncryptionKey;
+  }
   
-  return await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'PBKDF2' },
-    false,
-    ['deriveKey']
-  ).then(key =>
-    crypto.subtle.deriveKey(
+  // Return existing promise if key derivation is in progress
+  if (keyDerivationPromise) {
+    return keyDerivationPromise;
+  }
+  
+  // Start new key derivation and cache the promise
+  keyDerivationPromise = (async () => {
+    const keyString = 'edulearn_app_key_v1'; // In production, use a dynamic key from server
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(keyString);
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+    
+    cachedEncryptionKey = await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
         salt: encoder.encode('edulearn_salt_v1'),
@@ -37,8 +54,29 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
       { name: 'AES-GCM', length: 256 },
       false,
       ['encrypt', 'decrypt']
-    )
-  );
+    );
+    
+    keyDerivationPromise = null;
+    return cachedEncryptionKey;
+  })();
+  
+  return keyDerivationPromise;
+};
+
+/**
+ * Fast version for non-sensitive data (like user_data)
+ * Uses obfuscation only - skips expensive AES-GCM encryption
+ */
+export const setSecureItemFast = (key: string, value: string): void => {
+  try {
+    setSecureItemFallback(key, value);
+  } catch (error) {
+    console.error(`Failed to store fast ${key}:`, error);
+  }
+};
+
+export const getSecureItemFast = (key: string): string | null => {
+  return getSecureItemFallback(key);
 };
 
 /**
@@ -47,6 +85,12 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
  */
 export const setSecureItem = async (key: string, value: string): Promise<void> => {
   try {
+    // For user_data, use fast storage (profile info is not as sensitive as tokens)
+    if (key === 'user_data') {
+      setSecureItemFast(key, value);
+      return;
+    }
+    
     // ALWAYS store sync backup first (required for interceptor to work)
     setSecureItemFallback(`${key}_sync_backup`, value);
     
@@ -159,23 +203,43 @@ export const clearSecureStorage = (): void => {
 /**
  * Alternative: Simple obfuscation fallback if Web Crypto is unavailable
  * NOT cryptographically secure - for backward compatibility only
+ * Uses TextEncoder/TextDecoder to handle UTF-8 properly
  */
 const encodeSimple = (str: string): string => {
-  return btoa(
-    str
-      .split('')
-      .map(char => String.fromCharCode(char.charCodeAt(0) ^ 0x42))
-      .join('')
-  );
+  try {
+    // Convert string to UTF-8 bytes
+    const encoder = new TextEncoder();
+    const utf8Bytes = encoder.encode(str);
+    
+    // Apply XOR obfuscation to each byte
+    const obfuscated = Array.from(utf8Bytes)
+      .map(byte => String.fromCharCode(byte ^ 0x42))
+      .join('');
+    
+    // Encode to base64
+    return btoa(obfuscated);
+  } catch (e) {
+    console.error('Failed to encode simple:', e);
+    return '';
+  }
 };
 
 const decodeSimple = (encoded: string): string => {
   try {
-    return atob(encoded)
-      .split('')
-      .map(char => String.fromCharCode(char.charCodeAt(0) ^ 0x42))
-      .join('');
-  } catch {
+    // Decode from base64
+    const obfuscated = atob(encoded);
+    
+    // Reverse XOR obfuscation
+    const bytes = new Uint8Array(
+      Array.from(obfuscated)
+        .map(char => char.charCodeAt(0) ^ 0x42)
+    );
+    
+    // Convert UTF-8 bytes back to string
+    const decoder = new TextDecoder();
+    return decoder.decode(bytes);
+  } catch (e) {
+    console.error('Failed to decode simple:', e);
     return '';
   }
 };
@@ -190,9 +254,24 @@ export const setSecureItemFallback = (key: string, value: string): void => {
 };
 
 export const getSecureItemFallback = (key: string): string | null => {
-  const encoded = localStorage.getItem(`secure_${key}`);
+  const storageKey = `secure_${key}`;
+  const encoded = localStorage.getItem(storageKey);
   if (!encoded) return null;
-  return decodeSimple(encoded);
+  
+  try {
+    const decoded = decodeSimple(encoded);
+    // If decoding failed (empty string returned), remove corrupted data and return null
+    if (!decoded) {
+      localStorage.removeItem(storageKey);
+      return null;
+    }
+    return decoded;
+  } catch (e) {
+    // If any error occurs, remove the corrupted data
+    console.warn(`Removing corrupted secure storage item: ${key}`, e);
+    localStorage.removeItem(storageKey);
+    return null;
+  }
 };
 
 /**

@@ -12,7 +12,7 @@ import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
-import { setSecureItem, isWebCryptoAvailable, setSecureItemFallback } from '@/utils/secureStorage';
+import { setSecureItemFallback } from '@/utils/secureStorage';
 
 
 
@@ -51,17 +51,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: res.data.user.id,
           };
-          // Store ONLY sensitive auth data securely (encrypted)
-          const storeAuthData = async () => {
-            if (isWebCryptoAvailable()) {
-              await setSecureItem('auth_token', res.data.session?.access_token || '');
-              await setSecureItem('user_id', adminUser.id);
-            } else {
-              setSecureItemFallback('auth_token', res.data.session?.access_token || '');
-              setSecureItemFallback('user_id', adminUser.id);
-            }
-          };
-          await storeAuthData();
+          // Store auth data immediately (fast sync-only, no expensive encryption)
+          setSecureItemFallback('auth_token', res.data.session?.access_token || '');
+          setSecureItemFallback('user_id', adminUser.id);
           onLogin(adminUser);
           toast.success("Đăng nhập admin thành công!");
         } else {
@@ -108,12 +100,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             if (!profileError && profile?.created_at) {
               joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
             }
-          } catch (e) {}
-          // Debug log
-          // eslint-disable-next-line no-console
-          console.log('joinedDate for user', data.user.id, joinedDate);
+          } catch (e) {
+            console.error('Profile fetch error:', e);
+          }
           const realUser: User = {
-            id: data.user.id, // giữ nguyên string UUID
+            id: data.user.id,
             username: data.user.email?.split('@')[0] || 'user',
             email: data.user.email || '',
             name: data.user.user_metadata?.full_name || 'Người dùng mới',
@@ -127,17 +118,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: data.user.id,
           };
-          // Store ONLY sensitive auth data securely (encrypted)
-          const storeAuthData = async () => {
-            if (isWebCryptoAvailable()) {
-              await setSecureItem('auth_token', data.session.access_token);
-              await setSecureItem('user_id', realUser.id);
-            } else {
-              setSecureItemFallback('auth_token', data.session.access_token);
-              setSecureItemFallback('user_id', realUser.id);
-            }
-          };
-          await storeAuthData();
+          
+          // Store auth data immediately
+          if (data.session?.access_token) {
+            setSecureItemFallback('auth_token', data.session.access_token);
+            setSecureItemFallback('user_id', realUser.id);
+          } else {
+            toast.error('Lỗi: Không nhận được session. Vui lòng thử lại.');
+            setIsLoading(false);
+            return;
+          }
+          
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
         }
