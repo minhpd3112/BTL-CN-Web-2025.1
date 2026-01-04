@@ -1,7 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { logger } from '../config/logger';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
-console.log('🔑 GEMINI_API_KEY loaded:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT SET');
+
+if (apiKey) {
+  logger.info('✅ Google Generative AI service initialized');
+} else {
+  logger.warn('⚠️ GEMINI_API_KEY is not set - AI course generation will not work');
+}
 
 const genAI = new GoogleGenerativeAI(apiKey);
 

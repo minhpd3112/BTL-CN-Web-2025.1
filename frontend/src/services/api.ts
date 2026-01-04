@@ -15,6 +15,7 @@ export const usersAPI = {
 };
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
+import { getSecureItem, setSecureItem, removeSecureItem, clearSecureStorage, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, removeSecureItem as removeSecureItemUtil, getAuthTokenAsync, getUserIdAsync } from '@/utils/secureStorage';
 
 // Environment variables 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -42,18 +43,37 @@ export const api = axios.create({
 // -----------------------------
 // Auth token helpers
 // -----------------------------
-const getAuthToken = (): string | null => localStorage.getItem('auth_token');
+const getAuthToken = (): string | null => {
+  // Try secure storage with fallback
+  return getSecureItemFallback('auth_token');
+};
 
-const setAuthToken = (token: string) => localStorage.setItem('auth_token', token);
+const setAuthToken = async (token: string) => {
+  if (isWebCryptoAvailable()) {
+    await setSecureItem('auth_token', token);
+  } else {
+    setSecureItemFallback('auth_token', token);
+  }
+};
 
 const clearAuthToken = () => {
-  localStorage.removeItem('auth_token');
+  removeSecureItem('auth_token');
+  removeSecureItem('user_id');
   localStorage.removeItem('user_data');
+  clearSecureStorage();
 };
 
 // Axios request interceptor to attach token
-api.interceptors.request.use((config) => {
-  const token = getAuthToken();
+api.interceptors.request.use(async (config) => {
+  let token: string | null = null;
+  
+  // Try to get token from secure storage
+  if (isWebCryptoAvailable()) {
+    token = await getSecureItem('auth_token');
+  } else {
+    token = getSecureItemFallback('auth_token');
+  }
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -133,8 +153,14 @@ export const authAPI = {
     const response = await api.post<AuthResponse>('/auth/login', data);
 
     if (response.data.success) {
-      setAuthToken(response.data.data.session.access_token);
-      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      // Store auth token and user ID securely (encrypted)
+      if (isWebCryptoAvailable()) {
+        await setSecureItem('auth_token', response.data.data.session.access_token);
+        await setSecureItem('user_id', response.data.data.user.id);
+      } else {
+        setSecureItemFallback('auth_token', response.data.data.session.access_token);
+        setSecureItemFallback('user_id', response.data.data.user.id);
+      }
     }
 
     return response.data;
@@ -145,8 +171,14 @@ export const authAPI = {
     const response = await api.post<AuthResponse>('/auth/google', { token });
 
     if (response.data.success) {
-      setAuthToken(response.data.data.session.access_token);
-      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      // Store auth token and user ID securely (encrypted)
+      if (isWebCryptoAvailable()) {
+        await setSecureItem('auth_token', response.data.data.session.access_token);
+        await setSecureItem('user_id', response.data.data.user.id);
+      } else {
+        setSecureItemFallback('auth_token', response.data.data.session.access_token);
+        setSecureItemFallback('user_id', response.data.data.user.id);
+      }
     }
 
     return response.data;
@@ -208,7 +240,14 @@ export const adminAPI = {
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
       if (response.data.data.session?.access_token) {
-        localStorage.setItem('auth_token', response.data.data.session.access_token);
+        // Store auth token and user ID securely (encrypted)
+        if (isWebCryptoAvailable()) {
+          await setSecureItem('auth_token', response.data.data.session.access_token);
+          await setSecureItem('user_id', response.data.data.user.id);
+        } else {
+          setSecureItemFallback('auth_token', response.data.data.session.access_token);
+          setSecureItemFallback('user_id', response.data.data.user.id);
+        }
       }
     }
     return response.data;

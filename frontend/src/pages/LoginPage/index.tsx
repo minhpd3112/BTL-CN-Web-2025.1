@@ -12,6 +12,7 @@ import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { setSecureItem, isWebCryptoAvailable, setSecureItemFallback } from '@/utils/secureStorage';
 
 
 
@@ -50,7 +51,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: res.data.user.id,
           };
-          localStorage.setItem('user_data', JSON.stringify(adminUser));
+          // Store ONLY sensitive auth data securely (encrypted)
+          const storeAuthData = async () => {
+            if (isWebCryptoAvailable()) {
+              await setSecureItem('auth_token', res.data.session?.access_token || '');
+              await setSecureItem('user_id', adminUser.id);
+            } else {
+              setSecureItemFallback('auth_token', res.data.session?.access_token || '');
+              setSecureItemFallback('user_id', adminUser.id);
+            }
+          };
+          await storeAuthData();
           onLogin(adminUser);
           toast.success("Đăng nhập admin thành công!");
         } else {
@@ -116,7 +127,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: data.user.id,
           };
-          localStorage.setItem('user_data', JSON.stringify(realUser));
+          // Store ONLY sensitive auth data securely (encrypted)
+          const storeAuthData = async () => {
+            if (isWebCryptoAvailable()) {
+              await setSecureItem('auth_token', data.session.access_token);
+              await setSecureItem('user_id', realUser.id);
+            } else {
+              setSecureItemFallback('auth_token', data.session.access_token);
+              setSecureItemFallback('user_id', realUser.id);
+            }
+          };
+          await storeAuthData();
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
         }
@@ -130,6 +151,36 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
 
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Vui lòng nhập email của bạn');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error('Reset password error:', error);
+        throw error;
+      }
+      
+      // eslint-disable-next-line no-console
+      console.log('Reset password response:', data);
+      toast.success('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư.');
+    } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error('Full error object:', error);
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleQuickLogin = (user: User) => {
     onLogin(user);
@@ -245,7 +296,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password" className="text-gray-700 font-medium">Mật khẩu</Label>
                         {!isSignUp && (
-                          <a href="#" className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors">Quên mật khẩu?</a>
+                          <button 
+                            type="button"
+                            onClick={handleForgotPassword}
+                            disabled={isLoading}
+                            className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors disabled:opacity-50"
+                          >
+                            Quên mật khẩu?
+                          </button>
                         )}
                       </div>
                       <div className="relative group">

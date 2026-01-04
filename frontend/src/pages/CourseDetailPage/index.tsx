@@ -64,6 +64,7 @@ interface CourseDetailPageProps {
   enrollmentRequests?: any[];
   onEnrollRequest?: (request: any) => void;
   setSelectedUser?: (user: User) => void;
+  setSelectedTag?: (tag: any) => void;
 }
 
 
@@ -74,7 +75,8 @@ export function CourseDetailPage({
   canAccess,
   enrollmentRequests,
   onEnrollRequest,
-  setSelectedUser
+  setSelectedUser,
+  setSelectedTag
 }: CourseDetailPageProps) {
   // Robust owner detection
   const isOwner = currentUser && (
@@ -582,6 +584,7 @@ export function CourseDetailPage({
 
                     return tags.slice(0, 3).map((item: any, index: number) => {
                       // Handle nested structure: {tag: {name: 'React'}} or direct {name: 'React'} or string
+                      const tagData = typeof item === 'string' ? null : (item.tag || item);
                       const tagName = typeof item === 'string'
                         ? item
                         : (item.tag?.name || item.name || item.tag_name || '');
@@ -589,7 +592,16 @@ export function CourseDetailPage({
                       if (!tagName) return null;
 
                       return (
-                        <Badge key={index} className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
+                        <Badge 
+                          key={index} 
+                          className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal cursor-pointer transition-all hover:scale-105"
+                          onClick={() => {
+                            if (setSelectedTag && tagData) {
+                              setSelectedTag(tagData);
+                              navigateTo('tag-detail');
+                            }
+                          }}
+                        >
                           {tagName}
                         </Badge>
                       );

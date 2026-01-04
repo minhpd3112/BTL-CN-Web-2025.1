@@ -100,6 +100,15 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
     }
   };
 
+  // Calculate course count for each tag and sort
+  const tagsWithCourseCount = allTags.map(tag => {
+    const courseCount = publicCourses.filter(course => {
+      // Check if course has this tag (assuming course_tags or similar structure)
+      return course.tags?.some((t: any) => t.id === tag.id);
+    }).length;
+    return { ...tag, courseCount };
+  }).sort((a, b) => b.courseCount - a.courseCount).slice(0, 8);
+
   return (
     <div>
       {/* Hero Banner */}
@@ -240,7 +249,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
               <div className="flex items-center gap-3 mb-2">
                 <Tag className="w-8 h-8 text-[#1E88E5]" />
                 <h2 className="home-section-title relative">
-                  Khám phá theo chủ đề
+                  Chủ đề nổi bật nhất
                 </h2>
               </div>
               <div className="w-24 h-1 bg-gradient-to-r from-[#1E88E5] to-transparent rounded-full"></div>
@@ -249,10 +258,10 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {loadingTags ? (
               <div className="col-span-4 text-center py-8 text-gray-500">Đang tải chủ đề...</div>
-            ) : allTags.length === 0 ? (
+            ) : tagsWithCourseCount.length === 0 ? (
               <div className="col-span-4 text-center py-8 text-gray-500">Không có chủ đề nào.</div>
             ) : (
-              allTags.map((tag, index) => (
+              tagsWithCourseCount.map((tag, index) => (
                 <AnimatedSection key={tag.id} animation="fade-up" delay={index * 50}>
                   <Card
                     className="home-category-card cursor-pointer"
@@ -264,6 +273,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                     <CardContent className="p-6 text-center">
                       <Tag className="home-category-icon w-8 h-8 text-[#1E88E5] mx-auto mb-3" />
                       <div className="home-category-text">{tag.name}</div>
+                      <div className="text-sm text-gray-500 mt-2">{tag.courseCount} khóa học</div>
                     </CardContent>
                   </Card>
                 </AnimatedSection>
