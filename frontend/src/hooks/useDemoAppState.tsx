@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase, notificationsAPI } from '@/services/api';
+import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback } from '@/utils/secureStorage';
 import {
   mockUsers,
   mockCourses,
@@ -23,13 +24,11 @@ const mockNotifications: Notification[] = [
 export function useDemoAppState() {
   // 1. TẤT CẢ KHAI BÁO STATE NẰM Ở ĐẦU
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const token = localStorage.getItem('auth_token');
-    const userId = localStorage.getItem('user_id');
-    // User will be loaded from Supabase session
+    // User will be loaded from Supabase session in useEffect
     return null;
   });
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = getSecureItemFallback('auth_token');
     return token ? 'home' : 'login';
   });
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -75,7 +74,14 @@ export function useDemoAppState() {
           coursesCreated: 0,
           totalStudents: 0
         };
-        localStorage.setItem('auth_token', session.access_token);
+        const storeToken = async () => {
+          if (isWebCryptoAvailable()) {
+            await setSecureItem('auth_token', session.access_token);
+          } else {
+            setSecureItemFallback('auth_token', session.access_token);
+          }
+        };
+        storeToken();
         localStorage.setItem('user_id', session.user.id);
         setCurrentUser(user as any);
         setCurrentPage('home');
@@ -113,16 +119,16 @@ export function useDemoAppState() {
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
     setCurrentUser(user);
     if (googlePicture) setUserGooglePicture(googlePicture);
-    // Store ONLY auth token and user ID - not full user data
-    const token = localStorage.getItem('auth_token');
-    if (token) localStorage.setItem('user_id', user.id);
+    // Store ONLY user ID - not full user data (auth_token is already stored securely elsewhere)
+    localStorage.setItem('user_id', user.id);
     navigateTo('home');
   }, [navigateTo]);
 
   const handleLogout = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch (e) { console.error(e); }
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_id');
+    removeSecureItem('auth_token');
+    removeSecureItem('user_id');
+    localStorage.removeItem('user_data');
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');

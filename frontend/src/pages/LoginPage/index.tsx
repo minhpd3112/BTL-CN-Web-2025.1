@@ -12,6 +12,7 @@ import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { setSecureItem, isWebCryptoAvailable, setSecureItemFallback } from '@/utils/secureStorage';
 
 
 
@@ -50,8 +51,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: res.data.user.id,
           };
-          // Store ONLY sensitive auth data
-          localStorage.setItem('auth_token', res.data.session?.access_token || '');
+          // Store ONLY sensitive auth data securely (encrypted)
+          const storeToken = async () => {
+            if (isWebCryptoAvailable()) {
+              await setSecureItem('auth_token', res.data.session?.access_token || '');
+            } else {
+              setSecureItemFallback('auth_token', res.data.session?.access_token || '');
+            }
+          };
+          await storeToken();
+          // User ID can be stored as plain text since it's not sensitive
           localStorage.setItem('user_id', adminUser.id);
           onLogin(adminUser);
           toast.success("Đăng nhập admin thành công!");
@@ -118,8 +127,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: data.user.id,
           };
-          // Store ONLY sensitive auth data
-          localStorage.setItem('auth_token', data.session.access_token);
+          // Store ONLY sensitive auth data securely (encrypted)
+          const storeToken = async () => {
+            if (isWebCryptoAvailable()) {
+              await setSecureItem('auth_token', data.session.access_token);
+            } else {
+              setSecureItemFallback('auth_token', data.session.access_token);
+            }
+          };
+          await storeToken();
+          // User ID can be stored as plain text since it's not sensitive
           localStorage.setItem('user_id', realUser.id);
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
