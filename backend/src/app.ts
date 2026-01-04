@@ -23,11 +23,34 @@ const app: Express = express();
 })();
 
 // ============= MIDDLEWARES =============
-app.use(helmet()); // Security headers
+// Security headers with strict CSP
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+  strictTransportSecurity: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xssFilter: true,
+  noSniff: true,
+  frameguard: { action: 'deny' },
+}));
+
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // CORS
 app.use(morgan('dev')); // Logging
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with 10MB limit for base64 images
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies with 10MB limit
+
+// Additional security middleware: Disable powered-by header
+app.disable('x-powered-by');
 
 // ============= HEALTH CHECK =============
 app.get('/', (req, res) => {

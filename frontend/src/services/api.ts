@@ -48,7 +48,7 @@ const setAuthToken = (token: string) => localStorage.setItem('auth_token', token
 
 const clearAuthToken = () => {
   localStorage.removeItem('auth_token');
-  localStorage.removeItem('user_data');
+  localStorage.removeItem('user_id');
 };
 
 // Axios request interceptor to attach token
@@ -134,7 +134,8 @@ export const authAPI = {
 
     if (response.data.success) {
       setAuthToken(response.data.data.session.access_token);
-      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      // Store ONLY user ID - not full user data
+      localStorage.setItem('user_id', response.data.data.user.id);
     }
 
     return response.data;
@@ -146,7 +147,8 @@ export const authAPI = {
 
     if (response.data.success) {
       setAuthToken(response.data.data.session.access_token);
-      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
+      // Store ONLY user ID - not full user data
+      localStorage.setItem('user_id', response.data.data.user.id);
     }
 
     return response.data;

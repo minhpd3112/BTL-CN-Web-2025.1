@@ -50,7 +50,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: res.data.user.id,
           };
-          localStorage.setItem('user_data', JSON.stringify(adminUser));
+          // Store ONLY sensitive auth data
+          localStorage.setItem('auth_token', res.data.session?.access_token || '');
+          localStorage.setItem('user_id', adminUser.id);
           onLogin(adminUser);
           toast.success("Đăng nhập admin thành công!");
         } else {
@@ -116,7 +118,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: data.user.id,
           };
-          localStorage.setItem('user_data', JSON.stringify(realUser));
+          // Store ONLY sensitive auth data
+          localStorage.setItem('auth_token', data.session.access_token);
+          localStorage.setItem('user_id', realUser.id);
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
         }

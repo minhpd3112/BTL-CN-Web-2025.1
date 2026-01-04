@@ -23,12 +23,14 @@ const mockNotifications: Notification[] = [
 export function useDemoAppState() {
   // 1. TẤT CẢ KHAI BÁO STATE NẰM Ở ĐẦU
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('user_data');
-    return saved ? JSON.parse(saved) : null;
+    const token = localStorage.getItem('auth_token');
+    const userId = localStorage.getItem('user_id');
+    // User will be loaded from Supabase session
+    return null;
   });
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const saved = localStorage.getItem('user_data');
-    return saved ? 'home' : 'login';
+    const token = localStorage.getItem('auth_token');
+    return token ? 'home' : 'login';
   });
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -74,7 +76,7 @@ export function useDemoAppState() {
           totalStudents: 0
         };
         localStorage.setItem('auth_token', session.access_token);
-        localStorage.setItem('user_data', JSON.stringify(user));
+        localStorage.setItem('user_id', session.user.id);
         setCurrentUser(user as any);
         setCurrentPage('home');
       }
@@ -111,14 +113,16 @@ export function useDemoAppState() {
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
     setCurrentUser(user);
     if (googlePicture) setUserGooglePicture(googlePicture);
-    localStorage.setItem('user_data', JSON.stringify(user));
+    // Store ONLY auth token and user ID - not full user data
+    const token = localStorage.getItem('auth_token');
+    if (token) localStorage.setItem('user_id', user.id);
     navigateTo('home');
   }, [navigateTo]);
 
   const handleLogout = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch (e) { console.error(e); }
-    localStorage.removeItem('user_data');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_id');
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');
@@ -126,7 +130,8 @@ export function useDemoAppState() {
 
   const handleUpdateUser = useCallback((updatedUser: User) => {
     setCurrentUser(updatedUser);
-    localStorage.setItem('user_data', JSON.stringify(updatedUser));
+    // Store ONLY auth token and user ID - not full user data
+    localStorage.setItem('user_id', updatedUser.id);
   }, []);
 
   const isOwner = useCallback((course: Course) =>
