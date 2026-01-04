@@ -27,7 +27,12 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 // Create Supabase client for direct database queries (e.g., user profiles)
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 // -----------------------------
 // Axios instance

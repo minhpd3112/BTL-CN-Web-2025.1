@@ -73,6 +73,11 @@ export default function App() {
     return <ResetPasswordPage />;
   }
 
+  // Wait for session restoration before redirecting
+  if (state.isRestoringSession) {
+    return <ChristmasLoading isLoading={true} message="Đang khôi phục phiên làm việc..." />;
+  }
+
   // Show login page if not authenticated
   if (!state.currentUser && state.currentPage !== 'login') {
     if (isLoading) return <ChristmasLoading isLoading={true} message="Đang chuẩn bị Giáng Sinh..." />;
