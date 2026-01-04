@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect } from 'react';
 import LoginPage from '@/pages/LoginPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import { AppShell } from '@/features/layout/components/AppShell';
 import useDemoAppState from '@/hooks/useDemoAppState';
 import ChristmasLoading from '@/components/christmas/ChristmasLoading';
@@ -10,6 +11,15 @@ export default function App() {
   const [isTransitionLoading, setIsTransitionLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Đang chuẩn bị Giáng Sinh...");
   const [prevPage, setPrevPage] = useState(state.currentPage);
+  const [isResetPasswordPage, setIsResetPasswordPage] = useState(false);
+
+  // Check URL for reset password hash on mount
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery')) {
+      setIsResetPasswordPage(true);
+    }
+  }, []);
 
   const christmasMessages = [
     "Đang chuẩn bị Giáng Sinh...",
@@ -56,6 +66,12 @@ export default function App() {
   }, [state.currentPage, prevPage]);
 
   const isLoading = isInitialLoading || isTransitionLoading;
+
+  // Show reset password page if URL contains recovery token
+  if (isResetPasswordPage) {
+    if (isLoading) return <ChristmasLoading isLoading={true} message="Đang chuẩn bị Giáng Sinh..." />;
+    return <ResetPasswordPage />;
+  }
 
   // Show login page if not authenticated
   if (!state.currentUser && state.currentPage !== 'login') {
