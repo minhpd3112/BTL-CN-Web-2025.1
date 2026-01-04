@@ -15,7 +15,7 @@ export const usersAPI = {
 };
 import axios, { AxiosInstance } from 'axios';
 import { createClient } from '@supabase/supabase-js';
-import { getSecureItem, setSecureItem, removeSecureItem, clearSecureStorage, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, removeSecureItem as removeSecureItemUtil } from '@/utils/secureStorage';
+import { getSecureItem, setSecureItem, removeSecureItem, clearSecureStorage, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, removeSecureItem as removeSecureItemUtil, getAuthTokenAsync, getUserIdAsync } from '@/utils/secureStorage';
 
 // Environment variables 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -153,9 +153,14 @@ export const authAPI = {
     const response = await api.post<AuthResponse>('/auth/login', data);
 
     if (response.data.success) {
-      await setAuthToken(response.data.data.session.access_token);
-      // Store ONLY user ID - not full user data
-      localStorage.setItem('user_id', response.data.data.user.id);
+      // Store auth token and user ID securely (encrypted)
+      if (isWebCryptoAvailable()) {
+        await setSecureItem('auth_token', response.data.data.session.access_token);
+        await setSecureItem('user_id', response.data.data.user.id);
+      } else {
+        setSecureItemFallback('auth_token', response.data.data.session.access_token);
+        setSecureItemFallback('user_id', response.data.data.user.id);
+      }
     }
 
     return response.data;
@@ -166,9 +171,14 @@ export const authAPI = {
     const response = await api.post<AuthResponse>('/auth/google', { token });
 
     if (response.data.success) {
-      await setAuthToken(response.data.data.session.access_token);
-      // Store ONLY user ID - not full user data
-      localStorage.setItem('user_id', response.data.data.user.id);
+      // Store auth token and user ID securely (encrypted)
+      if (isWebCryptoAvailable()) {
+        await setSecureItem('auth_token', response.data.data.session.access_token);
+        await setSecureItem('user_id', response.data.data.user.id);
+      } else {
+        setSecureItemFallback('auth_token', response.data.data.session.access_token);
+        setSecureItemFallback('user_id', response.data.data.user.id);
+      }
     }
 
     return response.data;
@@ -230,7 +240,14 @@ export const adminAPI = {
     if (response.data.success) {
       localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
       if (response.data.data.session?.access_token) {
-        await setAuthToken(response.data.data.session.access_token);
+        // Store auth token and user ID securely (encrypted)
+        if (isWebCryptoAvailable()) {
+          await setSecureItem('auth_token', response.data.data.session.access_token);
+          await setSecureItem('user_id', response.data.data.user.id);
+        } else {
+          setSecureItemFallback('auth_token', response.data.data.session.access_token);
+          setSecureItemFallback('user_id', response.data.data.user.id);
+        }
       }
     }
     return response.data;

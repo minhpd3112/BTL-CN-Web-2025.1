@@ -177,3 +177,25 @@ export const getSecureItemFallback = (key: string): string | null => {
 export const isWebCryptoAvailable = (): boolean => {
   return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined';
 };
+
+/**
+ * Helper to get auth token (supports both sync and async retrieval)
+ * Prefers secure storage, falls back gracefully
+ */
+export const getAuthTokenAsync = async (): Promise<string | null> => {
+  if (isWebCryptoAvailable()) {
+    return await getSecureItem('auth_token');
+  }
+  return getSecureItemFallback('auth_token');
+};
+
+/**
+ * Helper to get user ID (supports both sync and async retrieval)
+ * Prefers secure storage, falls back gracefully
+ */
+export const getUserIdAsync = async (): Promise<string | null> => {
+  if (isWebCryptoAvailable()) {
+    return await getSecureItem('user_id');
+  }
+  return getSecureItemFallback('user_id');
+};

@@ -52,16 +52,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             googleId: res.data.user.id,
           };
           // Store ONLY sensitive auth data securely (encrypted)
-          const storeToken = async () => {
+          const storeAuthData = async () => {
             if (isWebCryptoAvailable()) {
               await setSecureItem('auth_token', res.data.session?.access_token || '');
+              await setSecureItem('user_id', adminUser.id);
             } else {
               setSecureItemFallback('auth_token', res.data.session?.access_token || '');
+              setSecureItemFallback('user_id', adminUser.id);
             }
           };
-          await storeToken();
-          // User ID can be stored as plain text since it's not sensitive
-          localStorage.setItem('user_id', adminUser.id);
+          await storeAuthData();
           onLogin(adminUser);
           toast.success("Đăng nhập admin thành công!");
         } else {
@@ -128,16 +128,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             googleId: data.user.id,
           };
           // Store ONLY sensitive auth data securely (encrypted)
-          const storeToken = async () => {
+          const storeAuthData = async () => {
             if (isWebCryptoAvailable()) {
               await setSecureItem('auth_token', data.session.access_token);
+              await setSecureItem('user_id', realUser.id);
             } else {
               setSecureItemFallback('auth_token', data.session.access_token);
+              setSecureItemFallback('user_id', realUser.id);
             }
           };
-          await storeToken();
-          // User ID can be stored as plain text since it's not sensitive
-          localStorage.setItem('user_id', realUser.id);
+          await storeAuthData();
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
         }

@@ -74,15 +74,16 @@ export function useDemoAppState() {
           coursesCreated: 0,
           totalStudents: 0
         };
-        const storeToken = async () => {
+        const storeAuthData = async () => {
           if (isWebCryptoAvailable()) {
             await setSecureItem('auth_token', session.access_token);
+            await setSecureItem('user_id', session.user.id);
           } else {
             setSecureItemFallback('auth_token', session.access_token);
+            setSecureItemFallback('user_id', session.user.id);
           }
         };
-        storeToken();
-        localStorage.setItem('user_id', session.user.id);
+        storeAuthData();
         setCurrentUser(user as any);
         setCurrentPage('home');
       }
