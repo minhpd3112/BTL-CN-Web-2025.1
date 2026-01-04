@@ -452,6 +452,7 @@ export function AppShell({ state, actions }: AppShellProps) {
             course={selectedCourse}
             navigateTo={navigateTo}
             setSelectedUser={setSelectedUser}
+            setSelectedTag={setSelectedTag}
             currentUser={currentUser}
             isOwner={isOwner(selectedCourse)}
             canAccess={selectedCourse.overrideAccess === true ? true : canAccessCourse(selectedCourse)}

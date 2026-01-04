@@ -87,7 +87,13 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       try {
         const response = await tagsAPI.getAllTags();
         if (response.success && response.data) {
-          const tagNames = response.data.map((tag: any) => tag.name);
+          let tagNames = response.data.map((tag: any) => tag.name);
+          // Sort tags: "Others" always at the end
+          tagNames = tagNames.sort((a: string, b: string) => {
+            if (a.toLowerCase() === 'others') return 1;
+            if (b.toLowerCase() === 'others') return -1;
+            return a.localeCompare(b);
+          });
           setAvailableTags(tagNames);
           console.log('Loaded tags from backend:', tagNames);
         }

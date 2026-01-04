@@ -63,10 +63,17 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
   const [formData, setFormData] = useState({ name: '', description: '', image: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredTags = tags.filter(tag =>
-    tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tag.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTags = tags
+    .filter(tag =>
+      tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tag.description.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      // "Others" always at the end
+      if (a.name.toLowerCase() === 'others') return 1;
+      if (b.name.toLowerCase() === 'others') return -1;
+      return a.name.localeCompare(b.name);
+    });
 
   const handleOpenAddDialog = () => {
     setFormData({ name: '', description: '', image: '' });

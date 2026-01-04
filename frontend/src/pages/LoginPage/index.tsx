@@ -131,6 +131,36 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
 
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Vui lòng nhập email của bạn');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error('Reset password error:', error);
+        throw error;
+      }
+      
+      // eslint-disable-next-line no-console
+      console.log('Reset password response:', data);
+      toast.success('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư.');
+    } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error('Full error object:', error);
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleQuickLogin = (user: User) => {
     onLogin(user);
     toast.success(`Đăng nhập nhanh thành công, ${user.name}!`);
@@ -245,7 +275,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password" className="text-gray-700 font-medium">Mật khẩu</Label>
                         {!isSignUp && (
-                          <a href="#" className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors">Quên mật khẩu?</a>
+                          <button 
+                            type="button"
+                            onClick={handleForgotPassword}
+                            disabled={isLoading}
+                            className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors disabled:opacity-50"
+                          >
+                            Quên mật khẩu?
+                          </button>
                         )}
                       </div>
                       <div className="relative group">

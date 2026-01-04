@@ -26,8 +26,8 @@ const app: Express = express();
 app.use(helmet()); // Security headers
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // CORS
 app.use(morgan('dev')); // Logging
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with 10MB limit for base64 images
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies with 10MB limit
 
 // ============= HEALTH CHECK =============
 app.get('/', (req, res) => {
