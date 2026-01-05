@@ -53,16 +53,40 @@ export function useDemoAppState() {
     return null;
   });
 
-  // Set initial page based on auth state
+  // Set initial page based on auth state or URL
   const [currentPage, setCurrentPage] = useState<Page>(() => {
+    // 1. Priority: URL params
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page') as Page;
+      if (pageParam) return pageParam;
+    }
+    // 2. Fallback: Auth state
     const stored = authAPI.getStoredUser();
     if (stored) {
       return stored.role === 'admin' ? 'admin-dashboard' : 'home';
     }
     return 'login';
   });
+
   const [isRestoringSession, setIsRestoringSession] = useState(false); // No restore needed
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
+  // Init selectedCourse from URL if present
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const courseId = params.get('courseId');
+      // Note: This is synchronous mock data check. Real data might need async fetch in useEffect.
+      // For now, we trust async fetch in useEffect to populate if needed, 
+      // or we try to find in mockCourses if available
+      if (courseId) {
+        const course = mockCourses.find(c => c.id === courseId);
+        return course || null;
+      }
+    }
+    return null;
+  });
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -118,10 +142,15 @@ export function useDemoAppState() {
           setSecureItemFallback('user_id', session.user.id);
 
           setCurrentUser(user as any);
-          if (user.role === 'admin') {
-            setCurrentPage('admin-dashboard');
-          } else if (!currentUser) {
-            setCurrentPage('home');
+
+          // Only redirect if NO page param was present (avoid overwriting deep link)
+          const params = new URLSearchParams(window.location.search);
+          if (!params.get('page')) {
+            if (user.role === 'admin') {
+              setCurrentPage('admin-dashboard');
+            } else if (!currentUser) {
+              setCurrentPage('home');
+            }
           }
         }
       }
@@ -148,12 +177,47 @@ export function useDemoAppState() {
     }
   }, [currentUser]);
 
+  // --- BROWSER HISTORY SYNC ---
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const page = (params.get('page') as Page) || 'home';
+      const courseId = params.get('courseId');
+
+      console.log('[useDemoAppState] PopState:', page, courseId);
+      setCurrentPage(page);
+
+      if (courseId) {
+        const course = mockCourses.find(c => c.id === courseId);
+        if (course) setSelectedCourse(course);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []); // Run once on mount
+
   // 5. TẤT CẢ CÁC HÀM LOGIC (useCallback)
   const navigateTo = useCallback((page: Page, course?: Course) => {
     setCurrentPage(page);
     if (course) setSelectedCourse(course);
     setSidebarOpen(false);
     window.scrollTo(0, 0);
+
+    // Sync to URL
+    const params = new URLSearchParams();
+    params.set('page', page);
+    if (course) {
+      params.set('courseId', course.id);
+    }
+
+    // Check if new state is different to avoid duplicate history entries
+    const currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.get('page') !== page || currentParams.get('courseId') !== (course?.id || null)) {
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.pushState({}, '', newUrl);
+    }
+
   }, []);
 
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
@@ -171,6 +235,8 @@ export function useDemoAppState() {
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');
+    // Clear URL params on logout
+    window.history.pushState({}, '', '/?page=login');
   }, []);
 
   const handleUpdateUser = useCallback((updatedUser: User) => {
