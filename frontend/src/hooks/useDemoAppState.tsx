@@ -21,10 +21,46 @@ const mockNotifications: Notification[] = [
   // ... Giữ nguyên mảng notifications của bạn ở đây
 ];
 
+import { authAPI } from '@/services/api';
+
 export function useDemoAppState() {
   // 1. TẤT CẢ KHAI BÁO STATE NẰM Ở ĐẦU
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState<Page>('login'); // Always start at login
+  // Initialize from secure storage to persist Admin session
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const stored = authAPI.getStoredUser();
+    console.log('[useDemoAppState] Initializing currentUser, stored:', stored);
+    if (stored) {
+      // Map backend user to frontend User type if necessary
+      // Check if it looks like a backend user (has full_name but not name?)
+      if (!stored.name && (stored.full_name || stored.email)) {
+        return {
+          ...stored,
+          id: stored.id || 'admin',
+          name: stored.full_name || stored.name || 'Admin',
+          username: stored.username || stored.email?.split('@')[0] || 'admin',
+          email: stored.email || '',
+          avatar: stored.avatar || stored.avatar_url || '',
+          role: stored.role || 'user',
+          joinedDate: stored.joinedDate || new Date().toISOString(),
+          coursesCreated: stored.coursesCreated || 0,
+          coursesEnrolled: stored.coursesEnrolled || 0,
+          totalStudents: stored.totalStudents || 0,
+          status: stored.status || 'active',
+        } as User;
+      }
+      return stored as User;
+    }
+    return null;
+  });
+
+  // Set initial page based on auth state
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const stored = authAPI.getStoredUser();
+    if (stored) {
+      return stored.role === 'admin' ? 'admin-dashboard' : 'home';
+    }
+    return 'login';
+  });
   const [isRestoringSession, setIsRestoringSession] = useState(false); // No restore needed
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -43,41 +79,54 @@ export function useDemoAppState() {
   // 3. AUTH STATE LISTENER (for OAuth callback only - simplified)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[useDemoAppState] Auth Event:', event, 'Session User:', session?.user?.id);
+
       // Only handle INITIAL_SESSION (page refresh) and TOKEN_REFRESHED
       // Email/password login is handled in LoginPage directly
-      if (event === 'INITIAL_SESSION' && session && !currentUser) {
+      if (event === 'INITIAL_SESSION' && session) {
         // Fetch profile from database (non-blocking)
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-        
+
         const metadata = session.user.user_metadata;
-        const user = {
-          id: session.user.id,
-          email: session.user.email || '',
-          name: profile?.full_name || metadata?.full_name || metadata?.name || 'User',
-          avatar: profile?.avatar_url || metadata?.avatar_url || metadata?.picture || '',
-          phone: profile?.phone || '',
-          location: profile?.address || '',
-          bio: profile?.bio || '',
-          role: profile?.role || 'user',
-          joinedDate: profile?.created_at || session.user.created_at || new Date().toISOString(),
-          status: 'active',
-          coursesCreated: 0,
-          totalStudents: 0
-        };
-        
-        // Store tokens
-        setSecureItemFallback('auth_token', session.access_token);
-        setSecureItemFallback('user_id', session.user.id);
-        
-        setCurrentUser(user as any);
-        setCurrentPage('home');
+        const realRole = metadata?.role || 'user';
+
+        // Stale storage fix: Allow update if currentUser is null OR role mismatch
+        if (!currentUser || currentUser.role !== realRole) {
+          console.log(`[useDemoAppState] Updating session. Current: ${currentUser?.role}, Session: ${realRole}`);
+
+          const user = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: profile?.full_name || metadata?.full_name || metadata?.name || 'User',
+            avatar: profile?.avatar_url || metadata?.avatar_url || metadata?.picture || '',
+            phone: profile?.phone || '',
+            location: profile?.address || '',
+            bio: profile?.bio || '',
+            role: realRole,
+            joinedDate: profile?.created_at || session.user.created_at || new Date().toISOString(),
+            status: 'active',
+            coursesCreated: 0,
+            totalStudents: 0
+          };
+
+          // Store tokens
+          setSecureItemFallback('auth_token', session.access_token);
+          setSecureItemFallback('user_id', session.user.id);
+
+          setCurrentUser(user as any);
+          if (user.role === 'admin') {
+            setCurrentPage('admin-dashboard');
+          } else if (!currentUser) {
+            setCurrentPage('home');
+          }
+        }
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [currentUser]); // Keep dependency to prevent duplicate logins
 
