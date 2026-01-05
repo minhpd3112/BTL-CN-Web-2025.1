@@ -179,10 +179,6 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
         icon={<BookOpen className="w-8 h-8" />}
         title="Quản lý khóa học"
         description="Xem và quản lý tất cả khóa học trong hệ thống"
-        backButton={{
-          label: 'Quay về Dashboard',
-          onClick: () => navigateTo('admin-dashboard'),
-        }}
       />
 
       {/* Filters */}

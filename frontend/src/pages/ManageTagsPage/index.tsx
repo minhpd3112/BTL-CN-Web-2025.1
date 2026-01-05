@@ -284,10 +284,6 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       <PageHeader
         icon={<Tag className="w-8 h-8" />}
         title="Quản lý chủ đề"
-        backButton={{
-          label: 'Quay về Dashboard',
-          onClick: () => navigateTo?.('admin-dashboard'),
-        }}
       />
 
       {/* Search and Actions */}

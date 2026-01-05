@@ -86,10 +86,6 @@ export function ApproveCoursesPage({ navigateTo, setSelectedCourse }: ApproveCou
         icon={<FileCheck className="w-8 h-8" />}
         title="Duyệt khóa học"
         description="Xem xét và phê duyệt các khóa học chờ duyệt"
-        backButton={{
-          label: 'Quay về Dashboard',
-          onClick: () => navigateTo('admin-dashboard'),
-        }}
       />
 
       {/* Pending Courses Grid */}

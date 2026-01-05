@@ -86,10 +86,6 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
         icon={<Users className="w-8 h-8" />}
         title="Quản lý người dùng"
         description="Xem và quản lý tất cả người dùng trong hệ thống"
-        backButton={{
-          label: 'Quay về Dashboard',
-          onClick: () => navigateTo('admin-dashboard'),
-        }}
       />
 
       {/* Search */}
