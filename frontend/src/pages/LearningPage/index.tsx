@@ -49,19 +49,17 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
   const fetchCourseSections = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching sections for course:', course.id);
+
 
       // Fetch user progress FIRST
       let progressMap: Record<string, boolean> = {};
       try {
-        console.log('🔄 Fetching progress for course:', course.id);
         const progressResponse = await lessonProgressAPI.getUserProgress(course.id.toString());
         if (progressResponse.success && progressResponse.data) {
           progressResponse.data.forEach((p: any) => {
             progressMap[p.lesson_id] = p.completed;
           });
           setLessonsProgress(progressMap);
-          console.log('📊 Loaded progress:', progressMap);
         }
       } catch (error: any) {
         console.error('❌ Failed to fetch progress:', error);
@@ -100,7 +98,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                     contentText = '';
                   }
                 }
-                
+
                 return {
                   ...lesson,
                   type: lesson.content_type || lesson.type || 'video',
@@ -135,14 +133,6 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
 
         // Set first lesson as selected
         if (flatLessons.length > 0) {
-          console.log('Setting first lesson as selected:', flatLessons[0]);
-          console.log('First lesson details:', {
-            id: flatLessons[0].id,
-            title: flatLessons[0].title,
-            type: flatLessons[0].type,
-            youtubeUrl: flatLessons[0].youtubeUrl,
-            pdfUrl: flatLessons[0].pdfUrl
-          });
           setSelectedLesson(flatLessons[0]);
         } else {
           toast.error('Khóa học chưa có bài học nào');
@@ -382,8 +372,6 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
         // IMPORTANT: Update allLessons to trigger progress bar recalculation
         const flatLessons = updatedSections.flatMap((s: any) => s.lessons);
         setAllLessons(flatLessons);
-
-        console.log('✅ Progress reloaded from backend:', progressMap);
       }
     } catch (error) {
       console.error('❌ Failed to fetch progress:', error);
@@ -520,8 +508,8 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                       <div className="markdown-content">
                         {(() => {
                           try {
-                            const content = typeof selectedLesson.content_text === 'string' 
-                              ? selectedLesson.content_text 
+                            const content = typeof selectedLesson.content_text === 'string'
+                              ? selectedLesson.content_text
                               : '';
                             if (!content) return <p className="text-gray-500">Nội dung trống</p>;
                             return <Markdown children={content} />;

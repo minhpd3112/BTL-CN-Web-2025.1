@@ -29,7 +29,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
           const courseIds = res.data.map((e: any) => e.course_id);
           setEnrolledCourseIds(courseIds);
         }
-      }).catch(err => console.log('Could not fetch enrollments'));
+      }).catch(() => { });
     }
   }, [currentUser?.id]);
 

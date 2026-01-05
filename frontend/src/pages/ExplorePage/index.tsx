@@ -40,7 +40,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
           const courseIds = enrollments.map((e: any) => e.course_id);
           setEnrolledCourseIds(courseIds);
         }
-      }).catch(err => console.log('Could not fetch enrollments'));
+      }).catch(() => { });
     }
   }, [currentUser?.id]);
 

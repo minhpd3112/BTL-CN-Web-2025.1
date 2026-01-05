@@ -135,7 +135,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       }
 
       // eslint-disable-next-line no-console
-      console.log('Reset password response:', data);
+
       toast.success('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư.');
     } catch (error: any) {
       // eslint-disable-next-line no-console

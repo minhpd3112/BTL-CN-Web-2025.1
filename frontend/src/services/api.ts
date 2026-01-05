@@ -215,12 +215,10 @@ export const authAPI = {
   getStoredUser() {
     const userData = getSecureItemFallback('user_data');
     if (!userData) {
-      console.log('[getStoredUser] user_data not found in secure storage');
       return null;
     }
     try {
       const user = JSON.parse(userData);
-      console.log('[getStoredUser] user loaded from secure storage:', user);
       return user;
     } catch (e) {
       console.error('[getStoredUser] Failed to parse user_data:', e, userData);
