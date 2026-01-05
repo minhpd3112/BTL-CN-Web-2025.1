@@ -25,7 +25,6 @@ export const authenticate = async (
 
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('[Auth] FAIL: No Bearer token');
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
@@ -54,7 +53,6 @@ export const authenticate = async (
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error) {
-      console.log('[Auth] FAIL: Supabase auth error:', error.message);
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired token',
@@ -63,7 +61,6 @@ export const authenticate = async (
     }
 
     if (!user) {
-      console.log('[Auth] FAIL: No user from Supabase');
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired token',

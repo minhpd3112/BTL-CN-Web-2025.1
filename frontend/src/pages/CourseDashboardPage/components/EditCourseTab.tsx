@@ -112,7 +112,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                         label: tag.name
                     }));
                     setAvailableTags(tagOptions);
-                    console.log('Loaded tags from backend:', tagOptions);
                 }
             } catch (error: any) {
                 console.error('Error fetching tags:', error);
@@ -166,8 +165,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                         }
                     }
 
-                    console.log('Parsed course tags:', courseTags);
-
                     // Update all form fields with full course data
                     setCourseName(fullCourse.title || '');
                     setDescription(fullCourse.description || '');
@@ -175,13 +172,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                     setSelectedTags(courseTags);
                     setCourseOverview(fullCourse.overview || '');
                     setImageUrl(fullCourse.image_url || fullCourse.image || '');
-
-                    console.log('Loaded course data:', {
-                        title: fullCourse.title,
-                        tags: courseTags,
-                        overview: fullCourse.overview,
-                        image: fullCourse.image_url || fullCourse.image
-                    });
                 }
             } catch (error: any) {
                 console.error('Error fetching course details:', error);
@@ -204,9 +194,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 const response = await sectionsAPI.getByCourseId(course.id.toString());
                 if (response.success && response.data) {
                     setSections(response.data);
-                    console.log('Loaded sections:', response.data);
                 } else {
-                    console.log('No sections found or error:', response);
                 }
             } catch (error: any) {
                 console.error('Error fetching course content:', error);
@@ -234,7 +222,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 return null;
             }
 
-            console.log('Starting video upload...', { fileName: file.name, size: file.size });
             setIsUploadingVideo(true);
             toast.info('Đang upload video... Vui lòng đợi.');
 
@@ -258,7 +245,6 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                 .from('course-videos')
                 .getPublicUrl(fileName);
 
-            console.log('Video uploaded successfully:', publicUrl);
             toast.success('Upload video thành công!');
             return publicUrl;
         } catch (error: any) {
@@ -338,30 +324,17 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             // Load quiz data from backend
             try {
                 const response = await quizAPI.getQuiz(lesson.id);
-                console.log('🔍 Loading quiz data for edit:', response);
 
                 if (response.success && response.data) {
                     const { questions, lesson: quizLesson } = response.data;
 
-                    console.log('📝 Quiz questions from backend:', questions);
-
                     // Convert backend format to QuizEditor format
                     const formattedQuestions: QuizQuestion[] = questions.map((q: any, qIdx: number) => {
-                        console.log(`\n🔍 Processing question ${qIdx}:`, q);
-                        console.log('  Answers:', q.answers);
-
                         const correctAnswerIndices = q.answers
                             .map((a: any, idx: number) => {
-                                console.log(`    Answer ${idx}:`, {
-                                    text: a.answer_text,
-                                    is_correct: a.is_correct,
-                                    willBeMarked: a.is_correct ? idx : -1
-                                });
                                 return a.is_correct ? idx : -1;
                             })
                             .filter((idx: number) => idx !== -1);
-
-                        console.log(`  ✅ Correct answer indices:`, correctAnswerIndices);
 
                         const formatted = {
                             question: q.question,
@@ -371,11 +344,9 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
                             explanation: q.explanation || ''
                         };
 
-                        console.log('✅ Formatted question:', formatted);
                         return formatted;
                     });
 
-                    console.log('📦 All formatted questions:', formattedQuestions);
                     setQuizQuestions(formattedQuestions);
 
                     // Store quiz settings for later use

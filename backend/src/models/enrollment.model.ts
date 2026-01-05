@@ -36,7 +36,7 @@ export const EnrollmentModel = {
     }
 
     const { data, error } = await query;
-    console.log('EnrollmentModel.findByCourseId:', { courseId, found: data?.length, error });
+
     if (error) throw error;
     return data || [];
   },

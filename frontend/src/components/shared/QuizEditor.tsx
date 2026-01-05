@@ -55,17 +55,10 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
   // Convert initialQuestions to text format when component mounts or initialQuestions changes
   useEffect(() => {
     if (initialQuestions && initialQuestions.length > 0) {
-      console.log('🔄 Converting initialQuestions to text:', initialQuestions);
       const formattedText = initialQuestions.map(q => {
-        console.log(`📝 Question: "${q.question}"`, {
-          type: q.type,
-          correctAnswers: q.correctAnswers,
-          options: q.options
-        });
         const questionLine = q.question;
         const optionLines = q.options.map((opt, idx) => {
           const isCorrect = q.correctAnswers.includes(idx);
-          console.log(`  Option ${idx}: "${opt}" - Correct: ${isCorrect}`);
 
           // Use proper format: (x) for single choice, [x] for multiple choice
           if (q.type === 'single') {
@@ -77,7 +70,6 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
         return `${questionLine}\n${optionLines}`;
       }).join('\n\n');
 
-      console.log('✅ Final formatted text:', formattedText);
       setQuizText(formattedText);
       setParsedQuestions(initialQuestions);
     }
@@ -116,7 +108,6 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
           // First option - set question type based on bracket
           const detectedType = singleChoiceMatch ? 'single' : 'multiple';
           currentQuestion.type = detectedType;
-          console.log(`🔍 Detected type "${detectedType}" from bracket: ${singleChoiceMatch ? '()' : '[]'}`);
         }
 
         currentOptions.push(optionText);
@@ -173,7 +164,6 @@ export function QuizEditor({ onSave, initialQuestions = [], initialSettings }: Q
   const handleParse = () => {
     try {
       const questions = parseQuizText(quizText);
-      console.log('📋 Parsed questions with types:', questions.map(q => ({ q: q.question, type: q.type })));
 
       if (questions.length === 0) {
         toast.error('Không tìm thấy câu hỏi nào! Vui lòng kiểm tra format.');

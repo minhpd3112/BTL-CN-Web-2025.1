@@ -536,7 +536,7 @@ export const EnrollmentController = {
         .single();
 
       if (courseError || !course) {
-        console.log('Course lookup error:', courseError);
+
         return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Course not found',

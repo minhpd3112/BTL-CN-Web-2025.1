@@ -96,7 +96,6 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
             return a.localeCompare(b);
           });
           setAvailableTags(tagNames);
-          console.log('Loaded tags from backend:', tagNames);
         }
       } catch (error: any) {
         console.error('Error fetching tags:', error);
@@ -296,7 +295,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       // Get the current auth token from secure storage
       // Use sync backup first (always available in localStorage)
       let authToken = getSecureItemFallback('auth_token_sync_backup');
-      
+
       // Fallback to trying main token key if backup not found
       if (!authToken) {
         authToken = getSecureItemFallback('auth_token');
@@ -352,7 +351,6 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         return null;
       }
 
-      console.log('Starting video upload...', { fileName: file.name, size: file.size });
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -375,14 +373,12 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         return null;
       }
 
-      console.log('Upload successful, data:', data);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('course-videos')
         .getPublicUrl(filePath);
 
-      console.log('Video public URL:', publicUrl);
       toast.success('Upload video thành công!');
       return publicUrl;
     } catch (error: any) {
@@ -451,9 +447,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
         // Save tags to course
         if (selectedTags.length > 0) {
           try {
-            console.log('Saving tags:', { courseId, selectedTags });
             const tagResponse = await coursesAPI.addCourseTags(courseId, selectedTags);
-            console.log('Tags saved successfully:', tagResponse);
           } catch (error: any) {
             console.error('Error saving tags:', error);
             console.error('Error details:', {
@@ -525,7 +519,6 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                 }
               }
             }
-            console.log('Sections and lessons saved successfully');
           } catch (error) {
             console.error('Error saving sections/lessons:', error);
             toast.warning('Khóa học đã tạo nhưng không thể lưu nội dung');

@@ -147,8 +147,6 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
           .replace(/[\x00-\x1F\x7F]/g, '');
       });
 
-      console.log('Sanitized JSON length:', text.length);
-
       let courseOutline: CourseOutline;
       try {
         courseOutline = JSON.parse(text);
