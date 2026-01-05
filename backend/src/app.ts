@@ -10,6 +10,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import { notFoundHandler } from './middlewares/notFoundHandler';
 
 const app: Express = express();
+app.set('trust proxy', 1); // Trust first proxy (Nginx)
 
 // ============= DATABASE CONNECTION TEST =============
 (async () => {

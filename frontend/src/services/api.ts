@@ -20,7 +20,7 @@ import { getSecureItem, setSecureItem, removeSecureItem, clearSecureStorage, isW
 // Environment variables 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://edulearn.id.vn/api';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('Missing Supabase environment variables! Check your .env file.');
@@ -74,12 +74,12 @@ api.interceptors.request.use((config) => {
   try {
     // Try to get token from sync backup first (for interceptor compatibility)
     let token = getSecureItemFallback('auth_token_sync_backup');
-    
+
     // Fallback to non-backup if needed
     if (!token) {
       token = getSecureItemFallback('auth_token');
     }
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

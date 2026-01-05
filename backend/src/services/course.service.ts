@@ -37,6 +37,7 @@ interface ExtendedCourseFilters extends CourseFilters {
   isAdmin?: boolean;
   owner_id?: string;
   tag?: string;
+  sort?: 'newest' | 'popular' | 'rating';
 }
 
 export const courseService = {
@@ -177,7 +178,7 @@ export const courseService = {
       // Apply sorting based on filters.sort parameter
       const sortBy = filters.sort || 'newest';
       let sortedCourses = [...courses];
-      
+
       switch (sortBy) {
         case 'popular':
           // Sort by number of students (descending)
@@ -194,7 +195,7 @@ export const courseService = {
       }
 
       // Apply pagination AFTER sorting
-      const paginatedCourses = limit > 0 
+      const paginatedCourses = limit > 0
         ? sortedCourses.slice(offset, offset + limit)
         : sortedCourses;
 
