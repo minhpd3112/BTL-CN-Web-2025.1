@@ -32,38 +32,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setIsLoading(true);
 
     try {
-      // Nếu là tài khoản admin (ví dụ: email là admin@edulearn.vn)
-      if (!isSignUp && email.trim().toLowerCase() === 'admin@edulearn.vn') {
-        const res = await adminAPI.login({ email, password });
-        if (res.success) {
-          const adminUser: User = {
-            id: res.data.user.id, // giữ nguyên string UUID
-            username: res.data.user.email?.split('@')[0] || 'admin',
-            email: res.data.user.email || '',
-            name: res.data.user.full_name || 'Admin',
-            avatar: '',
-            role: res.data.user.role || 'admin',
-            joinedDate: new Date().toISOString(),
-            coursesCreated: 0,
-            coursesEnrolled: 0,
-            totalStudents: 0,
-            status: 'active',
-            lastLogin: new Date().toISOString(),
-            googleId: res.data.user.id,
-          };
-          // Store auth data immediately (fast sync-only, no expensive encryption)
-          const token = res.data.session?.access_token || '';
-          setSecureItemFallback('auth_token', token);
-          setSecureItemFallback('auth_token_sync_backup', token);
-          setSecureItemFallback('user_id', adminUser.id);
-          onLogin(adminUser);
-          toast.success("Đăng nhập admin thành công!");
-        } else {
-          toast.error(res.message || "Sai thông tin admin");
-        }
-        setIsLoading(false);
-        return;
-      }
+      // Login using Supabase Auth (Unified for both User and Admin)
+      // Note: Admin Check is removed here because Supabase Auth handles it.
+      // Valid Admins will have a role in user_metadata which onLogin/App state will respect.
 
       if (isSignUp) {
         // Nếu đang ở trạng thái Đăng ký
@@ -120,7 +91,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: data.user.id,
           };
-          
+
           // Store auth data immediately
           if (data.session?.access_token) {
             setSecureItemFallback('auth_token', data.session.access_token);
@@ -131,7 +102,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             setIsLoading(false);
             return;
           }
-          
+
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
         }
@@ -151,19 +122,19 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       toast.error('Vui lòng nhập email của bạn');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin,
       });
-      
+
       if (error) {
         // eslint-disable-next-line no-console
         console.error('Reset password error:', error);
         throw error;
       }
-      
+
       // eslint-disable-next-line no-console
       console.log('Reset password response:', data);
       toast.success('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư.');
@@ -290,7 +261,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password" className="text-gray-700 font-medium">Mật khẩu</Label>
                         {!isSignUp && (
-                          <button 
+                          <button
                             type="button"
                             onClick={handleForgotPassword}
                             disabled={isLoading}
@@ -372,7 +343,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
 
 
-                  
+
                 </CardContent>
                 <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
                   <p>

@@ -19,15 +19,15 @@ const normalizeUser = (profile: any, authUser?: any): any => {
 };
 
 export const UserModel = {
-    async findByEmail(email: string) {
-      const { data, error } = await supabaseAdmin
-        .from('user_profiles')
-        .select('*')
-        .eq('email', email)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+  async findByEmail(email: string) {
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('email', email)
+      .single();
+    if (error) throw error;
+    return data;
+  },
   async findAll() {
     // 1. Lấy tất cả user_profiles
     const { data: profiles, error: profileError } = await supabaseAdmin
@@ -46,7 +46,7 @@ export const UserModel = {
       const authUser = authUsers.users.find((u: any) => u.id === profile.id);
       return normalizeUser(profile, authUser);
     });
-    
+
     return merged;
   },
 
@@ -57,7 +57,7 @@ export const UserModel = {
       .eq('id', id)
       .single();
     if (error) throw error;
-    
+
     // Get auth user data for email and metadata
     const { data: authData } = await supabaseAdmin.auth.admin.getUserById(id);
     return normalizeUser(profile, authData?.user);
@@ -129,8 +129,16 @@ export const UserModel = {
     if (profileError) throw profileError;
 
     // 4. Xoá user thực trong auth.users (Supabase)
+    console.log('[UserModel] Deleting from auth.users:', id);
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
-    if (authError) throw authError;
+    if (authError) {
+      console.error('[UserModel] Auth delete error:', authError);
+      if (authError.message.includes('User not found') || (authError as any).code === 'user_not_found' || (authError as any).status === 404) {
+        console.warn('[UserModel] User not found in Auth, ignoring error since profile is already deleted.');
+      } else {
+        throw authError; // Rethrow other auth errors
+      }
+    }
     return true;
   },
 };
