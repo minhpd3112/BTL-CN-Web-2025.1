@@ -24,7 +24,7 @@ export const aiCourseController = {
                 });
             }
 
-            console.log(`Generating AI course preview: ${topic} - ${level} - ${goal}`);
+
 
             // Generate course outline using AI
             const courseOutline = await aiService.generateCourseOutline({
@@ -36,6 +36,7 @@ export const aiCourseController = {
             // Search YouTube videos for video lessons
             for (const section of courseOutline.sections) {
                 for (const lesson of section.lessons) {
+
                     if (lesson.type === 'video' && lesson.searchQuery) {
                         try {
                             const video = await youtubeService.getFirstVideo(lesson.searchQuery);
@@ -91,7 +92,7 @@ export const aiCourseController = {
                     });
                 }
 
-                console.log(`Generating AI course: ${topic} - ${level} - ${goal}`);
+
                 courseOutline = await aiService.generateCourseOutline({ topic, level, goal });
 
                 // Search YouTube videos for video lessons
@@ -110,7 +111,7 @@ export const aiCourseController = {
                     }
                 }
             }
-                  // Find the first video thumbnail to use as course image
+            // Find the first video thumbnail to use as course image
             let courseImageUrl = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'; // Default placeholder
             for (const section of courseOutline.sections) {
                 for (const lesson of section.lessons) {
@@ -192,14 +193,7 @@ export const aiCourseController = {
                         continue;
                     }
 
-                    // Debug: Log quiz data
-                    if (lessonData.type === 'quiz') {
-                        console.log(`Quiz lesson "${lessonData.title}":`, {
-                            hasQuizQuestions: !!lessonData.quizQuestions,
-                            quizQuestionsCount: lessonData.quizQuestions?.length || 0,
-                            quizQuestions: lessonData.quizQuestions
-                        });
-                    }
+
 
                     // Create quiz questions if it's a quiz lesson
                     if (lessonData.type === 'quiz' && lessonData.quizQuestions && lessonData.quizQuestions.length > 0) {
@@ -224,7 +218,7 @@ export const aiCourseController = {
                                 continue;
                             }
 
-                            console.log(`Created question: ${q.question.substring(0, 50)}...`);
+
 
                             // Create answers using admin client
                             for (let aIndex = 0; aIndex < q.options.length; aIndex++) {

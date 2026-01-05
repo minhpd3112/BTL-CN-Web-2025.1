@@ -235,8 +235,6 @@ export const courseController = {
 
       // Get all available tags
       const allTags = await TagModel.findAll();
-      console.log('All available tags:', allTags.map((t: any) => ({ id: t.id, name: t.name })));
-      console.log('Requested tags:', tags);
 
       // Map tag names to IDs
       const tagIds: string[] = [];
@@ -244,13 +242,8 @@ export const courseController = {
         const foundTag = allTags.find((t: any) => t.name === tagName);
         if (foundTag) {
           tagIds.push(foundTag.id);
-          console.log(`Found tag: ${tagName} -> ${foundTag.id}`);
-        } else {
-          console.log(`Tag not found: ${tagName}`);
         }
       }
-
-      console.log('Tag IDs to save:', tagIds);
 
       if (tagIds.length === 0) {
         return res.status(httpStatus.BAD_REQUEST).json({

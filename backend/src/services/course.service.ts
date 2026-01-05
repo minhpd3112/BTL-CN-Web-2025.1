@@ -139,14 +139,12 @@ export const courseService = {
           .select('course_id, status')
           .in('course_id', courseIds)
           .eq('status', 'approved');
-        console.log('EnrollmentsData:', enrollmentsData);
         if (!enrollmentsError && Array.isArray(enrollmentsData)) {
           // Đếm số học viên cho từng khoá học
           studentsMap = enrollmentsData.reduce((acc: Record<string, number>, e: any) => {
             acc[e.course_id] = (acc[e.course_id] || 0) + 1;
             return acc;
           }, {});
-          console.log('StudentsMap:', studentsMap);
         }
       }
 

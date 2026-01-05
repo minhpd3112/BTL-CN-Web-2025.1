@@ -123,8 +123,6 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
       const response = await result.response;
       let text = response.text();
 
-      console.log('Raw AI response length:', text.length);
-      console.log('Raw AI response preview:', text.substring(0, 200));
 
       // Clean up response - remove markdown code blocks if present
       text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
@@ -155,8 +153,7 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
       try {
         courseOutline = JSON.parse(text);
       } catch (parseError: any) {
-        console.log('JSON parse failed, attempting repair...');
-        console.log('Parse error position:', parseError.message);
+        // JSON parse failed, attempting repair
 
         let repaired = text;
 
@@ -200,7 +197,6 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
 
         try {
           courseOutline = JSON.parse(repaired);
-          console.log('JSON repair successful!');
         } catch (repairError) {
           console.error('JSON repair failed, trying fallback...');
           try {
@@ -208,7 +204,6 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
             if (sectionsMatch) {
               const partialJson = repaired.substring(0, repaired.indexOf(sectionsMatch[0]) + sectionsMatch[0].length);
               courseOutline = JSON.parse(partialJson);
-              console.log('Fallback JSON extraction successful!');
             } else {
               throw parseError; // Throw original error
             }

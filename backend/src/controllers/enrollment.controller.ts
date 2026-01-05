@@ -6,13 +6,11 @@ import { httpStatus } from '@utils/httpStatus';
 
 export const EnrollmentController = {
   async leaveCourse(req: Request, res: Response) {
-    console.log('==> [leaveCourse] Controller called', req.method, req.originalUrl);
     try {
       const { id } = req.params;
       const userId = req.user!.id;
 
       const enrollment = await EnrollmentModel.findById(id);
-      console.log('[leaveCourse] userId:', userId, '| enrollmentId:', id, '| enrollment.user_id:', enrollment?.user_id);
       if (!enrollment) {
         return res.status(httpStatus.NOT_FOUND).json({
           success: false,
@@ -31,7 +29,6 @@ export const EnrollmentController = {
 
       // Delete enrollment
       const deleteResult = await EnrollmentModel.deleteByUser(id, userId);
-      console.log('[leaveCourse] Delete result:', deleteResult);
 
       res.status(204).send();
     } catch (error: any) {
@@ -70,7 +67,7 @@ export const EnrollmentController = {
               enrollment.course.owner = ownerProfile;
             }
           } catch (err) {
-            console.log('Could not fetch owner profile for:', enrollment.course.owner_id);
+            // Owner profile not found
           }
         }
         // Students count
@@ -201,12 +198,6 @@ export const EnrollmentController = {
         }
       }
 
-      console.log('Get course enrollments:', {
-        courseId,
-        totalEnrollments: enrollments.length,
-        statuses: enrollments.map(e => e.status)
-      });
-
       res.json({
         success: true,
         data: enrollments,
@@ -226,11 +217,8 @@ export const EnrollmentController = {
       const userId = req.user!.id;
       const { course_id, request_message } = req.body;
 
-      console.log('[Enrollment.create] Starting enrollment:', { userId, course_id });
-
       // Check if already enrolled
       const existing = await EnrollmentModel.findByUserId(userId);
-      console.log('[Enrollment.create] Existing enrollments:', existing.map((e: any) => e.course_id));
 
       if (existing.some((e: any) => e.course_id === course_id)) {
         return res.status(httpStatus.BAD_REQUEST).json({
@@ -246,10 +234,7 @@ export const EnrollmentController = {
         .eq('id', course_id)
         .single();
 
-      console.log('[Enrollment.create] Course lookup:', { course, courseError });
-
       if (courseError) {
-        console.error('[Enrollment.create] Course lookup error:', courseError);
         return res.status(httpStatus.NOT_FOUND).json({
           success: false,
           message: 'Course not found',
@@ -257,7 +242,6 @@ export const EnrollmentController = {
       }
 
       const isPublicCourse = course?.visibility === 'public';
-      console.log('[Enrollment.create] isPublicCourse:', isPublicCourse);
 
       const enrollment = await EnrollmentModel.create({
         user_id: userId,
@@ -558,12 +542,6 @@ export const EnrollmentController = {
           message: 'Course not found',
         });
       }
-
-      console.log('Course owner check:', {
-        courseOwnerId: course.owner_id,
-        requestUserId: userId,
-        match: course.owner_id === userId
-      });
 
       if (course.owner_id !== userId) {
         return res.status(httpStatus.FORBIDDEN).json({

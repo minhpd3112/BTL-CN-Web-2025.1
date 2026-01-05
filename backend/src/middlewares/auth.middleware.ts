@@ -22,8 +22,7 @@ export const authenticate = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log('[Auth] Request to:', req.method, req.originalUrl);
-    console.log('[Auth] Auth header present:', !!authHeader);
+
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('[Auth] FAIL: No Bearer token');
@@ -33,11 +32,11 @@ export const authenticate = async (
       });
     }
     const token = authHeader.substring(7);
-    console.log('[Auth] Token (first 20 chars):', token.substring(0, 20) + '...');
+
 
     // Thử xác thực bằng JWT admin trước
     const adminPayload = verifyAdminToken(token) as { id: string; email: string; role: string } | null;
-    console.log('[Auth] Admin JWT verify result:', adminPayload ? 'Valid admin token' : 'Not admin token');
+
 
     if (adminPayload && typeof adminPayload === 'object' && adminPayload.role === 'admin') {
       req.user = {
@@ -46,12 +45,12 @@ export const authenticate = async (
         role: 'admin',
         raw_user_meta_data: {},
       };
-      console.log('[Auth] SUCCESS: Admin user authenticated:', adminPayload.email);
+
       return next();
     }
 
     // Nếu không phải JWT admin thì xác thực Supabase như cũ
-    console.log('[Auth] Trying Supabase token verification...');
+
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error) {
@@ -71,7 +70,7 @@ export const authenticate = async (
       });
     }
 
-    console.log('[Auth] SUCCESS: Supabase user authenticated:', user.email);
+
     req.user = {
       id: user.id,
       email: user.email!,

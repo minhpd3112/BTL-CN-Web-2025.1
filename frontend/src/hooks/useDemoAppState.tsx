@@ -9,7 +9,6 @@ export function useDemoAppState() {
   // Initialize from secure storage to persist Admin session
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const stored = authAPI.getStoredUser();
-    console.log('[useDemoAppState] Initializing currentUser, stored:', stored);
     if (stored) {
       // Map backend user to frontend User type if necessary
       // Check if it looks like a backend user (has full_name but not name?)
@@ -73,7 +72,6 @@ export function useDemoAppState() {
   // 3. AUTH STATE LISTENER (for OAuth callback only - simplified)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[useDemoAppState] Auth Event:', event, 'Session User:', session?.user?.id);
 
       // Only handle INITIAL_SESSION (page refresh) and TOKEN_REFRESHED
       // Email/password login is handled in LoginPage directly
@@ -90,7 +88,6 @@ export function useDemoAppState() {
 
         // Stale storage fix: Allow update if currentUser is null OR role mismatch
         if (!currentUser || currentUser.role !== realRole) {
-          console.log(`[useDemoAppState] Updating session. Current: ${currentUser?.role}, Session: ${realRole}`);
 
           const user = {
             id: session.user.id,
@@ -154,13 +151,10 @@ export function useDemoAppState() {
       const page = (params.get('page') as Page) || 'home';
       const courseId = params.get('courseId');
 
-      console.log('[useDemoAppState] PopState:', page, courseId);
       setCurrentPage(page);
 
       if (courseId) {
         // Should fetch course by ID asynchronously if not already selected
-        // For now, we rely on the component route to fetch data if selectedCourse is null
-        console.log('[useDemoAppState] PopState courseId:', courseId);
       }
     };
 
