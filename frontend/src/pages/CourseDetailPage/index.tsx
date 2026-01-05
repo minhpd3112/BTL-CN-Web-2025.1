@@ -546,9 +546,6 @@ export function CourseDetailPage({
             <p className="text-gray-600 mb-6">
               Bạn không có quyền truy cập khóa học này. Vui lòng liên hệ người tạo để được mời.
             </p>
-            <Button variant="outline" onClick={() => navigateTo('home')}>
-              Quay lại trang chủ
-            </Button>
           </CardContent>
         </Card>
       </div>
