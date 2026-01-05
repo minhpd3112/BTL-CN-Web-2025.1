@@ -469,7 +469,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
         progress={progress}
         completedLessons={completedLessons}
         totalLessons={allLessons.length}
-        onBack={() => navigateTo('my-courses')}
+        onBack={() => navigateTo('course-detail', course)}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
