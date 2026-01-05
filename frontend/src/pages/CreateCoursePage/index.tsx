@@ -294,10 +294,11 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
       // Get the current auth token from secure storage
-      let authToken: string | null = null;
-      if (isWebCryptoAvailable()) {
-        authToken = await getSecureItem('auth_token');
-      } else {
+      // Use sync backup first (always available in localStorage)
+      let authToken = getSecureItemFallback('auth_token_sync_backup');
+      
+      // Fallback to trying main token key if backup not found
+      if (!authToken) {
         authToken = getSecureItemFallback('auth_token');
       }
 

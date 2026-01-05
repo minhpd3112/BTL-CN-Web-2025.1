@@ -12,11 +12,15 @@
     "build:backend": "npm --prefix backend run build",
     "preview": "npm --prefix frontend run preview",
     "lint:backend": "npm --prefix backend run lint",
-    "test:backend": "npm --prefix backend run test"
+    "test:backend": "npm --prefix backend run test",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:test": "cypress run --spec 'cypress/e2e/**/*.cy.js'"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "@vitejs/plugin-react-swc": "^3.5.0",
+    "cypress": "^15.8.1",
     "tailwindcss": "^4.1.17",
     "vite": "^5.0.0"
   },
@@ -28,5 +32,23 @@
     "lottie-react": "^2.4.1",
     "react-markdown": "^10.1.0",
     "supabase": "^2.65.5"
-  }
+  },
+  "version": "1.0.0",
+  "description": "Full-stack codebase for EduLearn, split into dedicated `frontend/` and `backend/` workspaces, with shared documentation under `docs/`.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minhpd3112/BTL-CN-Web-2025.1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/minhpd3112/BTL-CN-Web-2025.1/issues"
+  },
+  "homepage": "https://github.com/minhpd3112/BTL-CN-Web-2025.1#readme"
 }

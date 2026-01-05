@@ -52,7 +52,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             googleId: res.data.user.id,
           };
           // Store auth data immediately (fast sync-only, no expensive encryption)
-          setSecureItemFallback('auth_token', res.data.session?.access_token || '');
+          const token = res.data.session?.access_token || '';
+          setSecureItemFallback('auth_token', token);
+          setSecureItemFallback('auth_token_sync_backup', token);
           setSecureItemFallback('user_id', adminUser.id);
           onLogin(adminUser);
           toast.success("Đăng nhập admin thành công!");
@@ -122,6 +124,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // Store auth data immediately
           if (data.session?.access_token) {
             setSecureItemFallback('auth_token', data.session.access_token);
+            setSecureItemFallback('auth_token_sync_backup', data.session.access_token);
             setSecureItemFallback('user_id', realUser.id);
           } else {
             toast.error('Lỗi: Không nhận được session. Vui lòng thử lại.');
