@@ -144,6 +144,77 @@ export function useDemoAppState() {
     }
   }, [currentUser]);
 
+  // --- DATA HYDRATION FROM URL ---
+  const [isHydrating, setIsHydrating] = useState(false);
+
+  useEffect(() => {
+    const hydrateState = async () => {
+      // Logic: If we are on a detail page but the data is missing, fetch it using ID from URL
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const page = params.get('page') as Page;
+      const courseId = params.get('courseId');
+      const userId = params.get('userId');
+      const tagId = params.get('tagId');
+
+      if (!page) return;
+
+      // 1. Hydrate Course
+      if ((page === 'course-detail' || page === 'learning' || page === 'course-dashboard') && courseId && !selectedCourse) {
+        setIsHydrating(true);
+        try {
+          const { coursesAPI } = await import('@/services/api');
+          const res = await coursesAPI.getCourseById(courseId);
+          if (res && res.data) {
+            const courseData = res.data;
+            // Logic to check access rights if needed (similar to handleNotificationClick)
+            // For now just set it
+            setSelectedCourse(courseData);
+          }
+        } catch (error) {
+          console.error("Failed to hydrate course:", error);
+        } finally {
+          setIsHydrating(false);
+        }
+      }
+
+      // 2. Hydrate User
+      if (page === 'user-detail' && userId && !selectedUser) {
+        setIsHydrating(true);
+        try {
+          const { usersAPI } = await import('@/services/api');
+          const res = await usersAPI.getUserById(userId);
+          if (res && res.data) {
+            setSelectedUser(res.data);
+          }
+        } catch (error) {
+          console.error("Failed to hydrate user:", error);
+        } finally {
+          setIsHydrating(false);
+        }
+      }
+
+      // 3. Hydrate Tag
+      if (page === 'tag-detail' && tagId && !selectedTag) {
+        setIsHydrating(true);
+        try {
+          const { tagsAPI } = await import('@/services/api');
+          // Assuming tagId is ID. If name is passed, might need getTagByName if ID not valid
+          const res = await tagsAPI.getTagById(tagId);
+          if (res && res.data) {
+            setSelectedTag(res.data);
+          }
+        } catch (error) {
+          console.error("Failed to hydrate tag:", error);
+        } finally {
+          setIsHydrating(false);
+        }
+      }
+    };
+
+    hydrateState();
+  }, [selectedCourse, selectedUser, selectedTag]); // Run when these are null and URL has params
+
   // --- BROWSER HISTORY SYNC ---
   useEffect(() => {
     const handlePopState = () => {
@@ -163,27 +234,44 @@ export function useDemoAppState() {
   }, []); // Run once on mount
 
   // 5. TẤT CẢ CÁC HÀM LOGIC (useCallback)
-  const navigateTo = useCallback((page: Page, course?: Course) => {
+  const navigateTo = useCallback((page: Page, data?: { course?: Course, user?: User, tag?: Tag }) => {
     setCurrentPage(page);
-    if (course) setSelectedCourse(course);
+
+    // Update state based on passed data
+    if (data?.course) setSelectedCourse(data.course);
+    if (data?.user) setSelectedUser(data.user);
+    if (data?.tag) setSelectedTag(data.tag);
+
+    if (page === 'home') {
+      // Clear selections when going home? Optional.
+    }
+
     setSidebarOpen(false);
     window.scrollTo(0, 0);
 
     // Sync to URL
     const params = new URLSearchParams();
     params.set('page', page);
-    if (course) {
-      params.set('courseId', course.id);
-    }
+
+    // Preserve IDs in URL
+    const courseToSet = data?.course || selectedCourse;
+    if (courseToSet) params.set('courseId', courseToSet.id);
+
+    const userToSet = data?.user || selectedUser;
+    if (userToSet && page === 'user-detail') params.set('userId', userToSet.id);
+
+    const tagToSet = data?.tag || selectedTag;
+    if (tagToSet && page === 'tag-detail') params.set('tagId', String(tagToSet.id));
 
     // Check if new state is different to avoid duplicate history entries
     const currentParams = new URLSearchParams(window.location.search);
-    if (currentParams.get('page') !== page || currentParams.get('courseId') !== (course?.id || null)) {
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+
+    if (currentParams.toString() !== params.toString()) {
       window.history.pushState({}, '', newUrl);
     }
 
-  }, []);
+  }, [selectedCourse, selectedUser, selectedTag]);
 
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
     setCurrentUser(user);
@@ -349,8 +437,9 @@ export function useDemoAppState() {
     enrollmentRequests,
     currentRole,
     unreadCount,
-    isRestoringSession, // Add this to prevent premature redirects
-  }), [currentUser, currentPage, selectedCourse, selectedUser, selectedTag, sidebarOpen, userGooglePicture, userNotifications, showNotifications, enrollmentRequests, currentRole, unreadCount, isRestoringSession]);
+    isRestoringSession,
+    isHydrating,
+  }), [currentUser, currentPage, selectedCourse, selectedUser, selectedTag, sidebarOpen, userGooglePicture, userNotifications, showNotifications, enrollmentRequests, currentRole, unreadCount, isRestoringSession, isHydrating]);
 
   const actions = useMemo(() => ({
     navigateTo,

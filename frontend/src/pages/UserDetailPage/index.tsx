@@ -13,7 +13,7 @@ const COURSES_PER_PAGE = 5;
 
 interface UserDetailPageProps {
   user: User;
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedCourse?: (course: Course) => void;
 }
 
@@ -228,10 +228,8 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
                   key={course.id}
                   course={course}
                   onClick={() => {
-                    if (setSelectedCourse) {
-                      setSelectedCourse(course);
-                      navigateTo('course-detail');
-                    }
+                    setSelectedCourse?.(course);
+                    navigateTo('course-detail', { course });
                   }}
                 />
               ))}

@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 
 interface ManageCoursesPageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedCourse: (course: Course) => void;
 }
 
@@ -241,7 +241,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
                 course={course}
                 onClick={() => {
                   setSelectedCourse(course);
-                  navigateTo('course-detail');
+                  navigateTo('course-detail', { course });
                 }}
                 action={
                   <div className="flex gap-2">

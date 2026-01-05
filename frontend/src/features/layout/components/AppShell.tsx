@@ -40,9 +40,10 @@ interface AppShellProps {
     enrollmentRequests: any[];
     currentRole: string;
     unreadCount: number;
+    isHydrating?: boolean;
   };
   actions: {
-    navigateTo: (page: any, course?: any) => void;
+    navigateTo: (page: any, data?: { course?: any, user?: any, tag?: any }) => void;
     handleLogout: () => void;
     handleUpdateUser: (user: any) => void;
     setSelectedCourse: (course: any) => void;
@@ -76,6 +77,7 @@ export function AppShell({ state, actions }: AppShellProps) {
     enrollmentRequests,
     currentRole,
     unreadCount,
+    isHydrating,
   } = state;
 
 
@@ -447,46 +449,57 @@ export function AppShell({ state, actions }: AppShellProps) {
       }
 
       <main className="page-transition flex-1">
-        {currentPage === 'home' && <HomePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} setSelectedTag={setSelectedTag} currentUser={currentUser} />}
-        {currentPage === 'my-courses' && <MyCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser!} />}
-        {currentPage === 'explore' && <ExplorePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} />}
-        {currentPage === 'course-detail' && selectedCourse && (
-          <CourseDetailPage
-            course={selectedCourse}
-            navigateTo={navigateTo}
-            setSelectedUser={setSelectedUser}
-            setSelectedTag={setSelectedTag}
-            currentUser={currentUser}
-            isOwner={isOwner(selectedCourse)}
-            canAccess={selectedCourse.overrideAccess === true ? true : canAccessCourse(selectedCourse)}
-            enrollmentRequests={enrollmentRequests}
-            onEnrollRequest={handleEnrollRequest}
-          />
-        )}
-        {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
-        {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
-        {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
-        {currentPage === 'ai-learning-path' && <AILearningPathPage navigateTo={navigateTo} currentUser={currentUser} />}
-        {currentPage === 'course-dashboard' && <CourseDashboardPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser!} enrollmentRequests={enrollmentRequests} onApproveRequest={handleApproveRequest} onRejectRequest={handleRejectRequest} />}
-        {/* Admin Pages - Protected */}
-        {currentUser?.role === 'admin' && (
-          <>
-            {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
-            {currentPage === 'approve-courses' && <ApproveCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
-            {currentPage === 'manage-courses' && <ManageCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
-            {currentPage === 'manage-users' && <ManageUsersPage navigateTo={navigateTo} setSelectedUser={setSelectedUser} />}
-            {currentPage === 'manage-tags' && <ManageTagsPage navigateTo={navigateTo} setSelectedTag={setSelectedTag} />}
-          </>
+        {/* Hydration Loading State */}
+        {state.isHydrating && (
+          <div className="flex items-center justify-center h-[50vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E88E5]" />
+          </div>
         )}
 
-        {/* Public/Shared Pages */}
-        {currentPage === 'user-detail' && <UserDetailPage user={selectedUser} navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
-        {currentPage === 'account-settings' && currentUser && (
-          <AccountSettingsPage
-            user={currentUser}
-            navigateTo={navigateTo}
-            onUpdateUser={actions.handleUpdateUser} // THÊM DÒNG NÀY VÀO
-          />
+        {!state.isHydrating && (
+          <>
+            {currentPage === 'home' && <HomePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} setSelectedTag={setSelectedTag} currentUser={currentUser} />}
+            {currentPage === 'my-courses' && <MyCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser!} />}
+            {currentPage === 'explore' && <ExplorePage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} />}
+            {currentPage === 'course-detail' && selectedCourse && (
+              <CourseDetailPage
+                course={selectedCourse}
+                navigateTo={navigateTo}
+                setSelectedUser={setSelectedUser}
+                setSelectedTag={setSelectedTag}
+                currentUser={currentUser}
+                isOwner={isOwner(selectedCourse)}
+                canAccess={selectedCourse.overrideAccess === true ? true : canAccessCourse(selectedCourse)}
+                enrollmentRequests={enrollmentRequests}
+                onEnrollRequest={handleEnrollRequest}
+              />
+            )}
+            {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
+            {currentPage === 'learning' && <LearningPage course={selectedCourse} navigateTo={navigateTo} />}
+            {currentPage === 'create-course' && <CreateCoursePage navigateTo={navigateTo} currentUser={currentUser!} />}
+            {currentPage === 'ai-learning-path' && <AILearningPathPage navigateTo={navigateTo} currentUser={currentUser} />}
+            {currentPage === 'course-dashboard' && <CourseDashboardPage course={selectedCourse} navigateTo={navigateTo} currentUser={currentUser!} enrollmentRequests={enrollmentRequests} onApproveRequest={handleApproveRequest} onRejectRequest={handleRejectRequest} />}
+            {/* Admin Pages - Protected */}
+            {currentUser?.role === 'admin' && (
+              <>
+                {currentPage === 'admin-dashboard' && <AdminDashboardPage navigateTo={navigateTo} />}
+                {currentPage === 'approve-courses' && <ApproveCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
+                {currentPage === 'manage-courses' && <ManageCoursesPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
+                {currentPage === 'manage-users' && <ManageUsersPage navigateTo={navigateTo} setSelectedUser={setSelectedUser} />}
+                {currentPage === 'manage-tags' && <ManageTagsPage navigateTo={navigateTo} setSelectedTag={setSelectedTag} />}
+              </>
+            )}
+
+            {/* Public/Shared Pages */}
+            {currentPage === 'user-detail' && <UserDetailPage user={selectedUser} navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} />}
+            {currentPage === 'account-settings' && currentUser && (
+              <AccountSettingsPage
+                user={currentUser}
+                navigateTo={navigateTo}
+                onUpdateUser={actions.handleUpdateUser} // THÊM DÒNG NÀY VÀO
+              />
+            )}
+          </>
         )}
       </main>
 

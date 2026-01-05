@@ -17,6 +17,29 @@ export const userController = {
     }
   },
 
+  async getUserById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: 'User ID is required' });
+      }
+
+      const user = await UserModel.findById(id);
+      if (!user) {
+        return res.status(httpStatus.NOT_FOUND).json({ success: false, message: 'User not found' });
+      }
+
+      res.json({ success: true, data: user });
+    } catch (error: any) {
+      console.error('Get user by id error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to fetch user',
+        error: error.message,
+      });
+    }
+  },
+
   async deleteUser(req: Request, res: Response) {
     try {
       const { id } = req.params;

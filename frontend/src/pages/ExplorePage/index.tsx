@@ -16,7 +16,7 @@ import { tagsAPI, enrollmentsAPI } from '@/services/api';
 
 
 interface ExplorePageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedCourse: (course: Course) => void;
   currentUser: any;
 }
@@ -184,7 +184,7 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
                   course={course}
                   onClick={() => {
                     setSelectedCourse(course);
-                    navigateTo('course-detail');
+                    navigateTo('course-detail', { course });
                   }}
                   currentUserId={currentUser?.id}
                   currentRole={currentUser?.role}

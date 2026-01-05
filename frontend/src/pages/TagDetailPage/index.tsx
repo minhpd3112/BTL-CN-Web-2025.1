@@ -11,7 +11,7 @@ import { enrollmentsAPI } from '@/services/api';
 import './styles.css';
 
 interface TagDetailPageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedCourse: (course: Course) => void;
   currentUser: User | null;
   selectedTag: TagType | null;
@@ -246,7 +246,7 @@ export function TagDetailPage({ navigateTo, setSelectedCourse, currentUser, sele
                     course={course}
                     onClick={() => {
                       setSelectedCourse(course);
-                      navigateTo('course-detail');
+                      navigateTo('course-detail', { course });
                     }}
                     currentUserId={currentUser?.id}
                     currentRole={currentUser?.role}

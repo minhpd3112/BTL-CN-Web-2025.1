@@ -17,7 +17,7 @@ import { useState, useEffect } from 'react';
 import { enrollmentsAPI } from '@/services/api';
 
 interface HomePageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedCourse: (course: Course) => void;
   currentUser: User | null;
   setSelectedTag: (tag: TagType) => void;
@@ -227,7 +227,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                       course={course}
                       onClick={() => {
                         setSelectedCourse(course);
-                        navigateTo('course-detail');
+                        navigateTo('course-detail', { course });
                       }}
                       currentUserId={currentUser?.id}
                       currentRole={currentUser?.role}
@@ -267,7 +267,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
                     className="home-category-card cursor-pointer"
                     onClick={() => {
                       setSelectedTag(tag);
-                      navigateTo('tag-detail');
+                      navigateTo('tag-detail', { tag });
                     }}
                   >
                     <CardContent className="p-6 text-center">

@@ -58,7 +58,7 @@ interface Section {
 
 interface CourseDetailPageProps {
   course: Course;
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   currentUser: User;
   canAccess: boolean;
   enrollmentRequests?: any[];
@@ -208,7 +208,7 @@ export function CourseDetailPage({
 
         if (fullUser) {
           setSelectedUser(fullUser);
-          navigateTo('user-detail');
+          navigateTo('user-detail', { user: fullUser });
         } else {
           // Fallback: create user object from owner data if API fails
           const ownerUser: User = {
@@ -229,7 +229,7 @@ export function CourseDetailPage({
             lastLogin: ''
           };
           setSelectedUser(ownerUser);
-          navigateTo('user-detail');
+          navigateTo('user-detail', { user: ownerUser });
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -252,7 +252,7 @@ export function CourseDetailPage({
           lastLogin: ''
         };
         setSelectedUser(ownerUser);
-        navigateTo('user-detail');
+        navigateTo('user-detail', { user: ownerUser });
       }
     }
   };
@@ -597,7 +597,7 @@ export function CourseDetailPage({
                           onClick={() => {
                             if (setSelectedTag && tagData) {
                               setSelectedTag(tagData);
-                              navigateTo('tag-detail');
+                              navigateTo('tag-detail', { tag: tagData });
                             }
                           }}
                         >

@@ -17,7 +17,7 @@ import { sectionsAPI, lessonsAPI, lessonProgressAPI, quizAPI } from '@/services/
 
 interface LearningPageProps {
   course: Course;
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
 }
 
 export function LearningPage({ course, navigateTo }: LearningPageProps) {
@@ -457,7 +457,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
         progress={progress}
         completedLessons={completedLessons}
         totalLessons={allLessons.length}
-        onBack={() => navigateTo('course-detail', course)}
+        onBack={() => navigateTo('course-detail', { course })}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />

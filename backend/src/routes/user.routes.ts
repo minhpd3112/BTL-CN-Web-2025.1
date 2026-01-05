@@ -8,6 +8,9 @@ const router = Router();
 // Get all users - requires authentication (admin or regular user can view)
 router.get('/', readLimiter, authenticate, userController.getUsers);
 
+// Get user by ID
+router.get('/:id', readLimiter, authenticate, userController.getUserById);
+
 // Delete user - admin only
 router.delete('/:id', apiLimiter, authenticate, requireAdmin, userController.deleteUser);
 

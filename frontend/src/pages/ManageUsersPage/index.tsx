@@ -14,7 +14,7 @@ import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { SearchFilterCard } from '@/components/shared/SearchFilterCard';
 
 interface ManageUsersPageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedUser: (user: User) => void;
 }
 
@@ -103,7 +103,7 @@ export function ManageUsersPage({ navigateTo, setSelectedUser }: ManageUsersPage
             className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white cursor-pointer gap-0"
             onClick={() => {
               setSelectedUser(user);
-              navigateTo('user-detail');
+              navigateTo('user-detail', { user });
             }}
           >
             <CardContent className="p-0">

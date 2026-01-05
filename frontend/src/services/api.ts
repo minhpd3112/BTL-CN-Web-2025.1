@@ -11,6 +11,7 @@ export const notificationsAPI = {
 // -----------------------------
 export const usersAPI = {
   getAllUsers: () => api.get('/users').then(res => res.data),
+  getUserById: (id: string) => api.get(`/users/${id}`).then(res => res.data),
   delete: (id: string) => api.delete(`/users/${id}`).then(res => res.data),
 };
 import axios, { AxiosInstance } from 'axios';

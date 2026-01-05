@@ -16,7 +16,7 @@ import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, Pagi
 const ITEMS_PER_PAGE = 6;
 
 interface MyCoursesPageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, data?: any) => void;
   setSelectedCourse: (course: Course) => void;
   currentUser: User;
 }
@@ -336,7 +336,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
                       showProgress={true}
                       onClick={() => {
                         setSelectedCourse(course);
-                        navigateTo('course-detail');
+                        navigateTo('course-detail', { course });
                       }}
                       action={
                         <AlertDialog>
