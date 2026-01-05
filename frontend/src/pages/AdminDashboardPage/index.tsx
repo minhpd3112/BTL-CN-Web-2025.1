@@ -124,34 +124,6 @@ const AdminDashboardPage = ({ navigateTo }: AdminDashboardPageProps) => {
         </AnimatedSection>
       </div>
 
-      {/* Recent Activities - Full Width */}
-      <AnimatedSection animation="fade-up" delay={300}>
-        <Card className="hover:shadow-lg transition-all duration-300 mb-6 border border-gray-200">
-          <CardHeader className="border-b border-gray-100 pb-4 bg-blue-50/50">
-            <CardTitle className="text-lg font-bold text-[#1E88E5]">Hoạt động gần đây</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              {recentActivities.map((activity, index) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-all duration-200">
-                  <div className="w-2 h-2 rounded-full bg-[#1E88E5] mt-2 flex-shrink-0"></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-semibold text-gray-900">{activity.user}</span>{' '}
-                      <span className="text-gray-600">{activity.action}</span>{' '}
-                      <span className="font-semibold text-[#1E88E5]">{activity.course}</span>
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </AnimatedSection>
-
       {/* Quick Actions */}
       <AnimatedSection animation="fade-up" delay={350}>
         <Card className="hover:shadow-lg transition-all duration-300 border border-gray-200">
