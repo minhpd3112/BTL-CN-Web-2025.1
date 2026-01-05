@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase, notificationsAPI } from '@/services/api';
+import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, getSecureItemFast, setSecureItemFast } from '@/utils/secureStorage';
 import {
   mockUsers,
   mockCourses,
@@ -22,14 +23,9 @@ const mockNotifications: Notification[] = [
 
 export function useDemoAppState() {
   // 1. TẤT CẢ KHAI BÁO STATE NẰM Ở ĐẦU
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('user_data');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const saved = localStorage.getItem('user_data');
-    return saved ? 'home' : 'login';
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState<Page>('login'); // Always start at login
+  const [isRestoringSession, setIsRestoringSession] = useState(false); // No restore needed
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
@@ -39,50 +35,53 @@ export function useDemoAppState() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>(mockEnrollmentRequests);
 
-
-
-  // 2. EFFECT LẮNG NGHE AUTH & FETCH NOTIFICATIONS
+  // 2. SIMPLE SESSION RESTORE (using onAuthStateChange only - no manual getSession)
   useEffect(() => {
-    // Listen for login events (for social login)
+    setIsRestoringSession(false);
+  }, []);
+
+  // 3. AUTH STATE LISTENER (for OAuth callback only - simplified)
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session && event === 'SIGNED_IN' && !currentUser) {
-        // ...existing code for login event...
+      // Only handle INITIAL_SESSION (page refresh) and TOKEN_REFRESHED
+      // Email/password login is handled in LoginPage directly
+      if (event === 'INITIAL_SESSION' && session && !currentUser) {
+        // Fetch profile from database (non-blocking)
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
+        
         const metadata = session.user.user_metadata;
-        let joinedDate = '';
-        if (profile?.created_at) {
-          joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
-        } else {
-          joinedDate = new Date().toISOString();
-        }
         const user = {
           id: session.user.id,
           email: session.user.email || '',
-          name: profile?.full_name || metadata?.full_name || metadata?.name || '',
+          name: profile?.full_name || metadata?.full_name || metadata?.name || 'User',
           avatar: profile?.avatar_url || metadata?.avatar_url || metadata?.picture || '',
           phone: profile?.phone || '',
           location: profile?.address || '',
           bio: profile?.bio || '',
-          role: 'user',
-          joinedDate,
+          role: profile?.role || 'user',
+          joinedDate: profile?.created_at || session.user.created_at || new Date().toISOString(),
           status: 'active',
           coursesCreated: 0,
           totalStudents: 0
         };
-        localStorage.setItem('auth_token', session.access_token);
-        localStorage.setItem('user_data', JSON.stringify(user));
+        
+        // Store tokens
+        setSecureItemFallback('auth_token', session.access_token);
+        setSecureItemFallback('user_id', session.user.id);
+        
         setCurrentUser(user as any);
         setCurrentPage('home');
       }
     });
+    
     return () => subscription.unsubscribe();
-  }, [currentUser]);
+  }, [currentUser]); // Keep dependency to prevent duplicate logins
 
-  // Always fetch notifications when currentUser changes (login, reload, etc)
+  // 4. FETCH NOTIFICATIONS
   useEffect(() => {
     if (currentUser) {
       notificationsAPI.getMyNotifications()
@@ -100,7 +99,7 @@ export function useDemoAppState() {
     }
   }, [currentUser]);
 
-  // 3. TẤT CẢ CÁC HÀM LOGIC (useCallback)
+  // 5. TẤT CẢ CÁC HÀM LOGIC (useCallback)
   const navigateTo = useCallback((page: Page, course?: Course) => {
     setCurrentPage(page);
     if (course) setSelectedCourse(course);
@@ -111,14 +110,15 @@ export function useDemoAppState() {
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
     setCurrentUser(user);
     if (googlePicture) setUserGooglePicture(googlePicture);
-    localStorage.setItem('user_data', JSON.stringify(user));
+    // Note: auth_token should already be stored by LoginPage before calling this
     navigateTo('home');
   }, [navigateTo]);
 
   const handleLogout = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch (e) { console.error(e); }
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('auth_token');
+    removeSecureItem('auth_token');
+    removeSecureItem('user_id');
+    removeSecureItem('user_data');
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');
@@ -126,7 +126,8 @@ export function useDemoAppState() {
 
   const handleUpdateUser = useCallback((updatedUser: User) => {
     setCurrentUser(updatedUser);
-    localStorage.setItem('user_data', JSON.stringify(updatedUser));
+    // Store ONLY auth token and user ID - not full user data
+    localStorage.setItem('user_id', updatedUser.id);
   }, []);
 
   const isOwner = useCallback((course: Course) =>
@@ -271,7 +272,8 @@ export function useDemoAppState() {
     enrollmentRequests,
     currentRole,
     unreadCount,
-  }), [currentUser, currentPage, selectedCourse, selectedUser, selectedTag, sidebarOpen, userGooglePicture, userNotifications, showNotifications, enrollmentRequests, currentRole, unreadCount]);
+    isRestoringSession, // Add this to prevent premature redirects
+  }), [currentUser, currentPage, selectedCourse, selectedUser, selectedTag, sidebarOpen, userGooglePicture, userNotifications, showNotifications, enrollmentRequests, currentRole, unreadCount, isRestoringSession]);
 
   const actions = useMemo(() => ({
     navigateTo,

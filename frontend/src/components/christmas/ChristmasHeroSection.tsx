@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import Lottie from 'lottie-react';
 import './ChristmasHeroSection.css';
 
 interface TimeLeft {
@@ -9,30 +8,26 @@ interface TimeLeft {
     seconds: number;
 }
 
-// Lottie animation URLs from LottieFiles (free animations)
-const SNOWMAN_LOTTIE_URL = 'https://lottie.host/c4bd8e8a-9b6e-4b49-9f8a-5d9c7f8b8a3e/dKjzZvVnNh.json';
-const TREE_LOTTIE_URL = 'https://lottie.host/1c8d8e8a-9b6e-4b49-9f8a-5d9c7f8b8a3e/nKmzXvYnMi.json';
-
 export function ChristmasHeroSection() {
     const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-    const [snowmanData, setSnowmanData] = useState(null);
-    const [treeData, setTreeData] = useState(null);
+    // Disabled Lottie animations due to external URL issues - using CSS animations instead
+    // const [snowmanData, setSnowmanData] = useState(null);
+    // const [treeData, setTreeData] = useState(null);
 
-    // Load Lottie animations
-    useEffect(() => {
-        // Snowman animation - cute 3D style
-        fetch('https://lottie.host/f4ff4b1c-1b9b-4e3b-8d3f-2b9b4e3b8d3f/snowman-cute.json')
-            .catch(() => {
-                // Fallback to embedded animation data
-                setSnowmanData(null);
-            });
-
-        // Christmas tree animation
-        fetch('https://lottie.host/a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6/christmas-tree.json')
-            .catch(() => {
-                setTreeData(null);
-            });
-    }, []);
+    // Disabled Lottie fetch - using CSS animations instead
+    // useEffect(() => {
+    //     // Snowman animation - cute 3D style
+    //     fetch('https://lottie.host/f4ff4b1c-1b9b-4e3b-8d3f-2b9b4e3b8d3f/snowman-cute.json')
+    //         .catch(() => {
+    //             setSnowmanData(null);
+    //         });
+    //
+    //     // Christmas tree animation
+    //     fetch('https://lottie.host/a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6/christmas-tree.json')
+    //         .catch(() => {
+    //             setTreeData(null);
+    //         });
+    // }, []);
 
     // Generate snowflakes once
     const snowflakes = useMemo(() =>

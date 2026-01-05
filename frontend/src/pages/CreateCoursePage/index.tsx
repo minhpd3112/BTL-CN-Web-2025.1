@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { coursesAPI, sectionsAPI, lessonsAPI, tagsAPI, supabase } from '@/services/api';
+import { getSecureItem, isWebCryptoAvailable, getSecureItemFallback } from '@/utils/secureStorage';
 import { Page, User } from '@/types';
 import { QuizEditor } from '@/components/shared/QuizEditor';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -292,8 +293,14 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      // Get the current auth token from localStorage
-      const authToken = localStorage.getItem('auth_token');
+      // Get the current auth token from secure storage
+      // Use sync backup first (always available in localStorage)
+      let authToken = getSecureItemFallback('auth_token_sync_backup');
+      
+      // Fallback to trying main token key if backup not found
+      if (!authToken) {
+        authToken = getSecureItemFallback('auth_token');
+      }
 
       if (!authToken) {
         console.error('No auth token found. User must be logged in to upload images.');
