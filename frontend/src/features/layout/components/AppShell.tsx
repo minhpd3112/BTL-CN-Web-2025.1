@@ -78,6 +78,8 @@ export function AppShell({ state, actions }: AppShellProps) {
     unreadCount,
   } = state;
 
+
+
   const {
     navigateTo,
     handleLogout,
@@ -401,13 +403,15 @@ export function AppShell({ state, actions }: AppShellProps) {
                   </button>
                 )}
 
-                <button
-                  onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
-                >
-                  <BookOpen className="w-5 h-5 text-[#1E88E5]" />
-                  <span>Khóa học của tôi</span>
-                </button>
+                {currentRole !== 'admin' && (
+                  <button
+                    onClick={() => { navigateTo('my-courses'); setSidebarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1E88E5]/10 rounded-lg transition-colors"
+                  >
+                    <BookOpen className="w-5 h-5 text-[#1E88E5]" />
+                    <span>Khóa học của tôi</span>
+                  </button>
+                )}
 
                 {currentRole !== 'admin' && (
                   <button
