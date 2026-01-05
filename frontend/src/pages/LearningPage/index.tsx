@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'react-markdown';
 import { ChevronLeft, ChevronRight, CheckCircle, FileText, Award, ChevronDown, GripVertical } from 'lucide-react';
 import { LearningHeader } from './components/LearningHeader';
 import { CourseSidebar } from './components/CourseSidebar';
@@ -80,16 +80,38 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
               const lessonsResponse = await lessonsAPI.getBySectionId(section.id.toString());
               const lessons = lessonsResponse.success ? lessonsResponse.data || [] : [];
 
-              const mappedLessons = lessons.map((lesson: any) => ({
-                ...lesson,
-                type: lesson.content_type || lesson.type || 'video',
-                youtubeUrl: lesson.content_url || '',
-                pdfUrl: lesson.content_type === 'pdf' ? lesson.content_url || '' : '',
-                content_text: lesson.content_text || '',
-                completed: progressMap[lesson.id] || false, // Use loaded progress
-                isCompleted: progressMap[lesson.id] || false,
-                isLocked: false,
-              }));
+              const mappedLessons = lessons.map((lesson: any) => {
+                // Ensure content_text is always a safe string
+                let contentText = '';
+                if (typeof lesson.content_text === 'string') {
+                  contentText = lesson.content_text;
+                } else if (!lesson.content_text) {
+                  contentText = '';
+                } else if (typeof lesson.content_text === 'number' || typeof lesson.content_text === 'boolean') {
+                  contentText = String(lesson.content_text);
+                } else if (lesson.content_text.$$typeof) {
+                  // This is a React element - don't render it, just show empty
+                  contentText = '';
+                } else if (typeof lesson.content_text === 'object') {
+                  // Try to extract text or stringify
+                  if (lesson.content_text.toString && lesson.content_text.toString() !== '[object Object]') {
+                    contentText = lesson.content_text.toString();
+                  } else {
+                    contentText = '';
+                  }
+                }
+                
+                return {
+                  ...lesson,
+                  type: lesson.content_type || lesson.type || 'video',
+                  youtubeUrl: lesson.content_url || '',
+                  pdfUrl: lesson.content_type === 'pdf' ? lesson.content_url || '' : '',
+                  content_text: contentText,
+                  completed: progressMap[lesson.id] || false, // Use loaded progress
+                  isCompleted: progressMap[lesson.id] || false,
+                  isLocked: false,
+                };
+              });
 
               return {
                 ...section,
@@ -447,7 +469,7 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
         progress={progress}
         completedLessons={completedLessons}
         totalLessons={allLessons.length}
-        onBack={() => navigateTo('my-courses')}
+        onBack={() => navigateTo('course-detail', course)}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
@@ -496,9 +518,18 @@ export function LearningPage({ course, navigateTo }: LearningPageProps) {
                   <CardContent className="p-6 md:p-8">
                     {selectedLesson.content_text ? (
                       <div className="markdown-content">
-                        <ReactMarkdown>
-                          {selectedLesson.content_text}
-                        </ReactMarkdown>
+                        {(() => {
+                          try {
+                            const content = typeof selectedLesson.content_text === 'string' 
+                              ? selectedLesson.content_text 
+                              : '';
+                            if (!content) return <p className="text-gray-500">Nội dung trống</p>;
+                            return <Markdown children={content} />;
+                          } catch (error) {
+                            console.error('❌ Markdown render error:', error);
+                            return <p className="text-gray-500">Lỗi hiển thị nội dung</p>;
+                          }
+                        })()}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 text-gray-500">

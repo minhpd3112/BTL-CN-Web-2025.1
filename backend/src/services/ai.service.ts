@@ -1,9 +1,28 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { logger } from '../config/logger';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
-console.log('🔑 GEMINI_API_KEY loaded:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT SET');
+
+if (apiKey) {
+  logger.info('✅ Google Generative AI service initialized');
+} else {
+  logger.warn('⚠️ GEMINI_API_KEY is not set - AI course generation will not work');
+}
 
 const genAI = new GoogleGenerativeAI(apiKey);
+
+// Helper to get model config with optional proxy Base URL
+const getModel = (modelName: string) => {
+  const requestOptions: any = {};
+
+  if (process.env.GEMINI_API_BASE_URL) {
+    requestOptions.baseUrl = process.env.GEMINI_API_BASE_URL;
+  }
+
+  return genAI.getGenerativeModel({
+    model: modelName,
+  }, requestOptions);
+};
 
 interface CourseOutline {
   title: string;
@@ -40,7 +59,7 @@ export const aiService = {
    * Generate a complete course outline using Gemini AI
    */
   generateCourseOutline: async (input: GenerateCourseInput): Promise<CourseOutline> => {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = getModel('gemini-3-flash-preview');
 
     const levelText = {
       beginner: 'người mới bắt đầu, chưa có kinh nghiệm',
@@ -211,7 +230,7 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
    * Generate quiz questions for a specific topic
    */
   generateQuizQuestions: async (topic: string, difficulty: string, count: number = 5) => {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = getModel('gemini-3-flash-preview');
 
     const prompt = `Tạo ${count} câu hỏi trắc nghiệm về "${topic}" với độ khó "${difficulty}".
     

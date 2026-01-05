@@ -1,23 +1,18 @@
 import { Router } from 'express';
 import { SectionController } from '@controllers/section.controller';
-// import { authenticate, requireOwnerOrAdmin } from '@middlewares/auth.middleware';
-// import { validateSectionCreate } from '@middlewares/validation.middleware';
+import { authenticate } from '@middlewares/auth.middleware';
+import { readLimiter, createLimiter, apiLimiter } from '@middlewares/rateLimiter';
 
 const router = Router();
 
-// Public routes
-router.get('/course/:courseId', SectionController.getByCourseId);
-router.get('/:id', SectionController.getById);
+// Public routes - Higher limit for read operations
+router.get('/course/:courseId', readLimiter, SectionController.getByCourseId);
+router.get('/:id', readLimiter, SectionController.getById);
 
-// Protected routes (TEMPORARY - no auth)
-router.post('/', SectionController.create);
-router.patch('/:id', SectionController.update);
-router.delete('/:id', SectionController.delete);
-router.post('/reorder', SectionController.reorder);
-
-// TODO: Add auth later
-// router.post('/', authenticate, validateSectionCreate, SectionController.create);
-// router.patch('/:id', authenticate, requireOwnerOrAdmin('section'), SectionController.update);
-// router.delete('/:id', authenticate, requireOwnerOrAdmin('section'), SectionController.delete);
+// Protected routes - Requires authentication
+router.post('/', createLimiter, authenticate, SectionController.create);
+router.patch('/:id', apiLimiter, authenticate, SectionController.update);
+router.delete('/:id', apiLimiter, authenticate, SectionController.delete);
+router.post('/reorder', apiLimiter, authenticate, SectionController.reorder);
 
 export default router;

@@ -56,8 +56,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
           image_url: course.image_url,
           ownerId: course.owner_id,
           owner_id: course.owner_id,
-          ownerName: course.owner?.full_name || 'Unknown',
-          ownerAvatar: course.owner?.avatar_url || '',
+          // ownerName/Avatar removed
           owner: course.owner,
           tags: course.tags?.map((t: any) => t.tag?.name || t.name).filter(Boolean) || [],
           visibility: course.visibility as 'public' | 'private',
@@ -100,7 +99,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
   // Filter courses ở FE (chỉ search và visibility)
   const filteredCourses = courses.filter(course => {
     const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.ownerName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+      (course.owner?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchVisibility = filterVisibility === 'all' || course.visibility === filterVisibility;
     return matchSearch && matchVisibility;
   });
@@ -327,7 +326,7 @@ export function ManageCoursesPage({ navigateTo, setSelectedCourse }: ManageCours
             />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{courseToDelete.title}</p>
-              <p className="text-sm text-gray-500">Giảng viên: {courseToDelete.ownerName}</p>
+              <p className="text-sm text-gray-500">Giảng viên: {courseToDelete.owner?.full_name || 'Unknown'}</p>
             </div>
           </div>
         )}

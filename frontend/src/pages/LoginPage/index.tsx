@@ -10,6 +10,7 @@ import { adminAPI } from '@/services/api';
 import { toast, Toaster } from 'sonner';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
+import { setSecureItemFallback } from '@/utils/secureStorage';
 
 
 
@@ -29,34 +30,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setIsLoading(true);
 
     try {
-      // Nếu là tài khoản admin
-      if (!isSignUp && email.trim().toLowerCase() === 'admin@gmail.com') {
-        const res = await adminAPI.login({ email, password });
-        if (res.success) {
-          const adminUser: User = {
-            id: res.data.user.id, // giữ nguyên string UUID
-            username: res.data.user.email?.split('@')[0] || 'admin',
-            email: res.data.user.email || '',
-            name: res.data.user.full_name || 'Admin',
-            avatar: '',
-            role: res.data.user.role || 'admin',
-            joinedDate: new Date().toISOString(),
-            coursesCreated: 0,
-            coursesEnrolled: 0,
-            totalStudents: 0,
-            status: 'active',
-            lastLogin: new Date().toISOString(),
-            googleId: res.data.user.id,
-          };
-          localStorage.setItem('user_data', JSON.stringify(adminUser));
-          onLogin(adminUser);
-          toast.success("Đăng nhập admin thành công!");
-        } else {
-          toast.error(res.message || "Sai thông tin admin");
-        }
-        setIsLoading(false);
-        return;
-      }
+
+      // Login using Supabase Auth (Unified for both User and Admin)
+      // Note: Admin Check is removed here because Supabase Auth handles it.
+      // Valid Admins will have a role in user_metadata which onLogin/App state will respect.
 
       if (isSignUp) {
         // Nếu đang ở trạng thái Đăng ký
@@ -95,12 +72,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             if (!profileError && profile?.created_at) {
               joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
             }
-          } catch (e) { }
-          // Debug log
-          // eslint-disable-next-line no-console
-          console.log('joinedDate for user', data.user.id, joinedDate);
+          } catch (e) {
+            console.error('Profile fetch error:', e);
+          }
           const realUser: User = {
-            id: data.user.id, // giữ nguyên string UUID
+            id: data.user.id,
             username: data.user.email?.split('@')[0] || 'user',
             email: data.user.email || '',
             name: data.user.user_metadata?.full_name || 'Người dùng mới',
@@ -114,7 +90,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             lastLogin: new Date().toISOString(),
             googleId: data.user.id,
           };
-          localStorage.setItem('user_data', JSON.stringify(realUser));
+
+          // Store auth data immediately
+          if (data.session?.access_token) {
+            setSecureItemFallback('auth_token', data.session.access_token);
+            setSecureItemFallback('auth_token_sync_backup', data.session.access_token);
+            setSecureItemFallback('user_id', realUser.id);
+          } else {
+            toast.error('Lỗi: Không nhận được session. Vui lòng thử lại.');
+            setIsLoading(false);
+            return;
+          }
+
           onLogin(realUser);
           toast.success("Đăng nhập thành công!");
         }
@@ -128,6 +115,41 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
 
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Vui lòng nhập email của bạn');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error('Reset password error:', error);
+        throw error;
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('Reset password response:', data);
+      toast.success('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư.');
+    } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error('Full error object:', error);
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuickLogin = (user: User) => {
+    onLogin(user);
+    toast.success(`Đăng nhập nhanh thành công, ${user.name}!`);
+  };
 
   // Hàm handleGoogleLogin mới - Gọi trực tiếp Supabase và kích hoạt chuyển hướng
   const handleGoogleLogin = async () => {
@@ -238,7 +260,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password" className="text-gray-700 font-medium">Mật khẩu</Label>
                         {!isSignUp && (
-                          <a href="#" className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors">Quên mật khẩu?</a>
+                          <button
+                            type="button"
+                            onClick={handleForgotPassword}
+                            disabled={isLoading}
+                            className="text-xs font-medium text-[#1E88E5] hover:text-[#1565C0] hover:underline transition-colors disabled:opacity-50"
+                          >
+                            Quên mật khẩu?
+                          </button>
                         )}
                       </div>
                       <div className="relative group">
@@ -313,7 +342,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
 
 
-                  
+
                 </CardContent>
                 <CardFooter className="flex-col space-y-3 text-center text-sm text-gray-600 px-8 pb-8">
                   <p className="text-xs text-gray-500">

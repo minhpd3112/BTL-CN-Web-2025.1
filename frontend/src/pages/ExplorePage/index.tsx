@@ -48,7 +48,14 @@ export function ExplorePage({ navigateTo, setSelectedCourse, currentUser }: Expl
   useEffect(() => {
     tagsAPI.getAllTags().then((res) => {
       if (Array.isArray(res.data)) {
-        setAllTags(['all', ...res.data.map((t: any) => t.name)]);
+        let tagNames = res.data.map((t: any) => t.name);
+        // Sort tags: "Others" always at the end
+        tagNames = tagNames.sort((a: string, b: string) => {
+          if (a.toLowerCase() === 'others') return 1;
+          if (b.toLowerCase() === 'others') return -1;
+          return a.localeCompare(b);
+        });
+        setAllTags(['all', ...tagNames]);
       }
     });
   }, []);

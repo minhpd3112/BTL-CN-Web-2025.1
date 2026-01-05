@@ -1,6 +1,23 @@
 import { supabaseAdmin } from '../config/supabase';
 import type { User } from '../types';
 
+// Normalize user data to ensure all fields are present
+const normalizeUser = (profile: any, authUser?: any): any => {
+  return {
+    id: profile.id,
+    full_name: profile.full_name || null,
+    avatar_url: profile.avatar_url || null,
+    phone: profile.phone || null,
+    address: profile.address || null,
+    bio: profile.bio || null,
+    email: authUser?.email || profile.email || null,
+    role: authUser?.user_metadata?.role || profile.role || 'user',
+    status: 'active', // Default status
+    created_at: profile.created_at || authUser?.created_at || null,
+    updated_at: profile.updated_at || authUser?.updated_at || null,
+  };
+};
+
 export const UserModel = {
   async ensureAdminExists() {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
@@ -47,30 +64,24 @@ export const UserModel = {
     }
   },
   async findByEmail(email: string) {
-    // Find in Auth first
-    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-    const user = users?.find(u => u.email === email);
+    // 1. Find user in Auth (since user_profiles doesn't store email)
+    // Note: This iterates all users, which is fine for small scale. 
+    // For large scale, we should store email in profiles or index metadata.
+    const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
+    if (error) throw error;
 
-    if (!user) return null;
+    const authUser = users.find(u => u.email === email);
+    if (!authUser) return null;
 
-    const { data, error } = await supabaseAdmin
+    // 2. Find profile
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', authUser.id)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw error;
-    }
-
-    // Merge auth data
-    return {
-      ...data,
-      email: user.email,
-      role: user.user_metadata?.role || 'user',
-      username: user.user_metadata?.username
-    };
+    if (profileError) throw profileError;
+    return normalizeUser(profile, authUser);
   },
   async findAll() {
     // 1. Lấy tất cả user_profiles
@@ -88,29 +99,23 @@ export const UserModel = {
     // 3. Merge role và email từ auth.users vào profile
     const merged = profiles.map((profile: any) => {
       const authUser = authUsers.users.find((u: any) => u.id === profile.id);
-      let role = profile.role;
-      let email = profile.email;
-      if (authUser) {
-        if (authUser.user_metadata && authUser.user_metadata.role) {
-          role = authUser.user_metadata.role;
-        }
-        if (authUser.email) {
-          email = authUser.email;
-        }
-      }
-      return { ...profile, role, email };
+      return normalizeUser(profile, authUser);
     });
+
     return merged;
   },
 
   async findById(id: string) {
-    const { data, error } = await supabaseAdmin
+    const { data: profile, error } = await supabaseAdmin
       .from('user_profiles')
       .select('*')
       .eq('id', id)
       .single();
     if (error) throw error;
-    return data;
+
+    // Get auth user data for email and metadata
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(id);
+    return normalizeUser(profile, authData?.user);
   },
 
   async create(userData: Partial<User>) {
@@ -190,7 +195,8 @@ export const UserModel = {
       if (authError) throw authError;
     } catch (error: any) {
       if (error?.status === 404 || error?.code === 'user_not_found' || error?.message?.includes('User not found')) {
-        // Silent success
+        // Silent success - user already deleted from Auth
+        console.warn('[UserModel] User not found in Auth, ignoring error since profile is already deleted.');
       } else {
         throw error;
       }

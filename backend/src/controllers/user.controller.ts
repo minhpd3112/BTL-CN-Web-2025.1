@@ -8,6 +8,7 @@ export const userController = {
       const users = await UserModel.findAll();
       res.json({ success: true, data: users });
     } catch (error: any) {
+      console.error('Get users error:', error);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to fetch users',
@@ -19,6 +20,7 @@ export const userController = {
   async deleteUser(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      console.log('[UserController] Deleting user:', id);
       if (!id) {
         return res.status(httpStatus.BAD_REQUEST).json({
           success: false,

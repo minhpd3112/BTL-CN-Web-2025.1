@@ -1,36 +1,62 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase, notificationsAPI } from '@/services/api';
-import {
-  mockUsers,
-  mockCourses,
-  mockEnrollmentRequests,
-} from '@/services/mocks';
-
-// Helper to update enrolledUsers in mockCourses
-function addUserToCourseEnrolledUsers(courseId: string, userId: number) {
-  const course = mockCourses.find(c => c.id === courseId);
-  if (course && !course.enrolledUsers.includes(userId)) {
-    course.enrolledUsers.push(userId);
-  }
-}
+import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, getSecureItemFast, setSecureItemFast } from '@/utils/secureStorage';
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
-
-// --- MOCK DATA (Giữ bên ngoài Hook) ---
-const mockNotifications: Notification[] = [
-  // ... Giữ nguyên mảng notifications của bạn ở đây
-];
+import { authAPI } from '@/services/api';
 
 export function useDemoAppState() {
   // 1. TẤT CẢ KHAI BÁO STATE NẰM Ở ĐẦU
+  // Initialize from secure storage to persist Admin session
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('user_data');
-    return saved ? JSON.parse(saved) : null;
+    const stored = authAPI.getStoredUser();
+    console.log('[useDemoAppState] Initializing currentUser, stored:', stored);
+    if (stored) {
+      // Map backend user to frontend User type if necessary
+      // Check if it looks like a backend user (has full_name but not name?)
+      if (!stored.name && (stored.full_name || stored.email)) {
+        return {
+          ...stored,
+          id: stored.id || 'admin',
+          name: stored.full_name || stored.name || 'Admin',
+          username: stored.username || stored.email?.split('@')[0] || 'admin',
+          email: stored.email || '',
+          avatar: stored.avatar || stored.avatar_url || '',
+          role: stored.role || 'user',
+          joinedDate: stored.joinedDate || new Date().toISOString(),
+          coursesCreated: stored.coursesCreated || 0,
+          coursesEnrolled: stored.coursesEnrolled || 0,
+          totalStudents: stored.totalStudents || 0,
+          status: stored.status || 'active',
+        } as User;
+      }
+      return stored as User;
+    }
+    return null;
   });
+
+  // Set initial page based on auth state or URL
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const saved = localStorage.getItem('user_data');
-    return saved ? 'home' : 'login';
+    // 1. Priority: URL params
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page') as Page;
+      if (pageParam) return pageParam;
+    }
+    // 2. Fallback: Auth state
+    const stored = authAPI.getStoredUser();
+    if (stored) {
+      return stored.role === 'admin' ? 'admin-dashboard' : 'home';
+    }
+    return 'login';
   });
+
+  const [isRestoringSession, setIsRestoringSession] = useState(false); // No restore needed
+
+  // Init selectedCourse from URL if present
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  // Note: We no longer synchronous load from mockCourses.
+  // The CourseDetailPage or App logic should fetch course data based on URL ID if needed.
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,50 +65,71 @@ export function useDemoAppState() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
 
-
-
-  // 2. EFFECT LẮNG NGHE AUTH & FETCH NOTIFICATIONS
+  // 2. SIMPLE SESSION RESTORE (using onAuthStateChange only - no manual getSession)
   useEffect(() => {
-    // Listen for login events (for social login)
+    setIsRestoringSession(false);
+  }, []);
+
+  // 3. AUTH STATE LISTENER (for OAuth callback only - simplified)
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session && event === 'SIGNED_IN' && !currentUser) {
-        // ...existing code for login event...
+      console.log('[useDemoAppState] Auth Event:', event, 'Session User:', session?.user?.id);
+
+      // Only handle INITIAL_SESSION (page refresh) and TOKEN_REFRESHED
+      // Email/password login is handled in LoginPage directly
+      if (event === 'INITIAL_SESSION' && session) {
+        // Fetch profile from database (non-blocking)
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
+
         const metadata = session.user.user_metadata;
-        let joinedDate = '';
-        if (profile?.created_at) {
-          joinedDate = typeof profile.created_at === 'string' ? profile.created_at : new Date(profile.created_at).toISOString();
-        } else {
-          joinedDate = new Date().toISOString();
+        const realRole = metadata?.role || 'user';
+
+        // Stale storage fix: Allow update if currentUser is null OR role mismatch
+        if (!currentUser || currentUser.role !== realRole) {
+          console.log(`[useDemoAppState] Updating session. Current: ${currentUser?.role}, Session: ${realRole}`);
+
+          const user = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: profile?.full_name || metadata?.full_name || metadata?.name || 'User',
+            avatar: profile?.avatar_url || metadata?.avatar_url || metadata?.picture || '',
+            phone: profile?.phone || '',
+            location: profile?.address || '',
+            bio: profile?.bio || '',
+            role: realRole,
+            joinedDate: profile?.created_at || session.user.created_at || new Date().toISOString(),
+            status: 'active',
+            coursesCreated: 0,
+            totalStudents: 0
+          };
+
+          // Store tokens
+          setSecureItemFallback('auth_token', session.access_token);
+          setSecureItemFallback('user_id', session.user.id);
+
+          setCurrentUser(user as any);
+
+          // Only redirect if NO page param was present (avoid overwriting deep link)
+          const params = new URLSearchParams(window.location.search);
+          if (!params.get('page')) {
+            if (user.role === 'admin') {
+              setCurrentPage('admin-dashboard');
+            } else if (!currentUser) {
+              setCurrentPage('home');
+            }
+          }
         }
-        const user = {
-          id: session.user.id,
-          email: session.user.email || '',
-          name: profile?.full_name || metadata?.full_name || metadata?.name || '',
-          avatar: profile?.avatar_url || metadata?.avatar_url || metadata?.picture || '',
-          phone: profile?.phone || '',
-          location: profile?.address || '',
-          bio: profile?.bio || '',
-          role: 'user',
-          joinedDate,
-          status: 'active',
-          coursesCreated: 0,
-          totalStudents: 0
-        };
-        localStorage.setItem('auth_token', session.access_token);
-        localStorage.setItem('user_data', JSON.stringify(user));
-        setCurrentUser(user as any);
-        setCurrentPage('home');
       }
     });
-    return () => subscription.unsubscribe();
-  }, [currentUser]);
 
-  // Always fetch notifications when currentUser changes (login, reload, etc)
+    return () => subscription.unsubscribe();
+  }, [currentUser]); // Keep dependency to prevent duplicate logins
+
+  // 4. FETCH NOTIFICATIONS
   useEffect(() => {
     if (currentUser) {
       notificationsAPI.getMyNotifications()
@@ -100,33 +147,73 @@ export function useDemoAppState() {
     }
   }, [currentUser]);
 
-  // 3. TẤT CẢ CÁC HÀM LOGIC (useCallback)
+  // --- BROWSER HISTORY SYNC ---
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const page = (params.get('page') as Page) || 'home';
+      const courseId = params.get('courseId');
+
+      console.log('[useDemoAppState] PopState:', page, courseId);
+      setCurrentPage(page);
+
+      if (courseId) {
+        // Should fetch course by ID asynchronously if not already selected
+        // For now, we rely on the component route to fetch data if selectedCourse is null
+        console.log('[useDemoAppState] PopState courseId:', courseId);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []); // Run once on mount
+
+  // 5. TẤT CẢ CÁC HÀM LOGIC (useCallback)
   const navigateTo = useCallback((page: Page, course?: Course) => {
     setCurrentPage(page);
     if (course) setSelectedCourse(course);
     setSidebarOpen(false);
     window.scrollTo(0, 0);
+
+    // Sync to URL
+    const params = new URLSearchParams();
+    params.set('page', page);
+    if (course) {
+      params.set('courseId', course.id);
+    }
+
+    // Check if new state is different to avoid duplicate history entries
+    const currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.get('page') !== page || currentParams.get('courseId') !== (course?.id || null)) {
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.pushState({}, '', newUrl);
+    }
+
   }, []);
 
   const handleLogin = useCallback((user: User, googlePicture?: string) => {
     setCurrentUser(user);
     if (googlePicture) setUserGooglePicture(googlePicture);
-    localStorage.setItem('user_data', JSON.stringify(user));
+    // Note: auth_token should already be stored by LoginPage before calling this
     navigateTo('home');
   }, [navigateTo]);
 
   const handleLogout = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch (e) { console.error(e); }
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('auth_token');
+    removeSecureItem('auth_token');
+    removeSecureItem('user_id');
+    removeSecureItem('user_data');
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');
+    // Clear URL params on logout
+    window.history.pushState({}, '', '/?page=login');
   }, []);
 
   const handleUpdateUser = useCallback((updatedUser: User) => {
     setCurrentUser(updatedUser);
-    localStorage.setItem('user_data', JSON.stringify(updatedUser));
+    // Store ONLY auth token and user ID - not full user data
+    localStorage.setItem('user_id', updatedUser.id);
   }, []);
 
   const isOwner = useCallback((course: Course) =>
@@ -239,6 +326,7 @@ export function useDemoAppState() {
     const status = isPublic ? 'approved' : 'pending';
     const newRequest = { ...request, id: Date.now(), status, requestedAt: new Date().toLocaleString() };
     setEnrollmentRequests(prev => [...prev, newRequest]);
+    // Nếu là public, cập nhật enrolledUsers không cần thiết vì API đã xử lý
     // Gọi callback nếu có (để cập nhật UI ngay)
     if (request.onSuccess && typeof request.onSuccess === 'function') {
       request.onSuccess();
@@ -267,7 +355,8 @@ export function useDemoAppState() {
     enrollmentRequests,
     currentRole,
     unreadCount,
-  }), [currentUser, currentPage, selectedCourse, selectedUser, selectedTag, sidebarOpen, userGooglePicture, userNotifications, showNotifications, enrollmentRequests, currentRole, unreadCount]);
+    isRestoringSession, // Add this to prevent premature redirects
+  }), [currentUser, currentPage, selectedCourse, selectedUser, selectedTag, sidebarOpen, userGooglePicture, userNotifications, showNotifications, enrollmentRequests, currentRole, unreadCount, isRestoringSession]);
 
   const actions = useMemo(() => ({
     navigateTo,

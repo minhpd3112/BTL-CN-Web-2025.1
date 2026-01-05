@@ -44,7 +44,9 @@ export const ReviewController = {
             // Check course completion percentage
             const progress = await EnrollmentModel.getProgress(userId, course_id);
 
-            if (progress.percentage < 100) {
+            // Allow review if completed all lessons OR percentage is 100
+            const isCompleted = progress.total > 0 && progress.completed >= progress.total;
+            if (!isCompleted && progress.percentage < 100) {
                 return res.status(httpStatus.FORBIDDEN).json({
                     success: false,
                     message: 'You must complete 100% of the course before leaving a review',

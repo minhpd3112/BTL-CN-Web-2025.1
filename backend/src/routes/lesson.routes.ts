@@ -1,21 +1,23 @@
 import { Router } from 'express';
 import { LessonController } from '@controllers/lesson.controller';
+import { authenticate } from '@middlewares/auth.middleware';
+import { readLimiter, createLimiter, apiLimiter } from '@middlewares/rateLimiter';
 
 const router = Router();
 
-// Public routes
-router.get('/section/:sectionId', LessonController.getBySectionId);
-router.get('/:id', LessonController.getById);
+// Public routes - Higher limit for read operations
+router.get('/section/:sectionId', readLimiter, LessonController.getBySectionId);
+router.get('/:id', readLimiter, LessonController.getById);
 
-// Protected routes (TEMPORARY - no auth)
-router.post('/', LessonController.create);
-router.patch('/:id', LessonController.update);
-router.delete('/:id', LessonController.delete);
-router.post('/reorder', LessonController.reorder);
+// Protected routes - Requires authentication
+router.post('/', createLimiter, authenticate, LessonController.create);
+router.patch('/:id', apiLimiter, authenticate, LessonController.update);
+router.delete('/:id', apiLimiter, authenticate, LessonController.delete);
+router.post('/reorder', apiLimiter, authenticate, LessonController.reorder);
 
-// Quiz routes
-router.post('/:id/quiz', LessonController.addQuizQuestions);
-router.patch('/quiz/:questionId', LessonController.updateQuizQuestion);
-router.delete('/quiz/:questionId', LessonController.deleteQuizQuestion);
+// Quiz routes - Requires authentication
+router.post('/:id/quiz', createLimiter, authenticate, LessonController.addQuizQuestions);
+router.patch('/quiz/:questionId', apiLimiter, authenticate, LessonController.updateQuizQuestion);
+router.delete('/quiz/:questionId', apiLimiter, authenticate, LessonController.deleteQuizQuestion);
 
 export default router;

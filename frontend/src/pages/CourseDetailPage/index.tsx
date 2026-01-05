@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogFooter as ConfirmDialogFooter } from '@/components/ui/dialog';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
-import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI } from '@/services/api';
+import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI, usersAPI } from '@/services/api';
 import { ReviewForm } from '@/components/shared/ReviewForm';
 import { StarRating } from '@/components/shared/StarRating';
 import ReactMarkdown from 'react-markdown';
@@ -64,6 +64,8 @@ interface CourseDetailPageProps {
   enrollmentRequests?: any[];
   onEnrollRequest?: (request: any) => void;
   setSelectedUser?: (user: User) => void;
+  setSelectedTag?: (tag: any) => void;
+  isOwner?: boolean;
 }
 
 
@@ -74,13 +76,15 @@ export function CourseDetailPage({
   canAccess,
   enrollmentRequests,
   onEnrollRequest,
-  setSelectedUser
+  setSelectedUser,
+  setSelectedTag,
+  isOwner: isOwnerProp
 }: CourseDetailPageProps) {
-  // Robust owner detection
-  const isOwner = currentUser && (
+  // Robust owner detection: Use prop if available, otherwise check internally
+  const isOwner = isOwnerProp ?? (currentUser && (
     (course.ownerId && course.ownerId === currentUser.id) ||
     (course.owner?.id && course.owner?.id === currentUser.id)
-  );
+  ));
   // Loading state for access check
   // ...
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
@@ -195,25 +199,61 @@ export function CourseDetailPage({
     setEnrollMessage('');
   };
 
-  const handleOwnerClick = () => {
-    if (setSelectedUser && course.ownerId) {
-      // Create user object from course owner data
-      const owner: User = {
-        id: course.ownerId,
-        username: course.ownerName?.toLowerCase().replace(/\s+/g, '') || 'unknown',
-        name: course.ownerName || 'Unknown',
-        email: '',
-        avatar: course.ownerAvatar || '',
-        role: 'user',
-        joinedDate: '',
-        coursesCreated: 0,
-        coursesEnrolled: 0,
-        totalStudents: 0,
-        status: 'active',
-        lastLogin: ''
-      };
-      setSelectedUser(owner);
-      navigateTo('user-detail');
+  const handleOwnerClick = async () => {
+    if (setSelectedUser && fullCourse?.owner) {
+      try {
+        // Fetch full user data from API
+        const usersRes = await usersAPI.getAllUsers();
+        const fullUser = usersRes.data?.find((u: User) => u.id === fullCourse.owner.id);
+
+        if (fullUser) {
+          setSelectedUser(fullUser);
+          navigateTo('user-detail');
+        } else {
+          // Fallback: create user object from owner data if API fails
+          const ownerUser: User = {
+            id: fullCourse.owner.id,
+            username: fullCourse.owner.full_name,
+            name: fullCourse.owner.full_name,
+            fullName: fullCourse.owner.full_name,
+            full_name: fullCourse.owner.full_name,
+            email: '', // Not available from course owner
+            avatar: fullCourse.owner.avatar_url || '',
+            avatar_url: fullCourse.owner.avatar_url,
+            role: 'user',
+            joinedDate: '',
+            coursesCreated: 0,
+            coursesEnrolled: 0,
+            totalStudents: 0,
+            status: 'active',
+            lastLogin: ''
+          };
+          setSelectedUser(ownerUser);
+          navigateTo('user-detail');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Use fallback data on error
+        const ownerUser: User = {
+          id: fullCourse.owner.id,
+          username: fullCourse.owner.full_name,
+          name: fullCourse.owner.full_name,
+          fullName: fullCourse.owner.full_name,
+          full_name: fullCourse.owner.full_name,
+          email: '',
+          avatar: fullCourse.owner.avatar_url || '',
+          avatar_url: fullCourse.owner.avatar_url,
+          role: 'user',
+          joinedDate: '',
+          coursesCreated: 0,
+          coursesEnrolled: 0,
+          totalStudents: 0,
+          status: 'active',
+          lastLogin: ''
+        };
+        setSelectedUser(ownerUser);
+        navigateTo('user-detail');
+      }
     }
   };
 
@@ -411,10 +451,13 @@ export function CourseDetailPage({
 
           if (enrollment?.progress) {
             const percentage = enrollment.progress.percentage || 0;
+            const completed = enrollment.progress.completed || 0;
+            const total = enrollment.progress.total || 0;
             // ...existing code...
             setCourseProgress(percentage);
-            // Can review if 100% complete
-            setCanReview(percentage >= 100);
+            // Can review if completed all lessons OR percentage is 100
+            const isCompleted = total > 0 && completed >= total;
+            setCanReview(isCompleted || percentage >= 100);
           } else {
             // ...existing code...
             setCourseProgress(0);
@@ -543,6 +586,7 @@ export function CourseDetailPage({
 
                     return tags.slice(0, 3).map((item: any, index: number) => {
                       // Handle nested structure: {tag: {name: 'React'}} or direct {name: 'React'} or string
+                      const tagData = typeof item === 'string' ? null : (item.tag || item);
                       const tagName = typeof item === 'string'
                         ? item
                         : (item.tag?.name || item.name || item.tag_name || '');
@@ -550,7 +594,16 @@ export function CourseDetailPage({
                       if (!tagName) return null;
 
                       return (
-                        <Badge key={index} className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal">
+                        <Badge
+                          key={index}
+                          className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal cursor-pointer transition-all hover:scale-105"
+                          onClick={() => {
+                            if (setSelectedTag && tagData) {
+                              setSelectedTag(tagData);
+                              navigateTo('tag-detail');
+                            }
+                          }}
+                        >
                           {tagName}
                         </Badge>
                       );

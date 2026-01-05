@@ -10,6 +10,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import { notFoundHandler } from './middlewares/notFoundHandler';
 
 const app: Express = express();
+app.set('trust proxy', 1); // Trust first proxy (Nginx)
 
 // ============= DATABASE CONNECTION TEST =============
 (async () => {
@@ -23,11 +24,34 @@ const app: Express = express();
 })();
 
 // ============= MIDDLEWARES =============
-app.use(helmet()); // Security headers
+// Security headers with strict CSP
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+  strictTransportSecurity: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xssFilter: true,
+  noSniff: true,
+  frameguard: { action: 'deny' },
+}));
+
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // CORS
 app.use(morgan('dev')); // Logging
 app.use(express.json({ limit: '50mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Parse URL-encoded bodies
+
+// Additional security middleware: Disable powered-by header
+app.disable('x-powered-by');
 
 // ============= HEALTH CHECK =============
 app.get('/', (req, res) => {

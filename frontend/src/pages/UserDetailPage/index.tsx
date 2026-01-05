@@ -18,12 +18,6 @@ interface UserDetailPageProps {
 }
 
 export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDetailPageProps) {
-  // DEBUG LOGGING
-  console.log('=== UserDetailPage Props ===');
-  console.log('user:', user);
-  console.log('user?.id:', user?.id);
-  console.log('user keys:', user ? Object.keys(user) : 'user is null/undefined');
-
   // State for user's courses
   const [userCourses, setUserCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -38,21 +32,16 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
   useEffect(() => {
     async function fetchUserCourses() {
       if (!user?.id) {
-        console.log('User ID not available, skipping fetch');
         return;
       }
       setLoadingCourses(true);
       setCoursesError(null);
-      console.log('Fetching courses for user:', user.id);
       try {
         const res = await coursesAPI.getAllCourses({ isAdmin: true });
-        console.log('All courses:', res.data);
-        console.log('First course:', res.data?.[0]);
         // Filter courses by owner_id === user.id (API returns owner_id in snake_case)
         const filtered = (res.data || []).filter((course: any) => {
           return course.owner_id === user.id || course.ownerId === user.id;
         });
-        console.log('Filtered courses for user:', filtered);
         setUserCourses(filtered);
       } catch (e) {
         console.error('Error fetching courses:', e);
@@ -67,16 +56,14 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
 
   // Helper function to get display name
   const getFullName = () => {
-    const name = user?.full_name || user?.fullName || user?.name || user?.username || 'Không rõ';
-    console.log('getFullName:', name);
-    return name;
+    return user?.full_name || user?.fullName || user?.name || user?.username || 'Không rõ';
   };
 
   // Helper function to get email
   const getEmail = () => {
-    const email = user?.email || 'Không rõ';
-    console.log('getEmail:', email);
-    return email;
+    // Trim and check for empty string
+    const email = user?.email?.trim();
+    return email && email.length > 0 ? email : 'Không rõ';
   };
 
   if (!user) {
@@ -117,9 +104,6 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
                   </AvatarFallback>
                 )}
               </Avatar>
-              {user?.status === 'active' && (
-                <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-white" />
-              )}
             </div>
 
             {/* User Info */}
@@ -135,18 +119,11 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
                   >
                     {user?.role === 'admin' ? 'Admin' : 'User'}
                   </Badge>
-                  {user?.status === 'active' && (
-                    <Badge className="bg-green-100 text-green-700">
-                      Đang hoạt động
-                    </Badge>
-                  )}
                 </div>
               </div>
 
               {/* Bio */}
-              {user?.bio && (
-                <p className="text-gray-600 mb-4">{user.bio}</p>
-              )}
+              <p className="text-gray-600 mb-4">{user?.bio || 'Chưa có mô tả'}</p>
 
               {/* Quick Info Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -154,18 +131,14 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
                   <Mail className="w-4 h-4 text-[#1E88E5]" />
                   <span className="truncate">{getEmail()}</span>
                 </div>
-                {user?.phone && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4 text-[#1E88E5]" />
-                    <span>{user.phone}</span>
-                  </div>
-                )}
-                {(user?.address || user?.location) && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <MapPin className="w-4 h-4 text-[#1E88E5]" />
-                    <span className="truncate">{user.address || user.location}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Phone className="w-4 h-4 text-[#1E88E5]" />
+                  <span>{user?.phone || 'Chưa cập nhật'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="w-4 h-4 text-[#1E88E5]" />
+                  <span className="truncate">{user?.address || user?.location || 'Chưa cập nhật'}</span>
+                </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="w-4 h-4 text-[#1E88E5]" />
                   <span>Tham gia: {user?.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : (user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A')}</span>
@@ -211,7 +184,7 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tổng học viên</p>
-                <p className="text-3xl font-bold text-gray-900">{user?.totalStudents ?? 0}</p>
+                <p className="text-3xl font-bold text-gray-900">{userCourses.reduce((sum, course) => sum + (course.students || 0), 0)}</p>
               </div>
               <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-500/30">
                 <Users className="w-6 h-6" />
@@ -228,7 +201,14 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Đánh giá TB</p>
-                <p className="text-3xl font-bold text-gray-900">-</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {(() => {
+                    const coursesWithRating = userCourses.filter(course => course.rating && course.rating > 0);
+                    return coursesWithRating.length > 0
+                      ? (coursesWithRating.reduce((sum, course) => sum + course.rating, 0) / coursesWithRating.length).toFixed(1)
+                      : '-';
+                  })()}
+                </p>
               </div>
               <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-yellow-500/30">
                 <Star className="w-6 h-6" />
