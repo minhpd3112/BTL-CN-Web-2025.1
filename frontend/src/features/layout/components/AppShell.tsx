@@ -17,7 +17,6 @@ import { ApproveCoursesPage } from '@/pages/ApproveCoursesPage';
 import { CreateCoursePage } from '@/pages/CreateCoursePage';
 import { CourseDashboardPage } from '@/pages/CourseDashboardPage';
 import { LearningPage } from '@/pages/LearningPage';
-import { QuizPage } from '@/pages/QuizPage';
 import { ManageTagsPage } from '@/pages/ManageTagsPage';
 import Lottie from 'lottie-react';
 import avatarFrameAnimation from '@/components/christmas/Entri Christmas.json';
@@ -226,86 +225,86 @@ export function AppShell({ state, actions }: AppShellProps) {
                     </div>
                     {currentRole === 'admin'
                       ? (notifications.filter(n => n.type === 'course_pending_review').length > 0 ? (
-                          <ScrollArea className="h-[400px]">
-                            <div className="divide-y">
-                              {notifications.filter(n => n.type === 'course_pending_review').map(notification => {
-                                const isRead = notification.read || readSet.has(String(notification.id));
-                                return (
-                                  <button
-                                    key={notification.id}
-                                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!isRead ? 'bg-blue-50/70' : 'bg-white'}`}
-                                    onClick={() => {
-                                      if (!isRead) setReadSet(prev => new Set(prev).add(String(notification.id)));
-                                      handleNotificationClick(notification);
-                                      setShowNotifications(false);
-                                      setIsNotificationsPinned(false);
-                                    }}
-                                  >
-                                    <div className="flex gap-3">
-                                      <div className="flex-shrink-0 mt-1 text-yellow-500"><Bell className="w-5 h-5" /></div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className={`text-sm ${!isRead ? 'font-medium' : ''}`}>{notification.title}</p>
-                                        <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
-                                      </div>
+                        <ScrollArea className="h-[400px]">
+                          <div className="divide-y">
+                            {notifications.filter(n => n.type === 'course_pending_review').map(notification => {
+                              const isRead = notification.read || readSet.has(String(notification.id));
+                              return (
+                                <button
+                                  key={notification.id}
+                                  className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!isRead ? 'bg-blue-50/70' : 'bg-white'}`}
+                                  onClick={() => {
+                                    if (!isRead) setReadSet(prev => new Set(prev).add(String(notification.id)));
+                                    handleNotificationClick(notification);
+                                    setShowNotifications(false);
+                                    setIsNotificationsPinned(false);
+                                  }}
+                                >
+                                  <div className="flex gap-3">
+                                    <div className="flex-shrink-0 mt-1 text-yellow-500"><Bell className="w-5 h-5" /></div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`text-sm ${!isRead ? 'font-medium' : ''}`}>{notification.title}</p>
+                                      <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
                                     </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </ScrollArea>
-                        ) : <div className="p-12 text-center text-gray-500"><p>Chưa có thông báo khoá học cần duyệt</p></div>)
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      ) : <div className="p-12 text-center text-gray-500"><p>Chưa có thông báo khoá học cần duyệt</p></div>)
                       : (notifications.length > 0 ? (
-                          <ScrollArea className="h-[400px]">
-                            <div className="divide-y">
-                              {notifications.map(notification => {
-                                let Icon = Bell;
-                                let color = 'text-gray-400';
-                                switch (notification.type) {
-                                  case 'course_approved':
-                                    Icon = CheckCircle;
-                                    color = 'text-green-500';
-                                    break;
-                                  case 'course_rejected':
-                                    Icon = AlertCircle;
-                                    color = 'text-red-500';
-                                    break;
-                                  case 'student_joined':
-                                    Icon = UserPlus;
-                                    color = 'text-blue-500';
-                                    break;
-                                  case 'course_completed':
-                                    Icon = Award;
-                                    color = 'text-yellow-500';
-                                    break;
-                                  default:
-                                    Icon = Bell;
-                                    color = 'text-gray-400';
-                                }
-                                const isRead = notification.read || readSet.has(String(notification.id));
-                                return (
-                                  <button
-                                    key={notification.id}
-                                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!isRead ? 'bg-blue-50/70' : 'bg-white'}`}
-                                    onClick={() => {
-                                      if (!isRead) setReadSet(prev => new Set(prev).add(String(notification.id)));
-                                      handleNotificationClick(notification);
-                                      setShowNotifications(false);
-                                      setIsNotificationsPinned(false);
-                                    }}
-                                  >
-                                    <div className="flex gap-3">
-                                      <div className={`flex-shrink-0 mt-1 ${color}`}><Icon className="w-5 h-5" /></div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className={`text-sm ${!isRead ? 'font-medium' : ''}`}>{notification.title}</p>
-                                        <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
-                                      </div>
+                        <ScrollArea className="h-[400px]">
+                          <div className="divide-y">
+                            {notifications.map(notification => {
+                              let Icon = Bell;
+                              let color = 'text-gray-400';
+                              switch (notification.type) {
+                                case 'course_approved':
+                                  Icon = CheckCircle;
+                                  color = 'text-green-500';
+                                  break;
+                                case 'course_rejected':
+                                  Icon = AlertCircle;
+                                  color = 'text-red-500';
+                                  break;
+                                case 'student_joined':
+                                  Icon = UserPlus;
+                                  color = 'text-blue-500';
+                                  break;
+                                case 'course_completed':
+                                  Icon = Award;
+                                  color = 'text-yellow-500';
+                                  break;
+                                default:
+                                  Icon = Bell;
+                                  color = 'text-gray-400';
+                              }
+                              const isRead = notification.read || readSet.has(String(notification.id));
+                              return (
+                                <button
+                                  key={notification.id}
+                                  className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${!isRead ? 'bg-blue-50/70' : 'bg-white'}`}
+                                  onClick={() => {
+                                    if (!isRead) setReadSet(prev => new Set(prev).add(String(notification.id)));
+                                    handleNotificationClick(notification);
+                                    setShowNotifications(false);
+                                    setIsNotificationsPinned(false);
+                                  }}
+                                >
+                                  <div className="flex gap-3">
+                                    <div className={`flex-shrink-0 mt-1 ${color}`}><Icon className="w-5 h-5" /></div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`text-sm ${!isRead ? 'font-medium' : ''}`}>{notification.title}</p>
+                                      <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
                                     </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </ScrollArea>
-                        ) : <div className="p-12 text-center text-gray-500"><p>Chưa có thông báo nào</p></div>)}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      ) : <div className="p-12 text-center text-gray-500"><p>Chưa có thông báo nào</p></div>)}
                   </PopoverContent>
                 </Popover>
               </div>

@@ -151,7 +151,7 @@ export const courseController = {
           const { NotificationModel } = require('../models/notification.model');
           await NotificationModel.createNotification({
             user_id: adminUser.id,
-            type: 'course_pending',
+            type: 'course_pending_review',
             title: 'Khoá học cần duyệt',
             message: `Khoá học "${course.title}" vừa được tạo và cần duyệt.`,
             related_course_id: course.id,

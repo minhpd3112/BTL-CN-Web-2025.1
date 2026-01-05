@@ -2,7 +2,7 @@ import { Search, Plus, TrendingUp, BookOpen, Users, Tag, Sparkles } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/shared/CourseCard';
-// import { mockCourses, mockTags } from '@/services/mocks';
+
 import { coursesAPI, tagsAPI } from '@/services/api';
 import { Course, User, Page, Tag as TagType } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
@@ -221,22 +221,22 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
               .sort((a, b) => (b.students || 0) - (a.students || 0))
               .slice(0, 6)
               .map((course, index) => (
-              <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
-                <ChristmasCardWrapper>
-                  <CourseCard
-                    course={course}
-                    onClick={() => {
-                      setSelectedCourse(course);
-                      navigateTo('course-detail');
-                    }}
-                    currentUserId={currentUser?.id}
-                    currentRole={currentUser?.role}
-                    isEnrolled={enrolledCourseIds.includes(course.id)}
-                    onJoinSuccess={handleJoinSuccess}
-                  />
-                </ChristmasCardWrapper>
-              </AnimatedSection>
-            ))
+                <AnimatedSection key={course.id} animation="fade-up" delay={index * 100} className="h-full">
+                  <ChristmasCardWrapper>
+                    <CourseCard
+                      course={course}
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        navigateTo('course-detail');
+                      }}
+                      currentUserId={currentUser?.id}
+                      currentRole={currentUser?.role}
+                      isEnrolled={enrolledCourseIds.includes(course.id)}
+                      onJoinSuccess={handleJoinSuccess}
+                    />
+                  </ChristmasCardWrapper>
+                </AnimatedSection>
+              ))
           )}
         </div>
       </div >

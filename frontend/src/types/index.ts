@@ -54,8 +54,6 @@ export interface Course {
   description: string;
   overview?: string;
   ownerId: string; // uuid
-  ownerName?: string; // For mock data compatibility
-  ownerAvatar?: string; // For mock data compatibility
   owner?: CourseOwner; // Thông tin owner trả về từ API mới
   rating: number;
   students: number;
@@ -191,7 +189,6 @@ export type Page =
   | 'explore'
   | 'course-detail'
   | 'learning'
-  | 'quiz'
   | 'create-course'
   | 'edit-course'
   | 'course-dashboard'

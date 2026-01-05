@@ -1,26 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase, notificationsAPI } from '@/services/api';
 import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, getSecureItemFast, setSecureItemFast } from '@/utils/secureStorage';
-import {
-  mockUsers,
-  mockCourses,
-  mockEnrollmentRequests,
-} from '@/services/mocks';
-
-// Helper to update enrolledUsers in mockCourses
-function addUserToCourseEnrolledUsers(courseId: string, userId: number) {
-  const course = mockCourses.find(c => c.id === courseId);
-  if (course && !course.enrolledUsers.includes(userId)) {
-    course.enrolledUsers.push(userId);
-  }
-}
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
-
-// --- MOCK DATA (Giữ bên ngoài Hook) ---
-const mockNotifications: Notification[] = [
-  // ... Giữ nguyên mảng notifications của bạn ở đây
-];
-
 import { authAPI } from '@/services/api';
 
 export function useDemoAppState() {
@@ -72,20 +53,9 @@ export function useDemoAppState() {
   const [isRestoringSession, setIsRestoringSession] = useState(false); // No restore needed
 
   // Init selectedCourse from URL if present
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const courseId = params.get('courseId');
-      // Note: This is synchronous mock data check. Real data might need async fetch in useEffect.
-      // For now, we trust async fetch in useEffect to populate if needed, 
-      // or we try to find in mockCourses if available
-      if (courseId) {
-        const course = mockCourses.find(c => c.id === courseId);
-        return course || null;
-      }
-    }
-    return null;
-  });
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  // Note: We no longer synchronous load from mockCourses.
+  // The CourseDetailPage or App logic should fetch course data based on URL ID if needed.
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
@@ -93,7 +63,7 @@ export function useDemoAppState() {
   const [userGooglePicture, setUserGooglePicture] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>(mockEnrollmentRequests);
+  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
 
   // 2. SIMPLE SESSION RESTORE (using onAuthStateChange only - no manual getSession)
   useEffect(() => {
@@ -188,8 +158,9 @@ export function useDemoAppState() {
       setCurrentPage(page);
 
       if (courseId) {
-        const course = mockCourses.find(c => c.id === courseId);
-        if (course) setSelectedCourse(course);
+        // Should fetch course by ID asynchronously if not already selected
+        // For now, we rely on the component route to fetch data if selectedCourse is null
+        console.log('[useDemoAppState] PopState courseId:', courseId);
       }
     };
 
@@ -355,10 +326,7 @@ export function useDemoAppState() {
     const status = isPublic ? 'approved' : 'pending';
     const newRequest = { ...request, id: Date.now(), status, requestedAt: new Date().toLocaleString() };
     setEnrollmentRequests(prev => [...prev, newRequest]);
-    // Nếu là public, cập nhật enrolledUsers trong mockCourses
-    if (isPublic && request.courseId && request.userId) {
-      addUserToCourseEnrolledUsers(String(request.courseId), Number(request.userId));
-    }
+    // Nếu là public, cập nhật enrolledUsers không cần thiết vì API đã xử lý
     // Gọi callback nếu có (để cập nhật UI ngay)
     if (request.onSuccess && typeof request.onSuccess === 'function') {
       request.onSuccess();

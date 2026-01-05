@@ -26,7 +26,6 @@ import { toast } from 'sonner';
 import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogFooter as ConfirmDialogFooter } from '@/components/ui/dialog';
 import { Course, User, Page } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
-import { mockUsers } from '@/services/mocks';
 import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI, usersAPI } from '@/services/api';
 import { ReviewForm } from '@/components/shared/ReviewForm';
 import { StarRating } from '@/components/shared/StarRating';
@@ -65,6 +64,7 @@ interface CourseDetailPageProps {
   onEnrollRequest?: (request: any) => void;
   setSelectedUser?: (user: User) => void;
   setSelectedTag?: (tag: any) => void;
+  isOwner?: boolean;
 }
 
 
@@ -76,13 +76,14 @@ export function CourseDetailPage({
   enrollmentRequests,
   onEnrollRequest,
   setSelectedUser,
-  setSelectedTag
+  setSelectedTag,
+  isOwner: isOwnerProp
 }: CourseDetailPageProps) {
-  // Robust owner detection
-  const isOwner = currentUser && (
+  // Robust owner detection: Use prop if available, otherwise check internally
+  const isOwner = isOwnerProp ?? (currentUser && (
     (course.ownerId && course.ownerId === currentUser.id) ||
     (course.owner?.id && course.owner?.id === currentUser.id)
-  );
+  ));
   // Loading state for access check
   // ...
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
@@ -203,7 +204,7 @@ export function CourseDetailPage({
         // Fetch full user data from API
         const usersRes = await usersAPI.getAllUsers();
         const fullUser = usersRes.data?.find((u: User) => u.id === fullCourse.owner.id);
-        
+
         if (fullUser) {
           setSelectedUser(fullUser);
           navigateTo('user-detail');
@@ -592,8 +593,8 @@ export function CourseDetailPage({
                       if (!tagName) return null;
 
                       return (
-                        <Badge 
-                          key={index} 
+                        <Badge
+                          key={index}
                           className="bg-white/20 hover:bg-white/30 text-white border-none rounded-md px-3 py-1 font-normal cursor-pointer transition-all hover:scale-105"
                           onClick={() => {
                             if (setSelectedTag && tagData) {

@@ -20,13 +20,24 @@ const normalizeUser = (profile: any, authUser?: any): any => {
 
 export const UserModel = {
   async findByEmail(email: string) {
-    const { data, error } = await supabaseAdmin
+    // 1. Find user in Auth (since user_profiles doesn't store email)
+    // Note: This iterates all users, which is fine for small scale. 
+    // For large scale, we should store email in profiles or index metadata.
+    const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
+    if (error) throw error;
+
+    const authUser = users.find(u => u.email === email);
+    if (!authUser) return null;
+
+    // 2. Find profile
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .select('*')
-      .eq('email', email)
+      .eq('id', authUser.id)
       .single();
-    if (error) throw error;
-    return data;
+
+    if (profileError) throw profileError;
+    return normalizeUser(profile, authUser);
   },
   async findAll() {
     // 1. Lấy tất cả user_profiles
