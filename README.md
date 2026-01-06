@@ -33,18 +33,13 @@
 ### Frontend
 | Công nghệ | Mục đích |
 |-----------|----------|
-| React 18 + TypeScript | UI Framework |
+| React 18 | UI Framework |
 | Vite | Build tool |
-| TailwindCSS | Styling |
-| Shadcn/UI | Component library |
-| React Query | Data fetching |
-| Lottie | Animations |
 
 ### Backend
 | Công nghệ | Mục đích |
 |-----------|----------|
 | Node.js + Express | API Server |
-| TypeScript | Type safety |
 | Supabase | Database + Auth + Storage |
 
 ### Deployment
@@ -108,7 +103,17 @@ cd frontend && npm install
 cd ../backend && npm install
 ```
 
-### 3. Cấu hình môi trường
+### 3. Setup Database (Supabase)
+
+1. Tạo tài khoản tại [supabase.com](https://supabase.com)
+2. Tạo project mới
+3. Vào **SQL Editor** và chạy lần lượt các file SQL trong `backend/database/`:
+   - `schema.sql` - Tạo tables
+   - `rls_policies.sql` - Thiết lập Row Level Security
+   - `storage_setup.sql` - Setup storage buckets
+   - `create_user_profile_trigger.sql` - Trigger tạo profile
+
+### 4. Cấu hình môi trường
 
 #### Backend (`backend/.env`)
 ```env
@@ -134,7 +139,7 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-### 4. Chạy ứng dụng
+### 5. Chạy ứng dụng
 ```bash
 # Terminal 1: Backend
 cd backend
