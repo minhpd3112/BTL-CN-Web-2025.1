@@ -28,3 +28,11 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# Build caches
+.cache/
+.parcel-cache/
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
