@@ -210,20 +210,9 @@ export default function AILearningPathPage({ currentUser, navigateTo }: AILearni
             });
 
             if (response.success && response.data) {
-                toast.success('Đã tạo khóa học thành công!');
-                try {
-                    const courseRes = await coursesAPI.getCourseById(response.data.courseId);
-                    if (courseRes.success && courseRes.data) {
-                        // Navigate with full course data
-                        navigateTo('course-dashboard', courseRes.data as Course);
-                    } else {
-                        // Fallback: navigate without course data (will trigger loading)
-                        navigateTo('course-dashboard', { id: response.data.courseId } as any);
-                    }
-                } catch (fetchError) {
-                    console.error('Failed to fetch course:', fetchError);
-                    navigateTo('course-dashboard', { id: response.data.courseId } as any);
-                }
+                toast.success('Đã tạo khóa học thành công! Bạn có thể xem trong mục "Khóa học của tôi".');
+                // Navigate to my-courses page to see the newly created course
+                navigateTo('my-courses');
             } else {
                 throw new Error(response.message || 'Failed to generate course');
             }

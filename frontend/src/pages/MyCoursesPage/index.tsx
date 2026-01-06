@@ -58,7 +58,11 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               description: course.description || '',
               image: course.image_url || '/placeholder-course.jpg',
               ownerId: course.owner_id,
-              // owner properties removed
+              owner: course.owner || {
+                id: currentUser.id,
+                full_name: currentUser.full_name || currentUser.fullName || currentUser.name,
+                avatar_url: currentUser.avatar_url || currentUser.avatar
+              },
               tags: course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
               visibility: course.visibility as 'public' | 'private',
               status: course.status,
@@ -103,7 +107,7 @@ export function MyCoursesPage({ navigateTo, setSelectedCourse, currentUser }: My
               description: enrollment.course.description || '',
               image: enrollment.course.image_url || '/placeholder-course.jpg',
               ownerId: enrollment.course.owner_id,
-              // owner properties removed
+              owner: enrollment.course.owner,
               tags: enrollment.course.tags?.map((t: any) => t.tag?.name).filter(Boolean) || [],
               visibility: enrollment.course.visibility as 'public' | 'private',
               status: enrollment.course.status,
