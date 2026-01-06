@@ -7,10 +7,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/services/api';
 import { adminAPI } from '@/services/api';
+import { authCookies } from '@/utils/cookieStorage';
 import { toast, Toaster } from 'sonner';
 import { User } from '@/types';
 import { AnimatedSection } from '@/utils/animations';
-import { setSecureItemFallback } from '@/utils/secureStorage';
 
 
 
@@ -91,11 +91,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             googleId: data.user.id,
           };
 
-          // Store auth data immediately
+          // Store auth data in cookies
           if (data.session?.access_token) {
-            setSecureItemFallback('auth_token', data.session.access_token);
-            setSecureItemFallback('auth_token_sync_backup', data.session.access_token);
-            setSecureItemFallback('user_id', realUser.id);
+            authCookies.setAuthToken(data.session.access_token);
+            authCookies.setUserId(realUser.id);
+            authCookies.setUserData(realUser);
           } else {
             toast.error('Lỗi: Không nhận được session. Vui lòng thử lại.');
             setIsLoading(false);
@@ -124,6 +124,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
     setIsLoading(true);
     try {
+      // Note: Make sure http://localhost:3000 is added to Supabase Redirect URLs
       const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin,
       });
@@ -152,6 +153,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   // Hàm handleGoogleLogin mới - Gọi trực tiếp Supabase và kích hoạt chuyển hướng
+  // Note: Make sure http://localhost:3000 is added to Supabase Redirect URLs
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

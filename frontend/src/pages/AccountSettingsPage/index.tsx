@@ -148,8 +148,9 @@ export function AccountSettingsPage({ user, navigateTo, onUpdateUser }: AccountS
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) throw signOutError;
 
-      // 3. Xóa sạch Local Storage để App không nhận diện User cũ
-      localStorage.clear();
+      // 3. Xóa sạch Cookies
+      const { authCookies } = require('@/utils/cookieStorage');
+      authCookies.clearAll();
 
       toast.success('Tài khoản đã được xóa khỏi hệ thống.');
 

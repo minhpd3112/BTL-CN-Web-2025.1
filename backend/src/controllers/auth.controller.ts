@@ -139,6 +139,16 @@ export const authController = {
 
       const formattedUser = formatUserResponse(user, profile);
 
+      // Set HTTP-only secure cookie with auth token
+      const isSecure = process.env.NODE_ENV === 'production';
+      res.cookie('edulearn_auth_token', session.access_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: session.expires_in ? session.expires_in * 1000 : 7 * 24 * 60 * 60 * 1000, // 7 days default
+        path: '/',
+      });
+
       res.json({
         success: true,
         message: 'Login successful',
@@ -172,6 +182,9 @@ export const authController = {
           message: error.message,
         });
       }
+
+      // Clear HTTP-only auth cookie
+      res.clearCookie('edulearn_auth_token', { path: '/' });
 
       res.json({
         success: true,

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase, notificationsAPI } from '@/services/api';
-import { getSecureItem, setSecureItem, removeSecureItem, isWebCryptoAvailable, getSecureItemFallback, setSecureItemFallback, getSecureItemFast, setSecureItemFast } from '@/utils/secureStorage';
+import { authCookies } from '@/utils/cookieStorage';
 import { User, Course, Page, Notification, EnrollmentRequest, Tag } from '@/types';
 import { authAPI } from '@/services/api';
 
@@ -104,9 +104,10 @@ export function useDemoAppState() {
             totalStudents: 0
           };
 
-          // Store tokens
-          setSecureItemFallback('auth_token', session.access_token);
-          setSecureItemFallback('user_id', session.user.id);
+          // Store tokens in cookies
+          authCookies.setAuthToken(session.access_token);
+          authCookies.setUserId(session.user.id);
+          authCookies.setUserData(user);
 
           setCurrentUser(user as any);
 
@@ -282,9 +283,7 @@ export function useDemoAppState() {
 
   const handleLogout = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch (e) { console.error(e); }
-    removeSecureItem('auth_token');
-    removeSecureItem('user_id');
-    removeSecureItem('user_data');
+    authCookies.clearAll();
     setCurrentUser(null);
     setUserGooglePicture(null);
     setCurrentPage('login');
@@ -294,8 +293,9 @@ export function useDemoAppState() {
 
   const handleUpdateUser = useCallback((updatedUser: User) => {
     setCurrentUser(updatedUser);
-    // Store ONLY auth token and user ID - not full user data
-    localStorage.setItem('user_id', updatedUser.id);
+    // Store user data in cookies
+    authCookies.setUserId(updatedUser.id);
+    authCookies.setUserData(updatedUser);
   }, []);
 
   const isOwner = useCallback((course: Course) =>

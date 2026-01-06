@@ -21,21 +21,26 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
+    // Try to get token from Authorization header first
+    let token = null;
     const authHeader = req.headers.authorization;
 
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if ((req.cookies as any)?.edulearn_auth_token) {
+      // Fallback to reading from cookie if no Authorization header
+      token = (req.cookies as any).edulearn_auth_token;
+    }
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
       });
     }
-    const token = authHeader.substring(7);
 
-
-    // Thử xác thực bằng JWT admin trước
+    // Try to verify as admin JWT first
     const adminPayload = verifyAdminToken(token) as { id: string; email: string; role: string } | null;
-
 
     if (adminPayload && typeof adminPayload === 'object' && adminPayload.role === 'admin') {
       req.user = {
@@ -48,8 +53,7 @@ export const authenticate = async (
       return next();
     }
 
-    // Nếu không phải JWT admin thì xác thực Supabase như cũ
-
+    // Verify with Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error) {
@@ -66,7 +70,6 @@ export const authenticate = async (
         message: 'Invalid or expired token',
       });
     }
-
 
     req.user = {
       id: user.id,

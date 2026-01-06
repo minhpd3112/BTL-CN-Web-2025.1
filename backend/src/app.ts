@@ -1,5 +1,6 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
@@ -46,6 +47,7 @@ app.use(helmet({
 }));
 
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // CORS
+app.use(cookieParser()); // Parse cookies
 app.use(morgan('dev')); // Logging
 app.use(express.json({ limit: '50mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Parse URL-encoded bodies
