@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -49,7 +50,7 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<Array<{ value: string; label: string }>>([]);
   const [courseOverview, setCourseOverview] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
@@ -87,14 +88,17 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
       try {
         const response = await tagsAPI.getAllTags();
         if (response.success && response.data) {
-          let tagNames = response.data.map((tag: any) => tag.name);
+          let tagOptions = response.data.map((tag: any) => ({
+            value: tag.name,
+            label: tag.name
+          }));
           // Sort tags: "Others" always at the end
-          tagNames = tagNames.sort((a: string, b: string) => {
-            if (a.toLowerCase() === 'others') return 1;
-            if (b.toLowerCase() === 'others') return -1;
-            return a.localeCompare(b);
+          tagOptions = tagOptions.sort((a: { value: string; label: string }, b: { value: string; label: string }) => {
+            if (a.value.toLowerCase() === 'others') return 1;
+            if (b.value.toLowerCase() === 'others') return -1;
+            return a.value.localeCompare(b.value);
           });
-          setAvailableTags(tagNames);
+          setAvailableTags(tagOptions);
         }
       } catch (error: any) {
         console.error('Error fetching tags:', error);
@@ -693,25 +697,19 @@ export function CreateCoursePage({ navigateTo, currentUser }: CreateCoursePagePr
                     )}
 
                     {/* Tag Selection Dropdown */}
-                    <Select
+                    <Combobox
+                      items={availableTags}
                       value=""
                       onValueChange={(value) => {
                         if (value && !selectedTags.includes(value)) {
                           setSelectedTags([...selectedTags, value]);
                         }
                       }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Thêm chủ đề..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableTags.map(tagName => (
-                          <SelectItem key={tagName} value={tagName}>
-                            {tagName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Thêm chủ đề..."
+                      searchPlaceholder="Tìm chủ đề..."
+                      emptyText="Không tìm thấy chủ đề."
+                      className="w-full"
+                    />
                     <p className="text-xs text-gray-500">
                       Chọn các chủ đề phù hợp để học viên dễ tìm kiếm khóa học của bạn
                     </p>
