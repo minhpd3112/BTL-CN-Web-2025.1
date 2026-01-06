@@ -37,12 +37,8 @@ export function UserDetailPage({ user, navigateTo, setSelectedCourse }: UserDeta
       setLoadingCourses(true);
       setCoursesError(null);
       try {
-        const res = await coursesAPI.getAllCourses({ isAdmin: true });
-        // Filter courses by owner_id === user.id (API returns owner_id in snake_case)
-        const filtered = (res.data || []).filter((course: any) => {
-          return course.owner_id === user.id || course.ownerId === user.id;
-        });
-        setUserCourses(filtered);
+        const res = await coursesAPI.getAllCourses({ owner_id: user.id });
+        setUserCourses(res.data || []);
       } catch (e) {
         console.error('Error fetching courses:', e);
         setCoursesError('Không thể tải danh sách khoá học');

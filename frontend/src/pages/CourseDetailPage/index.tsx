@@ -1,31 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Star, Users, Clock, Lock, BarChart3, UserPlus, CheckCircle,
+  Star, Users, Clock, Lock, UserPlus,
   Play, FileText, Award, Video, PlayCircle, Eye, ChevronDown, ChevronUp,
-  Share2, MoreVertical, ArrowLeft, BookOpen
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogFooter as ConfirmDialogFooter } from '@/components/ui/dialog';
 import { Course, User, Page } from '@/types';
-import { AnimatedSection } from '@/utils/animations';
 import { sectionsAPI, coursesAPI, enrollmentsAPI, reviewsAPI, usersAPI } from '@/services/api';
 import { ReviewForm } from '@/components/shared/ReviewForm';
 import { StarRating } from '@/components/shared/StarRating';
@@ -61,8 +48,6 @@ interface CourseDetailPageProps {
   navigateTo: (page: Page, data?: any) => void;
   currentUser: User;
   canAccess: boolean;
-  enrollmentRequests?: any[];
-  onEnrollRequest?: (request: any) => void;
   setSelectedUser?: (user: User) => void;
   setSelectedTag?: (tag: any) => void;
   isOwner?: boolean;
@@ -74,8 +59,6 @@ export function CourseDetailPage({
   navigateTo,
   currentUser,
   canAccess,
-  enrollmentRequests,
-  onEnrollRequest,
   setSelectedUser,
   setSelectedTag,
   isOwner: isOwnerProp
@@ -85,15 +68,7 @@ export function CourseDetailPage({
     (course.ownerId && course.ownerId === currentUser.id) ||
     (course.owner?.id && course.owner?.id === currentUser.id)
   ));
-  // Loading state for access check
-  // ...
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
-  // Dialog state for leaving course
-  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
-  const [showEnrollDialog, setShowEnrollDialog] = useState(false);
-  const [enrollMessage, setEnrollMessage] = useState('');
-  const [expandedSections, setExpandedSections] = useState<string[]>([]);
-  const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews'>('overview');
   // Curriculum state
   const [sections, setSections] = useState<Section[]>([]);
@@ -121,27 +96,10 @@ export function CourseDetailPage({
     if ((course as any).overrideAccess) return true;
     return canAccess;
   });
-  // ...
 
-  // Check if user has pending request
-  const [hasPendingRequest, setHasPendingRequest] = useState(() =>
-    enrollmentRequests?.some(
-      (req: any) => req.courseId === course.id && req.userId === currentUser?.id && req.status === 'pending'
-    ) || false
-  );
-
-  // Check if user is already enrolled (will be updated via API)
   const [isEnrolled, setIsEnrolled] = useState(false);
 
-
-  // Check if user is owner or admin
-  const canManage = isOwner || currentUser?.role === 'admin';
-
-  // Handler for leaving the course
-  // Find enrollment id for this user & course
-  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
-
-  // Fetch enrollments from backend on mount and after join
+  // Fetch enrollments from backend on mount
   useEffect(() => {
     if (!currentUser?.id) return;
     enrollmentsAPI.getMyEnrollments().then((data: any) => {
@@ -151,31 +109,21 @@ export function CourseDetailPage({
           (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
         )
         : undefined;
-      setEnrollmentId(found?.id || null);
       setIsEnrolled(!!found);
     });
-    // Only update hasPendingRequest from prop
-    setHasPendingRequest(
-      enrollmentRequests?.some(
-        (req: any) => req.courseId === course.id && req.userId === Number(currentUser?.id) && req.status === 'pending'
-      ) || false
-    );
   }, [course.id, currentUser?.id, isEnrolled]);
 
   const handleEnrollRequest = async () => {
-    // For public courses, no message required
-    if (course.visibility === 'private' && !enrollMessage.trim()) {
-      toast.error('Vui lòng nhập lời nhắn');
+    // Only allow joining public courses directly
+    if (course.visibility === 'private') {
+      toast.error('Khóa học này chỉ cho phép tham gia qua lời mời');
       return;
     }
 
-    // Gọi API enroll thực tế
     try {
       await enrollmentsAPI.create({
-        course_id: course.id,
-        request_message: enrollMessage
+        course_id: course.id
       });
-      // Sau khi join, fetch lại enrollments để cập nhật trạng thái
       const data = await enrollmentsAPI.getMyEnrollments();
       const enrollments = Array.isArray(data) ? data : data.data;
       const found = enrollments && Array.isArray(enrollments)
@@ -185,7 +133,6 @@ export function CourseDetailPage({
         : undefined;
       setIsEnrolled(!!found);
       if (!!found) setActualCanAccess(true);
-      setHasPendingRequest(false);
       toast.success('Bạn đã tham gia khóa học thành công!');
     } catch (err: any) {
       if (err?.response?.status === 400 && err?.response?.data?.message?.includes('Already enrolled')) {
@@ -195,8 +142,6 @@ export function CourseDetailPage({
         toast.error('Đăng ký thất bại!');
       }
     }
-    setShowEnrollDialog(false);
-    setEnrollMessage('');
   };
 
   const handleOwnerClick = async () => {
@@ -257,14 +202,6 @@ export function CourseDetailPage({
     }
   };
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev =>
-      prev.includes(sectionId)
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
-  };
-
   const toggleCurriculumSection = (sectionId: string) => {
     setCurriculumExpandedSections(prev =>
       prev.includes(sectionId)
@@ -283,7 +220,6 @@ export function CourseDetailPage({
         const response = await sectionsAPI.getByCourseId(course.id.toString());
         if (response.success && response.data) {
           setSections(response.data);
-          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching curriculum:', error);
@@ -304,7 +240,6 @@ export function CourseDetailPage({
         const response = await coursesAPI.getCourseById(course.id.toString());
         if (response.success && response.data) {
           setFullCourse(response.data);
-          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching course details:', error);
@@ -322,7 +257,6 @@ export function CourseDetailPage({
       try {
         // Backend now allows enrolled students to view count
         const response = await enrollmentsAPI.getByCourseId(course.id.toString());
-        // ...existing code...
 
         if (response.success && response.data) {
           // Filter for approved enrollments
@@ -331,9 +265,7 @@ export function CourseDetailPage({
             : [];
 
           setStudentCount(approvedEnrollments.length);
-          // ...existing code...
         } else {
-          // ...existing code...
         }
       } catch (error: any) {
         console.error('Error fetching student count:', error);
@@ -411,10 +343,7 @@ export function CourseDetailPage({
   // Fetch user's review and check if they can review
   useEffect(() => {
     const checkReviewEligibility = async () => {
-      // ...existing code...
-
       if (!currentUser || !isEnrolled) {
-        // ...existing code...
         setCanReview(false);
         return;
       }
@@ -427,10 +356,8 @@ export function CourseDetailPage({
         );
         if (reviewResponse.success && reviewResponse.data) {
           setMyReview(reviewResponse.data);
-          // ...existing code...
         }
       } catch (error: any) {
-        // ...existing code...
         setMyReview(null);
       }
 
@@ -438,28 +365,23 @@ export function CourseDetailPage({
       try {
         const progressResponse = await enrollmentsAPI.getMyEnrollments();
         if (progressResponse.success && progressResponse.data) {
-          // ...existing code...
 
           const enrollment = progressResponse.data.find(
             (e: any) => {
-              // ...existing code...
               return e.course_id === course.id || e.course_id.toString() === course.id.toString();
             }
           );
 
-          // ...existing code...
 
           if (enrollment?.progress) {
             const percentage = enrollment.progress.percentage || 0;
             const completed = enrollment.progress.completed || 0;
             const total = enrollment.progress.total || 0;
-            // ...existing code...
             setCourseProgress(percentage);
             // Can review if completed all lessons OR percentage is 100
             const isCompleted = total > 0 && completed >= total;
             setCanReview(isCompleted || percentage >= 100);
           } else {
-            // ...existing code...
             setCourseProgress(0);
             setCanReview(false);
           }
@@ -473,20 +395,6 @@ export function CourseDetailPage({
 
     checkReviewEligibility();
   }, [currentUser, isEnrolled, course.id]);
-
-  // Fetch enrollment ID for leaving course
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    enrollmentsAPI.getMyEnrollments().then((data: any) => {
-      const enrollments = Array.isArray(data) ? data : data.data;
-      const found = enrollments && Array.isArray(enrollments)
-        ? enrollments.find(
-          (e) => (e.course_id === course.id || e.courseId === course.id) && (e.status === 'approved') && (e.user_id === currentUser.id || e.userId === currentUser.id)
-        )
-        : undefined;
-      setEnrollmentId(found?.id || null);
-    });
-  }, [course.id, currentUser?.id, isEnrolled]);
 
   // Calculate total course duration based on lesson types
   const calculateCourseDuration = () => {
@@ -523,11 +431,6 @@ export function CourseDetailPage({
     return `${minutes} phút`;
   };
 
-  const getYouTubeEmbedUrl = (url: string) => {
-    const videoId = url.includes('youtube.com') ? url.split('v=')[1]?.split('&')[0] : url;
-    return `https://www.youtube.com/embed/${videoId}`;
-  };
-
   if (isLoadingAccess) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
@@ -550,21 +453,6 @@ export function CourseDetailPage({
         </Card>
       </div>
     );
-  }
-
-  const handleLeaveCourse = async () => {
-    if (!enrollmentId) {
-      toast.error('Không tìm thấy thông tin tham gia khoá học!');
-      return;
-    }
-    try {
-      await enrollmentsAPI.leaveCourse(enrollmentId);
-      setIsEnrolled(false);
-      toast.success('Bạn đã rời khỏi khoá học.');
-    } catch (err) {
-      toast.error('Rời khoá học thất bại!');
-    }
-    setShowLeaveDialog(false);
   };
 
   return (
@@ -671,7 +559,6 @@ export function CourseDetailPage({
                   </div>
                   <CardContent className="p-4">
                     {(() => {
-                      // ...existing code...
                       return (isOwner || currentUser?.role === 'admin');
                     })() ? (
                       <Button
@@ -682,111 +569,25 @@ export function CourseDetailPage({
                         Xem nội dung
                       </Button>
                     ) : isEnrolled ? (
-                      <>
-                        <Button
-                          className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
-                          onClick={() => navigateTo('learning')}
-                        >
-                          <PlayCircle className="w-4 h-4 mr-2" />
-                          Đã tham gia
-                        </Button>
-                        <Button
-                          className="w-full mt-2 border border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300 h-10 transition-all duration-200"
-                          onClick={() => setShowLeaveDialog(true)}
-                        >
-                          Rời khóa học
-                        </Button>
-                        <ConfirmDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-                          <ConfirmDialogContent>
-                            <ConfirmDialogHeader>
-                              <ConfirmDialogTitle>Bạn có chắc chắn muốn rời khoá học này?</ConfirmDialogTitle>
-                            </ConfirmDialogHeader>
-                            <div className="py-4 text-gray-700">Sau khi rời, bạn sẽ không thể truy cập nội dung khoá học này nữa.</div>
-                            <ConfirmDialogFooter>
-                              <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>Huỷ</Button>
-                              <Button className="bg-red-600 text-white hover:bg-red-700" onClick={handleLeaveCourse}>Xác nhận rời khoá</Button>
-                            </ConfirmDialogFooter>
-                          </ConfirmDialogContent>
-                        </ConfirmDialog>
-                      </>
-                    ) : hasPendingRequest ? (
                       <Button
-                        className="w-full h-11"
-                        variant="outline"
-                        disabled
+                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
+                        onClick={() => navigateTo('learning')}
                       >
-                        <Clock className="w-4 h-4 mr-2" />
-                        Đang chờ duyệt
+                        <PlayCircle className="w-4 h-4 mr-2" />
+                        Vào học
+                      </Button>
+                    ) : course.visibility === 'public' ? (
+                      <Button
+                        className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300"
+                        onClick={handleEnrollRequest}
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Tham gia học
                       </Button>
                     ) : (
-                      <Dialog open={showEnrollDialog} onOpenChange={setShowEnrollDialog}>
-                        <DialogTrigger asChild>
-                          <Button className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-11 shadow-md hover:shadow-lg transition-all duration-300">
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            {course.visibility === 'public' ? 'Tham gia học' : 'Đăng ký học'}
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>
-                              {course.visibility === 'public' ? 'Tham gia khóa học' : 'Đăng ký học khóa học'}
-                            </DialogTitle>
-                            <DialogDescription>
-                              {course.visibility === 'public'
-                                ? 'Nhấn xác nhận để tham gia khóa học ngay'
-                                : 'Gửi yêu cầu tham gia khóa học đến người tạo'}
-                            </DialogDescription>
-                          </DialogHeader>
-
-                          <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="enroll-name">Họ tên</Label>
-                              <Input
-                                id="enroll-name"
-                                value={currentUser?.name}
-                                disabled
-                                className="mt-2"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="enroll-email">Email</Label>
-                              <Input
-                                id="enroll-email"
-                                value={currentUser?.email}
-                                disabled
-                                className="mt-2"
-                              />
-                            </div>
-                            {course.visibility === 'private' && (
-                              <div>
-                                <Label htmlFor="enroll-message">
-                                  Lời nhắn đến giảng viên <span className="text-red-500">*</span>
-                                </Label>
-                                <Textarea
-                                  id="enroll-message"
-                                  placeholder="Ví dụ: Tôi rất quan tâm đến khóa học này vì..."
-                                  value={enrollMessage}
-                                  onChange={(e) => setEnrollMessage(e.target.value)}
-                                  className="mt-2"
-                                  rows={4}
-                                />
-                              </div>
-                            )}
-                          </div>
-
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setShowEnrollDialog(false)}>
-                              Hủy
-                            </Button>
-                            <Button
-                              className="bg-[#1E88E5] text-white hover:bg-[#1565C0]"
-                              onClick={handleEnrollRequest}
-                            >
-                              {course.visibility === 'public' ? 'Xác nhận' : 'Gửi yêu cầu'}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                      <div className="text-center text-sm text-gray-500 py-2">
+                        Khóa học riêng tư - Chỉ tham gia qua lời mời
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -1096,204 +897,6 @@ export function CourseDetailPage({
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Admin Content Preview Tab - Disabled: Requires proper mock data or real implementation */}
-          {false && currentUser?.role === 'admin' && (
-            <TabsContent value="content-preview">
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* Left: Lesson List (2 columns) */}
-                <div className="lg:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Danh sách bài học</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <ScrollArea className="h-[600px] pr-4">
-                        <div className="space-y-3">
-                          {sections.map((section) => (
-                            <Card key={section.id} className="border">
-                              <Collapsible
-                                open={expandedSections.includes(section.id)}
-                                onOpenChange={() => toggleSection(section.id)}
-                              >
-                                <CollapsibleTrigger asChild>
-                                  <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50">
-                                    <h4 className="text-sm">{section.title}</h4>
-                                    {expandedSections.includes(section.id) ? (
-                                      <ChevronUp className="w-4 h-4" />
-                                    ) : (
-                                      <ChevronDown className="w-4 h-4" />
-                                    )}
-                                  </div>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                  <div className="px-4 pb-4 space-y-2">
-                                    {section.lessons.map((lesson, idx) => (
-                                      <button
-                                        key={lesson.id}
-                                        onClick={() => setSelectedLesson(lesson)}
-                                        className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedLesson?.id === lesson.id
-                                          ? 'border-[#1E88E5] bg-[#1E88E5]/5'
-                                          : 'border-gray-200 hover:border-gray-300'
-                                          }`}
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-xs flex-shrink-0">
-                                            {idx + 1}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 text-sm">
-                                              {lesson.content_type === 'video' && <Video className="w-4 h-4 text-[#1E88E5]" />}
-                                              {lesson.content_type === 'text' && <FileText className="w-4 h-4 text-green-600" />}
-                                              {lesson.content_type === 'pdf' && <FileText className="w-4 h-4 text-red-600" />}
-                                              {lesson.content_type === 'quiz' && <Award className="w-4 h-4 text-orange-600" />}
-                                              <span className="truncate">{lesson.title}</span>
-                                            </div>
-                                            <div className="text-xs text-gray-500">{lesson.duration}</div>
-                                          </div>
-                                          <PlayCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                        </div>
-                                      </button>
-                                    ))}
-                                  </div>
-                                </CollapsibleContent>
-                              </Collapsible>
-                            </Card>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Right: Preview Area (3 columns) */}
-                <div className="lg:col-span-3">
-                  {!selectedLesson ? (
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-center h-[600px] text-gray-500">
-                          <div className="text-center">
-                            <Eye className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                            <p>Chọn một bài học để xem nội dung</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Video Preview */}
-                      {selectedLesson.content_type === 'video' && selectedLesson.content_url && (
-                        <Card>
-                          <CardContent className="p-0">
-                            <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                              <iframe
-                                src={getYouTubeEmbedUrl(selectedLesson.content_url)}
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* Text Preview */}
-                      {selectedLesson.content_type === 'text' && selectedLesson.content_text && (
-                        <Card>
-                          <CardContent className="p-6">
-                            <div className="prose max-w-none">
-                              <div className="p-6 bg-gray-50 rounded-lg border">
-                                <pre className="whitespace-pre-wrap text-sm">{selectedLesson.content_text}</pre>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* PDF Preview */}
-                      {selectedLesson.content_type === 'pdf' && (
-                        <Card>
-                          <CardContent className="p-6">
-                            <div className="space-y-4">
-                              <Alert className="bg-blue-50 border-blue-200">
-                                <AlertDescription className="text-blue-800 text-sm">
-                                  📄 <strong>Tài liệu PDF:</strong> {selectedLesson.content_url}
-                                </AlertDescription>
-                              </Alert>
-                              <div className="aspect-[3/4] rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                                <div className="text-center text-gray-500">
-                                  <FileText className="w-20 h-20 text-gray-300 mx-auto mb-3" />
-                                  <p className="text-sm">PDF Preview</p>
-                                  <p className="text-xs mt-1">{selectedLesson.content_url}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* Quiz Preview */}
-                      {selectedLesson.content_type === 'quiz' && selectedLesson.quizQuestions && (
-                        <div className="space-y-6">
-                          {selectedLesson.quizQuestions.map((q: any, qIdx: number) => (
-                            <Card key={qIdx} className="border-2">
-                              <CardContent className="p-6">
-                                <div className="flex gap-4 mb-4">
-                                  <div className="w-10 h-10 rounded-full bg-[#1E88E5] text-white flex items-center justify-center flex-shrink-0">
-                                    {qIdx + 1}
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="mb-2 text-lg">{q.question}</p>
-                                    <Badge variant="secondary" className="text-xs">
-                                      {q.type === 'single' ? '📝 Chọn 1 đáp án' : '☑️ Chọn nhiều đáp án'}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <div className="space-y-3 ml-14">
-                                  {q.options.map((option: string, oIdx: number) => {
-                                    const isCorrect = q.correctAnswers.includes(oIdx);
-                                    return (
-                                      <div
-                                        key={oIdx}
-                                        className={`p-4 rounded-lg border-2 transition-all ${isCorrect
-                                          ? 'border-green-500 bg-green-50'
-                                          : 'border-gray-200 bg-white'
-                                          }`}
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                                            }`}>
-                                            {isCorrect && (
-                                              <CheckCircle className="w-4 h-4 text-white" />
-                                            )}
-                                          </div>
-                                          <span className={isCorrect ? 'font-medium text-green-700' : 'text-gray-700'}>
-                                            {option}
-                                          </span>
-                                          {isCorrect && (
-                                            <Badge className="ml-auto bg-green-500 text-white">✓ Đáp án đúng</Badge>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                {q.explanation && (
-                                  <div className="ml-14 mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
-                                    <p className="text-sm"><strong>💡 Giải thích:</strong> {q.explanation}</p>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          )}
         </Tabs>
       </div>
     </div>

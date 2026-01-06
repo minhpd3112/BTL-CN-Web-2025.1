@@ -236,3 +236,5 @@ Bây giờ bạn có thể:
 **Chúc bạn code vui vẻ! 🚀**
 
 Nếu gặp vấn đề, hãy kiểm tra lại từng bước hoặc xem file `backend/DATABASE_SETUP.md` để biết thêm chi tiết.
+frontend: npm run build
+backend: pm2 restart edulearn-backend

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ArrowLeft,
-  Share2,
   MoreVertical,
   Eye,
   BarChart3,
@@ -53,10 +52,6 @@ export function CourseDashboardPage({
     );
   }
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success('Đã sao chép liên kết khóa học');
-  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -88,14 +83,6 @@ export function CourseDashboardPage({
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={handleShare}
-            className="bg-white border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5]/10 shadow-sm hover:shadow-md transition-all"
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Chia sẻ
-          </Button>
           <Button
             className="bg-gradient-to-r from-[#1E88E5] to-[#1565C0] text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
             onClick={() => navigateTo('learning', course)}

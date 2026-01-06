@@ -53,7 +53,7 @@ export function ChristmasHeroSection() {
 
     useEffect(() => {
         const calculateTimeLeft = () => {
-            const christmas = new Date('2025-12-25T00:00:00');
+            const christmas = new Date('2026-12-25T00:00:00');
             const now = new Date();
             const difference = christmas.getTime() - now.getTime();
 
