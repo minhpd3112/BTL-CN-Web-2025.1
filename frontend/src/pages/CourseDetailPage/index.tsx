@@ -548,7 +548,7 @@ export function CourseDetailPage({
               </div>
 
               {/* Right Column: Course Card */}
-              <div className="hidden lg:block lg:col-span-1">
+              <div className="lg:col-span-1">
                 <Card className="bg-white overflow-hidden shadow-xl border-none translate-y-8">
                   <div className="aspect-video relative overflow-hidden">
                     <img
