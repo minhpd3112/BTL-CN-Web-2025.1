@@ -9,6 +9,42 @@ interface GenerateCourseRequest {
     goal: string;
 }
 
+// Helper function to convert error codes to user-friendly messages
+const getUserFriendlyErrorMessage = (error: any): string => {
+    const errorMessage = error?.message || '';
+
+    // Map error codes to user-friendly messages
+    const errorMessages: Record<string, string> = {
+        'AI_GENERATION_FAILED': 'Hệ thống AI đang quá tải. Vui lòng thử lại sau ít phút.',
+        'AI_RESPONSE_INVALID': 'AI không thể tạo nội dung hợp lệ. Vui lòng thử lại với chủ đề khác.',
+        'AI_QUIZ_GENERATION_FAILED': 'Không thể tạo câu hỏi quiz. Vui lòng thử lại sau.',
+    };
+
+    // Check for specific error codes
+    for (const [code, message] of Object.entries(errorMessages)) {
+        if (errorMessage.includes(code)) {
+            return message;
+        }
+    }
+
+    // Check for common error patterns
+    if (errorMessage.includes('quota') || errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        return 'Hệ thống đang quá tải. Vui lòng thử lại sau ít phút.';
+    }
+    if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+        return 'Yêu cầu bị timeout. Vui lòng thử lại.';
+    }
+    if (errorMessage.includes('network') || errorMessage.includes('ECONNREFUSED')) {
+        return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.';
+    }
+    if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
+        return 'AI không thể tạo nội dung phù hợp. Vui lòng thử lại với mô tả khác.';
+    }
+
+    // Default friendly message
+    return 'Đã xảy ra lỗi khi tạo lộ trình. Vui lòng thử lại sau.';
+};
+
 export const aiCourseController = {
     /**
      * Preview a course without saving (for user review)
@@ -60,7 +96,7 @@ export const aiCourseController = {
             console.error('Preview course error:', error);
             return res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to generate course preview',
+                message: getUserFriendlyErrorMessage(error),
             });
         }
     },
@@ -282,7 +318,7 @@ export const aiCourseController = {
             console.error('Generate course error:', error);
             return res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to generate course',
+                message: getUserFriendlyErrorMessage(error),
             });
         }
     },

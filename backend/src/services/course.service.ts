@@ -58,9 +58,10 @@ export const courseService = {
       const offset = limit > 0 ? (page - 1) * limit : 0;
 
       // Nếu truyền owner_id thì trả về tất cả khoá học của owner đó (bỏ filter status/visibility)
+      // Use supabaseAdmin to bypass RLS and get owner profile
       let query;
       if (filters.owner_id) {
-        query = supabase
+        query = supabaseAdmin
           .from('courses')
           .select(`
             *,

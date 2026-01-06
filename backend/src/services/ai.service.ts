@@ -133,7 +133,7 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
 
       if (startIndex === -1 || endIndex === -1) {
         console.error('No JSON object found in response');
-        throw new Error('AI response does not contain valid JSON object');
+        throw new Error('AI_RESPONSE_INVALID');
       }
 
       text = text.substring(startIndex, endIndex + 1);
@@ -215,7 +215,8 @@ Trả về JSON theo format sau (KHÔNG có markdown code block, chỉ JSON thu�
       return courseOutline;
     } catch (error: any) {
       console.error('AI generation error:', error);
-      throw new Error(`Failed to generate course outline: ${error.message}`);
+      // Throw user-friendly error code instead of technical message
+      throw new Error('AI_GENERATION_FAILED');
     }
   },
 
@@ -255,7 +256,7 @@ Trả về JSON array (KHÔNG có markdown code block):
       return JSON.parse(text);
     } catch (error: any) {
       console.error('Quiz generation error:', error);
-      throw new Error(`Failed to generate quiz: ${error.message}`);
+      throw new Error('AI_QUIZ_GENERATION_FAILED');
     }
   },
 };

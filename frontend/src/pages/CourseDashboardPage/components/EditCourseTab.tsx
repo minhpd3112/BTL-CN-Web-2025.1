@@ -58,13 +58,13 @@ interface EditCourseTabProps {
 }
 
 export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTabProps) {
-    // Form states - initialize with course data
-    const [courseName, setCourseName] = useState(course.title);
-    const [description, setDescription] = useState(course.description);
-    const [visibility, setVisibility] = useState<'private' | 'public'>(course.visibility || 'private');
-    const [selectedTags, setSelectedTags] = useState<string[]>(course.tags || []);
-    const [courseOverview, setCourseOverview] = useState(course.overview || '');
-    const [imageUrl, setImageUrl] = useState(course.image || '');
+    // Form states - initialize with course data (use defaults if course is null)
+    const [courseName, setCourseName] = useState(course?.title || '');
+    const [description, setDescription] = useState(course?.description || '');
+    const [visibility, setVisibility] = useState<'private' | 'public'>(course?.visibility || 'private');
+    const [selectedTags, setSelectedTags] = useState<string[]>(course?.tags || []);
+    const [courseOverview, setCourseOverview] = useState(course?.overview || '');
+    const [imageUrl, setImageUrl] = useState(course?.image || '');
     const [availableTags, setAvailableTags] = useState<Array<{ value: string; label: string }>>([]);
 
     // Loading states
@@ -126,7 +126,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
     // Fetch full course details on mount
     useEffect(() => {
         const fetchCourseDetails = async () => {
-            if (!course.id) return;
+            if (!course?.id) return;
 
             setIsLoadingCourse(true);
             try {
@@ -182,12 +182,12 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         };
 
         fetchCourseDetails();
-    }, [course.id]);
+    }, [course?.id]);
 
     // Fetch sections and lessons on mount
     useEffect(() => {
         const fetchCourseContent = async () => {
-            if (!course.id) return;
+            if (!course?.id) return;
 
             setIsLoading(true);
             try {
@@ -205,7 +205,7 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
         };
 
         fetchCourseContent();
-    }, [course.id]);
+    }, [course?.id]);
 
     const handleEditSection = (section: Section) => {
         setEditingSection(section);
@@ -704,6 +704,17 @@ export function EditCourseTab({ course, currentUser, navigateTo }: EditCourseTab
             }
         }
     };
+
+    // Early return if course is not available (after all hooks are called)
+    if (!course || !course.id) {
+        return (
+            <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                    <p className="text-gray-500">Đang tải thông tin khóa học...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-5xl mx-auto py-6">

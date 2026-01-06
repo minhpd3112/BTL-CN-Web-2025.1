@@ -470,8 +470,6 @@ export function AppShell({ state, actions }: AppShellProps) {
                 currentUser={currentUser}
                 isOwner={isOwner(selectedCourse)}
                 canAccess={selectedCourse.overrideAccess === true ? true : canAccessCourse(selectedCourse)}
-                enrollmentRequests={enrollmentRequests}
-                onEnrollRequest={handleEnrollRequest}
               />
             )}
             {currentPage === 'tag-detail' && <TagDetailPage navigateTo={navigateTo} setSelectedCourse={setSelectedCourse} currentUser={currentUser} selectedTag={selectedTag} />}
