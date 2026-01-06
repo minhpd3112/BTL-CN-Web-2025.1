@@ -11,8 +11,6 @@ import { Snowfall } from '@/components/christmas/Snowfall';
 import { ChristmasCardWrapper } from '@/components/christmas/ChristmasCardWrapper';
 import { ChristmasHeroSection } from '@/components/christmas/ChristmasHeroSection';
 import './styles.css';
-import Lottie from 'lottie-react';
-import hatAnimation from '@/components/christmas/Christmas hat.json';
 import { useState, useEffect } from 'react';
 import { enrollmentsAPI } from '@/services/api';
 
@@ -130,13 +128,7 @@ export function HomePage({ navigateTo, setSelectedCourse, currentUser, setSelect
           <div className="max-w-4xl">
             {/* Main Heading with Gradient Effect */}
             <h1 className="home-hero-title mb-6 leading-tight">
-              Học tập không giới hạ
-              <span className="relative inline-block">
-                n
-                <div className="absolute w-24 h-24 pointer-events-none z-10" style={{ top: '5px', left: '-22px', transform: 'rotate(-15deg)' }}>
-                  <Lottie animationData={hatAnimation} loop={true} />
-                </div>
-              </span>
+              Học tập không giới hạn
               <br />
               <span className="home-hero-title-accent">
                 cùng EduLearn

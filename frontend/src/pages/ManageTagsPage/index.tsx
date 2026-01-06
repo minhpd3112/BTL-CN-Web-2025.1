@@ -13,6 +13,7 @@ import { tagsAPI } from '@/services/api';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 import { SearchFilterCard } from '@/components/shared/SearchFilterCard';
+import { DataPagination } from '@/components/shared/DataPagination';
 
 interface TagData {
   id: number;
@@ -62,6 +63,8 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
   }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -81,6 +84,18 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       return a.name.localeCompare(b.name);
     });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredTags.length / ITEMS_PER_PAGE);
+  const paginatedTags = filteredTags.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset page when search changes
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
   const handleOpenAddDialog = () => {
     setFormData({ name: '', description: '', image: '' });
     setImageFile(null); // Reset file
@@ -290,7 +305,7 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       <SearchFilterCard
         placeholder="Tìm kiếm chủ đề..."
         value={searchQuery}
-        onChange={setSearchQuery}
+        onChange={handleSearchChange}
         className="mb-8"
       >
         <div className="md:col-span-6 flex justify-end">
@@ -309,20 +324,31 @@ export function ManageTagsPage({ navigateTo, setSelectedTag }: ManageTagsPagePro
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : filteredTags.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTags.map(tag => (
-            <TagCard
-              key={tag.id}
-              tag={tag}
-              onClick={() => {
-                setSelectedTag?.(tag);
-                navigateTo?.('tag-detail');
-              }}
-              onEdit={openEditDialog}
-              onDelete={openDeleteDialog}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedTags.map(tag => (
+              <TagCard
+                key={tag.id}
+                tag={tag}
+                onClick={() => {
+                  setSelectedTag?.(tag);
+                  navigateTo?.('tag-detail');
+                }}
+                onEdit={openEditDialog}
+                onDelete={openDeleteDialog}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <DataPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <Card className="border-dashed">
           <CardContent className="p-12 text-center">
