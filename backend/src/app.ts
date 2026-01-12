@@ -68,7 +68,7 @@ app.get('/', (req, res) => {
 // ============= ROUTES =============
 app.use('/api', routes);
 
-// ============= ERROR HANDLERS =============
+// ============ ERROR HANDLERS ============
 app.use(notFoundHandler); // 404 handler
 app.use(errorHandler); // Global error handler
 
